@@ -1,0 +1,51 @@
+<div class="dd" id="dragarea">
+<img src="a.png" id="a" alt="">
+<img src="b.png" id="b" alt="">
+<img src="c.png" id="c" alt="">
+<img src="d.png" id="d" alt="">
+</div>
+<div class="dd" id="droparea"></div>
+
+<style type="text/css">
+div.dd{ width:100%; height:100px }
+div#dragarea{ background-color:#80ffff }
+div#droparea{ background-color:#ffff80 }
+div.dd img{ width:100px; height:100px }
+</style>
+
+<script>
+//imgタグ要素を全て取得する
+var elm = document.getElementsByTagName("img");
+
+//全imgタグにdragstartイベントを追加する
+for ( var i=0 ; i < elm.length ; i++ )
+{
+  elm[i].addEventListener("dragstart", function(evt){
+    evt.dataTransfer.setData("text/plain",evt.target.id);
+    evt.stopPropagation();
+  },false);
+}
+
+var obj1 = document.getElementById("droparea");
+
+//ドロップされる側のコードは変化なし
+obj1.addEventListener( "drop" , function(evt){
+  var id = evt.dataTransfer.getData( "text/plain" );
+
+  var obj2 = document.getElementById( id );
+  if( obj2 )
+  {
+    obj1.appendChild( obj2 );  //要素を移動する
+  }
+
+  evt.preventDefault();
+}, false );
+
+//２つのイベントでデフォルト動作を抑制
+obj1.addEventListener( "dragenter" , function(evt){
+  evt.preventDefault();
+}, false );
+obj1.addEventListener( "dragover" , function(evt){
+  evt.preventDefault();
+}, false );
+</script>
