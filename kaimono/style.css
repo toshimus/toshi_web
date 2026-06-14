@@ -1,0 +1,88 @@
+.canvas_free {
+    position: absolute;
+    top:15%;
+    left:32%;
+}
+.free {
+    position: absolute;
+    top:0px;
+    left:0px;
+    z-Index:0;
+    font-size:28px;
+    text-align: center;
+}
+.box1 {
+    position: absolute;
+    top:0px;
+    left:0px;
+    z-Index:0;
+}
+.menu {
+    position: absolute;
+    top:0px;
+    left:0px;
+    z-Index:1000;
+}
+
+.kaitou {
+    position: absolute;
+    top:90px;
+    left:130px;
+    width:500px;
+    height:580px;
+}
+.kaitou_t0 {
+    position: absolute;
+    top:460px;
+    width:500px; 
+    height:100px;
+}
+.kaitou_t {
+    position: absolute;
+    top:440px;
+    width:500px; 
+    height:100px;
+}
+.drag-and-drop {
+    cursor: move;
+    position: absolute;
+    top:300px;
+    left:100px;
+}
+
+.tx1 {
+   font-size:24px;
+}
+.tx2a {
+   font-size:30px;
+}
+.tx2b {
+   font-size:36px;
+}
+.tx3 {
+   font-size:12px;
+}
+.btn {
+   color: black;
+   width: 80%;
+   text-align: center;
+   font-size:36px;
+}
+
+body , input , textarea , select {
+    /* 入力欄にフォーカスが当たっても拡大しない */
+    font-size:24px;
+}
+ 
+body {
+    background-color : white;
+    -webkit-touch-callout:none; // リンク長押しのポップアップを無効化
+    -webkit-user-select:none; // テキスト長押しの選択ボックスを無効化
+    -webkit-overflow-scrolling: touch;
+
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+}

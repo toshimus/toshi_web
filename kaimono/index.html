@@ -1,0 +1,570 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="user-scalable=no,initial-scale=1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <title>買い物学習</title>
+<!-- css -->
+        <link rel="stylesheet" href="style.css" type="text/css" media="all" />
+    </head>
+
+    <body>
+
+<!-- javascript（iOS用：基本設定） -->
+        <script type="text/javascript" language="javascript">
+            /* ピッチインピッチアウトによる拡大縮小を禁止 */
+            document.documentElement.addEventListener('touchstart', function (e) {
+                if (e.touches.length >= 2) {e.preventDefault();}
+            }, {passive: false});
+            /* ダブルタップによる拡大を禁止 */
+            var t = 0;
+            document.documentElement.addEventListener('touchend', function (e) {
+                var now = new Date().getTime();
+                if ((now - t) < 350){
+                    e.preventDefault();
+                }
+                t = now;
+            }, false);
+        </script>
+    
+
+<!-- 支払い画面 -->
+<!--
+	    <div class="tx1" id="taitoru1" style="font-size:40px;"><span id="Q"></span> 円 です。</div>
+-->
+	    <div class="free" id="taitoru1" style="font-size:40px;">円</div>
+	    <div class="free" id="taitoru2" style="font-size:16px;">合計：<span id="G"></span> 円  デバイス：<span id="txM"></span>　幅：<span id="txW"></span>　高さ：<span id="txH"></span></div>
+
+	    <center>
+	    <table border="0" width="90%">
+	    <tbody>
+	        <tr id="tb_1">
+	        <td width="20%"></td>
+	        <td width="20%"></td>
+	        <td width="20%"></td>
+	        <td width="20%" align="right"><input type="button" class="btn2" id="seiretu" value="リセット" style="background-color:#DDD"></td>
+	        <td width="20%" align="right"><input type="button" class="btn2" id="modoru" value="もどる" style="background-color:#DDD"></td>
+	        </tr>
+	    </tbody>
+	    </table>
+	    </center>
+
+	    <div class="box1" id="box1" style="background:#7BF;"></div>  <!-- 支払い -->
+        <input type="button" class="free" id="dekita" value="できた！" style="background-color:#AFF">
+
+<!-- バーコード画面 -->
+	    <div class="menu" id="menu" style="background:#FFF;">
+		    <center>
+		        <div class="tx2a" >買い物学習</div>
+		        <div class="tx1" >さいふ の なか：<span id="s_saifu"></span> 円</div>
+		        <hr>
+		        <div class="tx1" >バーコードをスキャンしてください！</div>
+		        <!-- <div id="num">0 個</div> -->
+		        <input type="number" pattern="\d*" class="tx1" id="scan1" autofocus onchange="scan(this.value);" value="" onblur="myFnc();">
+		        <input type="button" class="tx2a" id="tuika" style="background-color:#AFF" value="ついか！">
+		        <input type="button" class="tx2a" id="torikesi" style="background-color:#F88" value="×とりけし">
+		        <hr>
+		        <table border="0" width="450">
+		        <tr>
+                    <td width="15%" align="right"><canvas id="pic1" width=50 height=0></canvas></td>
+		            <td width="60%" align="left"><div class="tx1" id="name1"></div></td>
+		            <td width="25%" align="right"><div class="tx1" id="en1"></div></td>
+		        </tr>
+		        <tr>
+                    <td width="15%" align="right"><canvas id="pic2" width=50 height=0></canvas></td>
+		            <td width="60%" align="left"><div class="tx1" id="name2"></div></td>
+		            <td width="25%" align="right"><div class="tx1" id="en2"></div></td>
+		        </tr>
+		        <tr>
+                    <td width="15%" align="right"><canvas id="pic3" width=50 height=0></canvas></td>
+		            <td width="60%" align="left"><div class="tx1" id="name3"></div></td>
+		            <td width="25%" align="right"><div class="tx1" id="en3"></div></td>
+		        </tr>
+		        <tr>
+                    <td width="15%" align="right"><canvas id="pic4" width=50 height=0></canvas></td>
+		            <td width="60%" align="left"><div class="tx1" id="name4"></div></td>
+		            <td width="25%" align="right"><div class="tx1" id="en4"></div></td>
+		        </tr>
+		        <tr>
+                    <td width="15%" align="right"><canvas id="pic5" width=50 height=0></canvas></td>
+		            <td width="60%" align="left"><div class="tx1" id="name5"></div></td>
+		            <td width="25%" align="right"><div class="tx1" id="en5"></div></td>
+		        </tr>
+		        </table>
+		    <hr>
+		    <table border="0" width="450">
+		        <tr>
+		            <td width="20%" align="right"></td>
+		            <td width="30%" align="left"><div class="tx2a">合　計</div></td>
+		            <td width="50%" align="right"><div class="tx2b" id="goukei">0 円</div></td>
+		        </tr>
+		    </table>
+		    
+		    <hr><div class="tx2b" >【 しはらい　ほうほう 】</div><hr>
+		    <table border="0" width="60%">
+		        <tr>
+		            <td width="30%" align="center"><img src="img/ka-do.png" id="kaikei1"></td>
+		    		
+		            <td width="30%" align="center"><img src="img/genkin2.png" id="kaikei2"></td>
+		    		
+		            <td width="30%" align="center"><img src="img/genkin1.png" id="kaikei3"></td>
+		    		
+		        </tr>
+		    </table>
+
+		    </center>
+	    </div>
+
+	    <div class="free" id="card_maru" style="background:#7FF;">
+	        <center><canvas id="canvas1big" width="440" height="440">
+	        </canvas></center>
+	        <canvas class="canvas_free" id="pic0a" width=240 height=240></canvas>
+	        <script>
+	            var canvas = document.getElementById("canvas1big").getContext("2d");
+	            canvas.beginPath();
+	            canvas.arc(220, 220, 180, 0, Math.PI*2, true);
+	            canvas.lineWidth = 60;  //線の太さを20ピクセルに指定
+	            canvas.strokeStyle = "#ffffff";  //線の色を緑に指定
+	            canvas.stroke();
+	        </script>
+	        <center>
+	        <div id="card_tx1a">おかいあげ<br>ありがとうございました！<br></div>
+	        <div id="mes0"></div>
+	        <div id="card_tx1b">またの　おこしを。</div>
+	        </center>
+	    </div>
+	    <div class="free" id="card_batu" style="background:#F77;">
+	        <center><canvas id="canvas2big" width="440" height="440">
+	        </canvas></center>
+	        <canvas class="canvas_free" id="pic0b" width=240 height=240></canvas>
+	        <script>
+	            var canvas = document.getElementById("canvas2big").getContext("2d");
+	            canvas.beginPath();
+
+	            canvas.lineCap = "round";  //線の端を丸くする
+	            canvas.moveTo(70,70);
+	            canvas.lineTo(360,360);
+	            canvas.moveTo(70,360);
+	            canvas.lineTo(360,70);
+
+	            canvas.lineWidth = 60;  //線の太さを20ピクセルに指定
+	            canvas.strokeStyle = "#ffffff";  //線の色を緑に指定
+	            canvas.stroke();
+	        </script>
+	        <center>
+	        <div id="card_tx2">ざんねん！<br>おかねが　たりないよ！</div>
+	        </center>
+	    </div>
+
+<!-- 正解○ -->
+	    <div class="kaitou" id="maru" style="background:#6DF;">
+	        <center><canvas id="canvas1" width="600" height="800"></canvas></center>
+	        <script>
+	            var canvas = document.getElementById("canvas1").getContext("2d");
+	            canvas.beginPath();
+	            canvas.arc(250, 240, 180, 0, Math.PI*2, true);
+	            canvas.lineWidth = 60;  //線の太さを20ピクセルに指定
+	            canvas.strokeStyle = "#ffffff";  //線の色を緑に指定
+	            canvas.stroke();
+	        </script>
+
+	        <div class="kaitou_t0" id="maru" style="background:#09F;">
+	        <center><b>
+	            <font size="6" color="#ffffff"><div id="mes1"></div>ありがとうございました！！</font>
+	        </b></center>
+	        </div>
+	    </div>
+
+<!-- 不正解× -->
+	    <div class="kaitou" id="batu" style="background:#F66;">
+	        <center><canvas id="canvas2" width="600" height="800"></canvas></center>
+	        <script>
+	            var canvas = document.getElementById("canvas2").getContext("2d");
+	            canvas.beginPath();
+
+	            canvas.lineCap = "round";  //線の端を丸くする
+	            canvas.moveTo(110,70);
+	            canvas.lineTo(400,360);
+	            canvas.moveTo(110,360);
+	            canvas.lineTo(400,70);
+
+	            canvas.lineWidth = 60;  //線の太さを20ピクセルに指定
+	            canvas.strokeStyle = "#ffffff";  //線の色を緑に指定
+	            canvas.stroke();
+	        </script>
+
+	        <div class="kaitou_t" id="batu" style="background:#F33;">
+	            <center><b>       
+	            <font size="6" color="#ffffff">おしい！たりないよ！</font>
+	            </b></center>
+	        </div>
+	    </div>
+
+<!-- javascript -->
+	    <script type="text/javascript" src="script.js"></script>
+
+	    <script type="text/javascript" language="javascript">
+	        document.getElementById("scan1").focus();//テキストボックスにフォーカスを移す
+
+var data = [
+'0000010,ていしょく,700,100',
+'0000020,ステーキ,1500,101',
+'0000030,ミートスパゲティ,600,102',
+'0000040,カルボナーラ,700,103',
+'0000050,イカすみスパゲティ,700,104',
+'0000060,めんたいこスパゲティ,700,110',
+'0000070,イチゴ,560,111',
+'0000080,メロン,520,112',
+'0000090,ゲーム,14800,113',
+'0000100,ウォークマン,5000,114',
+'0000110,テレビゲーム,24000,120',
+'0000120,オセロ,1000,121',
+'0000130,ブレイブボード,8000,122',
+'0000140,スケボー,3000,123',
+'0000150,ラジコンひこうき,5000,124',
+'0000160,ドローン,100000,130',
+'0000170,くうきいれ,1000,131',
+'0000180,さんしんしゃ,5000,132',
+'0000190,サーフボード,50000,133',
+'0000200,いちりんしゃ,7000,134',
+'0000210,じてんしゃ,15000,140',
+'0000220,デジカメ,10000,141',
+'0000230,けいたいでんわ,30000,142',
+'0000240,カセットウォームマン,3000,143',
+'0000250,CDウォークマン,6000,144',
+'0000260,スマートフォン,80000,150',
+'0000270,デジタルビデオ,30000,151',
+'0000280,せんぷうき,3000,152',
+'0000290,ノートパソコン,13000,153',
+'0000300,パソコン,10000,154',
+'0000310,テレビ,30000,160',
+'0000320,ストーブ,5000,161',
+'0000330,れいぞうこ,35000,162',
+'0000340,せんたっき,40000,163',
+'0000350,のこぎり,1500,164',
+'0000360,チェンソー,20000,170',
+'0000370,でんどうドライバー,4000,171',
+'0000380,エアロバイク,15000,172',
+'0000390,いちりんしゃ,8000,173',
+'0000400,オートバイ,500000,174',
+'0000410,げんつき,150000,200',
+'0000420,いえ,30000000,201',
+'0000430,いえ,30000000,202',
+'0000440,ひこうき,6500000000,203',
+'0000450,ジェットき,8000000000,204',
+'0000460,くるま,2000000,210',
+'0000470,くるま,2000000,211',
+'0000480,えんぴつ,80,300',
+'0000490,じょうぎ,100,301',
+'0000500,はぶらし,110,302',
+'0000510,はくさい,80,303',
+'0000520,えのき,170,304',
+'0000530,しめじ,170,310',
+'0000540,ねぎ,100,311',
+'0000550,レタス,160,312',
+'0000560,キャベツ,160,313',
+'0000570,トマト,150,314',
+'0000580,きゅうり,100,320',
+'0000590,はみがきこ,320,321',
+'0000600,ピーマン,80,322',
+'0000610,ゴーヤー,140,323',
+'0000620,ティッシュ,200,324',
+'0000630,ラムネ,120,330',
+'0000640,タピオカ,320,331',
+'0000650,おちゃ,90,332',
+'0000660,やさいジュース,110,333',
+'0000670,りんごジュース,110,334',
+'0000680,カッター,360,340',
+'0000690,ぎゅうにゅう,100,341',
+'0000700,コーヒー,210,342',
+'0000710,コーラ,160,343',
+'0000720,コーラ,100,344',
+'0000730,おちゃ,90,350',
+'0000740,コーヒー,210,351',
+'0000750,ぎゅうにゅう,240,352',
+'0000760,ヤクルト,100,353',
+'0000770,のり,110,354',
+'0000780,チューチュー,100,360',
+'0000790,アイスクリーム,100,361',
+'0000800,チョコレート,110,362',
+'0000810,プリン,200,363',
+'0000820,たいやき,100,364',
+'0000830,チョコレート,110,370',
+'0000840,チョコレート,110,371',
+'0000850,チョコレート,110,372',
+'0000860,はさみ,200,373',
+'0000870,チョコレート,110,374',
+'0000880,チョコレート,110,400',
+'0000890,チョコレート,110,401',
+'0000900,チョコレート,110,402',
+'0000910,ポテトチップ,130,403',
+'0000920,ノート,80,404',
+'0000930,ポテトチップ,130,410',
+'0000940,あめ,150,411',
+'0000950,チョコレート,110,412',
+'0000960,チョコレート,110,413',
+'0000970,ガチャポン,100,414',
+'0000980,チョココロネ,120,420',
+'0000990,メロンパン,120,421',
+'0001000,クリームパン,120,422',
+'0001010,ボールペン,110,423',
+'0001020,しょくパン,200,424',
+'0001030,クロワッサン,130,430',
+'0001040,りんご,200,431',
+'0001050,バナナ,300,432',
+'0001060,ぶどう,300,433',
+'0001070,みかん,300,434',
+'0001080,そば,380,440',
+'0001090,なっとう,100,441',
+'0001100,ポテト,100,442',
+'0001110,ギョウザ,230,443',
+'0001120,けしごむ,80,444',
+'0001130,ぎゅうどん,360,450',
+'0001140,ハンバーガー,240,451',
+'0001150,カツカレー,500,452',
+'0001160,おにぎり,110,453',
+'0001170,ポテトサラダ,110,454',
+'0001180,サンドイッチ,110,460',
+'0001190,ざるそば,360,461',
+'0001200,すし,110,462',
+'0001210,おきなわそば,500,463',
+'0001220,タコス,360,464',
+'0001230,トイレットペーパー,300,470',
+'0001240,たこやき,500,471',
+'0001250,べんとう,400,472',
+'0001260,おこのみやき,500,473',
+'0001270,すし,110,474',
+'0001280,すし,110,500',
+'0001290,すし,110,501',
+'0001300,すし,110,502',
+'0001310,ツナかん,90,503',
+'0001320,せっけん,100,504',
+'0001330,たまご,100,510',
+'0001340,インスタントしょくひん,120,511',
+'0001350,ラーメン,100,512',
+'0001360,ラーメン,100,513',
+'0001370,ハンバーグ,300,514',
+'0001380,にんじん,100,520',
+'0001390,じゃがいも,100,521',
+'0001400,たまねぎ,100,522'
+]; // 最終的な二次元配列を入れるための配列
+var result = []; // 最終的な二次元配列を入れるための配列
+// 各行ごとにカンマで区切った文字列を要素とした二次元配列を生成
+for(var i = 0; i < data.length; i++){
+    result[i] = data[i].split(',');
+}
+        var audioElem0;
+        audioBeep = new Audio();
+        audioBeep.src = "img/beep.mp3";
+        
+        const img_pic1 = new Image()
+        const img_pic2 = new Image()
+        const img_pic3 = new Image()
+        const img_pic4 = new Image()
+        const img_pic5 = new Image()
+        img_pic1.src = ('img/pic1.png')
+        img_pic2.src = ('img/pic2.png')
+        img_pic3.src = ('img/pic3.png')
+        img_pic4.src = ('img/pic4.png')
+        img_pic5.src = ('img/pic5.png')
+
+        var zz = 0;
+        var ggg = 0;
+        var gg = [0,0,0,0,0,0,0,0,0,0];
+        var mode = 0;
+
+        var saifu = 500; //さいふの中の金額
+        
+        var maxS = 5; //商品の読み込み数
+	    
+        ////////////////////////////////////////////////////////////////////////
+        //　ページロード時に実行
+        ////////////////////////////////////////////////////////////////////////
+        window.onload=function () {
+            document.getElementById("scan1").focus();
+        };
+
+        ////////////////////////////////////////////////////////////////////////
+        //　1 秒後に実行される関数
+        ////////////////////////////////////////////////////////////////////////
+        function myFnc(){
+            setTimeout(function (){document.getElementById("scan1").focus();},1000);// 要素にフォーカスを与える
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        //　全角から半角への変革関数
+        //　入力値の英数記号を半角変換して返却
+        //　[引数]   strVal: 入力値
+        //　[返却値] String(): 半角変換された文字列
+        ////////////////////////////////////////////////////////////////////////
+        function toHalfWidth(strVal){
+            // 半角変換
+            var halfVal = strVal.replace(/[！-～]/g,
+            function( tmpStr ) {
+                // 文字コードをシフト
+                return String.fromCharCode( tmpStr.charCodeAt(0) - 0xFEE0 );
+            }
+        );
+        ////////////////////////////////////////////////////////////////////////
+        //　文字コードシフトで対応できない文字の変換
+        ////////////////////////////////////////////////////////////////////////
+        return halfVal.replace(/”/g, "\"")
+            .replace(/’/g, "'")
+            .replace(/‘/g, "`")
+            .replace(/￥/g, "\\")
+            .replace(/　/g, " ")
+            .replace(/〜/g, "~");
+        }
+	    
+        ////////////////////////////////////////////////////////////////////////
+        //　スキャン
+        ////////////////////////////////////////////////////////////////////////
+        function scan(txt){
+            txt = toHalfWidth(txt);//半角へ変換
+            document.getElementById("scan1").value = "";
+
+            if(zz < maxS){//商品の読み込み数
+                txt=txt.padEnd(7, "0000000");
+                txt=txt.substr(0,6);
+
+                var txt2="";
+                for(var i = 0; i<result.length;i++){
+                    if (result[i][0] == txt){
+                        txt2=result[i][1];
+                    }
+                }
+
+                txt = txt + "0";
+	         
+                for(var i = 0; i<result.length;i++){
+
+                    if (txt == "0000000"){ //商品の取り消し
+                        kesu();
+                    }
+                    if (result[i][0] == txt){
+                        audioBeep.play();
+                        gg[zz] = Number(result[i][2]);
+                        zz = zz + 1;
+			         
+                        document.getElementById("goukei").innerHTML = ggg + " 円";
+					
+                        //var txt3 = "<img src='img/" + result[i][3] + ".png' width='50%' height='50%'>";
+                        var zzz = parseInt(result[i][3]/100);
+				        var yyy = parseInt((result[i][3]/10)%10);
+        				var xxx = parseInt(result[i][3]%10);
+        document.getElementById('pic' + zz).getContext('2d').clearRect(0, 0, 50, 50);
+        document.getElementById('pic0a').getContext('2d').clearRect(0, 0, 240, 240);
+        document.getElementById('pic0b').getContext('2d').clearRect(0, 0, 240, 240);
+
+        if (zzz == 1) {
+        document.getElementById('pic0a').getContext('2d').drawImage(img_pic1, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+        document.getElementById('pic0b').getContext('2d').drawImage(img_pic1, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+            document.getElementById('pic' + zz).height = 50;
+            document.getElementById('pic' + zz).getContext('2d').drawImage(img_pic1, 100*xxx, 100*yyy, 100, 100, 0, 0, 50, 50);
+        } else if (zzz == 2) {
+        document.getElementById('pic0a').getContext('2d').drawImage(img_pic2, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+        document.getElementById('pic0b').getContext('2d').drawImage(img_pic2, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+            document.getElementById('pic' + zz).height = 50;
+            document.getElementById('pic' + zz).getContext('2d').drawImage(img_pic2, 100*xxx, 100*yyy, 100, 100, 0, 0, 50, 50);
+        } else if (zzz == 3) {
+        document.getElementById('pic0a').getContext('2d').drawImage(img_pic3, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+        document.getElementById('pic0b').getContext('2d').drawImage(img_pic3, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+            document.getElementById('pic' + zz).height = 50;
+            document.getElementById('pic' + zz).getContext('2d').drawImage(img_pic3, 100*xxx, 100*yyy, 100, 100, 0, 0, 50, 50);
+        } else if (zzz == 4) {
+        document.getElementById('pic0a').getContext('2d').drawImage(img_pic4, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+        document.getElementById('pic0b').getContext('2d').drawImage(img_pic4, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+            document.getElementById('pic' + zz).height = 50;
+            document.getElementById('pic' + zz).getContext('2d').drawImage(img_pic4, 100*xxx, 100*yyy, 100, 100, 0, 0, 50, 50);
+        } else if (zzz == 5) {
+        document.getElementById('pic0a').getContext('2d').drawImage(img_pic5, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+        document.getElementById('pic0b').getContext('2d').drawImage(img_pic5, 100*xxx, 100*yyy, 100, 100, 0, 0, 240, 240);
+            document.getElementById('pic' + zz).height = 50;
+            document.getElementById('pic' + zz).getContext('2d').drawImage(img_pic5, 100*xxx, 100*yyy, 100, 100, 0, 0, 50, 50);
+        }
+                        //document.getElementById("pic" + zz).innerHTML = txt3;
+                        document.getElementById("name" + zz).innerHTML = result[i][1];
+                        document.getElementById("en" + zz).innerHTML = result[i][2]+" 円";
+                    }
+                }
+                ggg = 0;
+                for(var i = 0; i < zz;i++){
+                    ggg = ggg + Number(gg[i]);
+                }
+                document.getElementById("goukei").innerHTML = ggg + " 円";
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        //　マウスが要素内で押されたとき、又はタッチされたとき発火
+        ////////////////////////////////////////////////////////////////////////
+        document.getElementById("tuika").addEventListener("mousedown", s_set, false);
+        document.getElementById("tuika").addEventListener("touchstart", s_set, false);
+        document.getElementById("torikesi").addEventListener("mousedown", kesu, false);
+        document.getElementById("torikesi").addEventListener("touchstart", kesu, false);
+
+        ////////////////////////////////////////////////////////////////////////
+        //　商品セット
+        ////////////////////////////////////////////////////////////////////////
+        function s_set(){
+	    scan(document.getElementById('scan1').value);
+            document.getElementById("scan1").focus();// 要素にフォーカスを与える
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        //　商品の取り消し
+        ////////////////////////////////////////////////////////////////////////
+        function kesu(e){
+            // touchstar以降のイベントを発生させないように（最後はfoo();）
+            e.preventDefault();
+
+            //タッチデイベントとマウスのイベントの差異を吸収
+            if(e.type === "mousedown") {
+                event = e;
+            } else {
+                event = e.changedTouches[0];
+            }
+
+            document.getElementById("scan1").value = "";
+            //setTimeout(function (){
+                // 要素にフォーカスを与える
+                document.getElementById("scan1").focus();
+            //},1000);
+            if(zz > 0){
+                ggg = 0;
+                gg[zz] = 0;
+                zz = zz - 1;
+                for(var i = 0; i < zz;i++){
+                   ggg = ggg + Number(gg[i]);
+                }
+                document.getElementById("goukei").innerHTML = "合計：" + ggg + " 円";
+                //document.getElementById("num").innerHTML = zz + " 個";
+                if(zz < 1){document.getElementById('pic1').height = 0; document.getElementById('pic1').getContext('2d').clearRect(0, 0, 50, 50);}
+                if(zz < 2){document.getElementById('pic2').height = 0; document.getElementById('pic2').getContext('2d').clearRect(0, 0, 50, 50);}
+                if(zz < 3){document.getElementById('pic3').height = 0; document.getElementById('pic3').getContext('2d').clearRect(0, 0, 50, 50);}
+                if(zz < 4){document.getElementById('pic4').height = 0; document.getElementById('pic4').getContext('2d').clearRect(0, 0, 50, 50);}
+                if(zz < 5){document.getElementById('pic5').height = 0; document.getElementById('pic5').getContext('2d').clearRect(0, 0, 50, 50);}
+	         
+                if(zz < 1){document.getElementById("name1").innerHTML = "";}
+                if(zz < 2){document.getElementById("name2").innerHTML = "";}
+                if(zz < 3){document.getElementById("name3").innerHTML = "";}
+                if(zz < 4){document.getElementById("name4").innerHTML = "";}
+                if(zz < 5){document.getElementById("name5").innerHTML = "";}
+
+                if(zz < 1){document.getElementById("en1").innerHTML = "";}
+                if(zz < 2){document.getElementById("en2").innerHTML = "";}
+                if(zz < 3){document.getElementById("en3").innerHTML = "";}
+                if(zz < 4){document.getElementById("en4").innerHTML = "";}
+                if(zz < 5){document.getElementById("en5").innerHTML = "";}
+             }
+             
+             foo();
+         }
+	    
+        document.getElementById("s_saifu").innerHTML = saifu;
+    </script>
+
+    </body>
+</html>
