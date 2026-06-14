@@ -1,0 +1,1154 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="user-scalable=no,initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <title>模擬買い物学習（バーコード）</title>
+    <!--
+    <link rel="stylesheet" href="style.css" type="text/css" media="all" />
+    -->
+    <style>
+        .drag-and-drop {
+            cursor: move;
+            position: absolute;
+            top:300px;
+            left:100px;
+        }
+        .free {
+            position: absolute;
+            top:0px;
+            left:0px;
+        }
+        body , input , textarea , select {
+            /* 入力欄にフォーカスが当たっても拡大しない */
+            font-size:24px;
+        }
+        body {
+            background-color : white;
+            -webkit-touch-callout:none; // リンク長押しのポップアップを無効化
+            -webkit-user-select:none; // テキスト長押しの選択ボックスを無効化
+            -webkit-overflow-scrolling: touch;
+        }
+        body {
+            background-image: url("img/back.jpg");
+        }
+        html, body {
+                height: 100%;
+                overflow: hidden;
+            }
+    </style>
+	
+<script type="text/javascript">
+    ////////////////////////////////////////////////////////////////////////
+    /* ピッチインピッチアウトによる拡大縮小を禁止 */
+    ////////////////////////////////////////////////////////////////////////
+    document.documentElement.addEventListener('touchstart', function (e) {
+        if (e.touches.length >= 2) {e.preventDefault();}
+    }, {passive: false});
+    ////////////////////////////////////////////////////////////////////////
+    /* ダブルタップによる拡大を禁止 */
+    ////////////////////////////////////////////////////////////////////////
+    var t = 0;
+    document.documentElement.addEventListener('touchend', function (e) {
+    var now = new Date().getTime();
+    if ((now - t) < 350){
+         e.preventDefault();
+    }
+        t = now;
+    }, false);
+
+</script>
+
+<script type="text/javascript">
+    ////////////////////////////////////////////////////////////////////////
+    // データの削除
+    ////////////////////////////////////////////////////////////////////////
+    //localStorage.clear();//全て削除
+    //localStorage.removeItem("kaimono_bar");
+
+    ////////////////////////////////////////////////////////////////////////
+    // 保存データの確認
+    ////////////////////////////////////////////////////////////////////////
+    var save_flg = 0;
+    var data_s;
+    for(var i = 0; i < localStorage.length; i++){
+        //document.getElementById("tx"+i+"b").innerHTML = localStorage.getItem(k);
+        if (localStorage.key(i) == "kaimono_bar") {
+            save_flg = 1;
+            //var k = localStorage.key(i);
+            //data_s = localStorage.getItem(k);
+            data_s = localStorage.kaimono_bar;
+        }
+    } 
+    
+    if (save_flg == 0){
+        //alert('キーは無いです！');
+        localStorage.setItem("kaimono_bar","買い物学習バーコード,");
+        data_s = localStorage.kaimono_bar;
+    }else{
+        //alert('準備完了！！'+data_s);
+    }
+    now = new Date();      
+    var YY1 = now.getFullYear();
+    var MM1 = now.getMonth()+1;
+    var DD1 = now.getDate();
+    var HH2 = now.getHours();
+    var MM2 = now.getMinutes();
+    var SS2 = now.getSeconds();
+    data_s = data_s + YY1 + "年" + MM1 + "月" + DD1 + "日" + HH2 + ":" + MM2 + ":" + SS2 + ",";
+    localStorage.kaimono_bar = data_s;
+            
+    ////////////////////////////////////////////////////////////////////////
+    //　効果音の設定
+    ////////////////////////////////////////////////////////////////////////
+    const audioElem0 = new Audio();
+    const audioElem1 = new Audio();
+    const audioElem2 = new Audio();
+    const audioElem3 = new Audio();
+    const audioElem4 = new Audio();
+    const audioElem5 = new Audio();
+    audioElem0.src = "img/sound0.mp3";
+    audioElem1.src = "img/sound1.mp3";
+    audioElem2.src = "img/sound2.mp3";
+    audioElem3.src = "img/sound3.mp3";
+    audioElem4.src = "img/coin.wav";
+    audioElem5.src = "img/coin2.wav";
+    const audioBeep = new Audio();
+    audioBeep.src = "img/beep.mp3";
+
+    ////////////////////////////////////////////////////////////////////////
+    //　画像の設定
+    ////////////////////////////////////////////////////////////////////////
+	var img_pic = new Image()
+    const img_pic1 = new Image()
+    const img_pic2 = new Image()
+    const img_pic3 = new Image()
+    const img_pic4 = new Image()
+    const img_pic5 = new Image()
+    img_pic1.src = ('img/pic1.png')
+    img_pic2.src = ('img/pic2.png')
+    img_pic3.src = ('img/pic3.png')
+    img_pic4.src = ('img/pic4.png')
+    img_pic5.src = ('img/pic5.png')
+    const img_maru = new Image()
+    img_maru.src = ('img/maru.png')
+    const img_batu = new Image()
+    img_batu.src = ('img/batu.png')
+    const img_500 = new Image()
+    img_500.src = ('img/c500.png')
+    
+    const img_c1 = new Image()
+    const img_c10 = new Image()
+    const img_c100 = new Image()
+    img_c1.src = ('img/c1.png')
+    img_c10.src = ('img/c10.png')
+    img_c100.src = ('img/c100.png')
+        
+    var sw = window.innerWidth;
+    var sh = window.innerHeight;
+    var sz;//基本サイズ
+
+    ////////////////////////////////////////////////////////////////////////
+    // 端末の確認
+    ////////////////////////////////////////////////////////////////////////
+    var userAgent = window.navigator.userAgent.toLowerCase();
+    if(userAgent.indexOf('iphone') != -1) {
+    } else if(userAgent.indexOf('ipad') != -1) {
+    } else if(userAgent.indexOf('android') != -1) {
+        if(userAgent.indexOf('mobile') != -1) {//androidのスマートフォン
+        } else {//androidのタブレット
+        }
+    } else if (sw > sh) {// 横長
+        sw = 1024*0.55;
+        sh = 1258*0.55;
+    } else {// 不明
+        //sw = 1024*0.55;
+        //sh = 1258*0.55;
+    }
+
+    sz = sw*0.15;
+    var c_sz = sz*0.6;
+
+var data = [
+'100,ていしょく,700,ng,0000010',
+'101,ステーキ,1500,ng,0000020',
+'102,ミートスパゲティ,600,ng,0000030',
+'103,カルボナーラ,700,ng,0000040',
+'104,イカすみスパゲティ,700,ng,0000050',
+'110,めんたいこスパゲティ,700,ng,0000060',
+'111,イチゴ,560,ng,0000070',
+'112,メロン,520,ng,0000080',
+'113,ゲーム,14800,ng,0000090',
+'114,ウォークマン,5000,ng,0000100',
+'120,テレビゲーム,24000,ng,0000110',
+'121,オセロ,1000,ng,0000120',
+'122,ブレイブボード,8000,ng,0000130',
+'123,スケボー,3000,ng,0000140',
+'124,ラジコンひこうき,5000,ng,0000150',
+'130,ドローン,100000,ng,0000160',
+'131,くうきいれ,1000,ng,0000170',
+'132,さんしんしゃ,5000,ng,0000180',
+'133,サーフボード,50000,ng,0000190',
+'134,いちりんしゃ,7000,ng,0000200',
+'140,じてんしゃ,15000,ng,0000210',
+'141,デジカメ,10000,ng,0000220',
+'142,けいたいでんわ,30000,ng,0000230',
+'143,カセットウォームマン,3000,ng,0000240',
+'144,CDウォークマン,6000,ng,0000250',
+'150,スマートフォン,80000,ng,0000260',
+'151,デジタルビデオ,30000,ng,0000270',
+'152,せんぷうき,3000,ng,0000280',
+'153,ノートパソコン,13000,ng,0000290',
+'154,パソコン,10000,ng,0000300',
+'160,テレビ,30000,ng,0000310',
+'161,ストーブ,5000,ng,0000320',
+'162,れいぞうこ,35000,ng,0000330',
+'163,せんたっき,40000,ng,0000340',
+'164,のこぎり,1500,ng,0000350',
+'170,チェンソー,20000,ng,0000360',
+'171,でんどうドライバー,4000,ng,0000370',
+'172,エアロバイク,15000,ng,0000380',
+'173,いちりんしゃ,8000,ng,0000390',
+'174,オートバイ,500000,ng,0000400',
+'200,げんつき,150000,ng,0000410',
+'201,いえ,30000000,ng,0000420',
+'202,いえ,30000000,ng,0000430',
+'203,ひこうき,6500000000,ng,0000440',
+'204,ジェットき,8000000000,ng,0000450',
+'210,くるま,2000000,ng,0000460',
+'211,くるま,2000000,ng,0000470',
+'300,えんぴつ,80,ok,0000480',
+'301,じょうぎ,100,ok,0000490',
+'302,はぶらし,110,ok,0000500',
+'303,はくさい,80,ok,0000510',
+'304,えのき,170,ok,0000520',
+'310,しめじ,170,ok,0000530',
+'311,ねぎ,90,ok,0000540',
+'312,レタス,160,ok,0000550',
+'313,キャベツ,160,ok,0000560',
+'314,トマト,150,ok,0000570',
+'320,きゅうり,90,ok,0000580',
+'321,はみがきこ,320,ok,0000590',
+'322,ピーマン,80,ok,0000600',
+'323,ゴーヤー,140,ok,0000610',
+'324,ティッシュ,200,ok,0000620',
+'330,ラムネ,120,ok,0000630',
+'331,タピオカ,320,ok,0000640',
+'332,おちゃ,90,ok,0000650',
+'333,やさいジュース,80,ok,0000660',
+'334,りんごジュース,80,ok,0000670',
+'340,カッター,360,ok,0000680',
+'341,ぎゅうにゅう,100,ok,0000690',
+'342,コーヒー,210,ok,0000700',
+'343,コーラ,160,ok,0000710',
+'344,コーラ,100,ok,0000720',
+'350,おちゃ,90,ok,0000730',
+'351,コーヒー,210,ok,0000740',
+'352,ぎゅうにゅう,240,ok,0000750',
+'353,ヤクルト,100,ok,0000760',
+'354,のり,110,ok,0000770',
+'360,チューチュー,100,ok,0000780',
+'361,アイスクリーム,100,ok,0000790',
+'362,チョコレート,110,ok,0000800',
+'363,プリン,200,ok,0000810',
+'364,たいやき,100,ok,0000820',
+'370,チョコレート,110,ok,0000830',
+'371,チョコレート,110,ok,0000840',
+'372,チョコレート,110,ok,0000850',
+'373,はさみ,200,ok,0000860',
+'374,チョコレート,110,ok,0000870',
+'400,チョコレート,110,ok,0000880',
+'401,チョコレート,110,ok,0000890',
+'402,チョコレート,110,ok,0000900',
+'403,ポテトチップ,130,ok,0000910',
+'404,ノート,80,ok,0000920',
+'410,ポテトチップ,130,ok,0000930',
+'411,あめ,150,ok,0000940',
+'412,チョコレート,110,ok,0000950',
+'413,チョコレート,110,ok,0000960',
+'414,ガチャポン,100,ok,0000970',
+'420,チョココロネ,120,ok,0000980',
+'421,メロンパン,120,ok,0000990',
+'422,クリームパン,120,ok,0001000',
+'423,ボールペン,110,ok,0001010',
+'424,しょくパン,200,ok,0001020',
+'430,クロワッサン,130,ok,0001030',
+'431,りんご,200,ok,0001040',
+'432,バナナ,300,ok,0001050',
+'433,ぶどう,300,ok,0001060',
+'434,みかん,300,ok,0001070',
+'440,そば,380,ok,0001080',
+'441,なっとう,100,ok,0001090',
+'442,ポテト,100,ok,0001100',
+'443,ギョウザ,230,ok,0001110',
+'444,けしごむ,80,ok,0001120',
+'450,ぎゅうどん,360,ok,0001130',
+'451,ハンバーガー,240,ok,0001140',
+'452,カツカレー,500,ok,0001150',
+'453,おにぎり,110,ok,0001160',
+'454,ポテトサラダ,110,ok,0001170',
+'460,サンドイッチ,110,ok,0001180',
+'461,ざるそば,360,ok,0001190',
+'462,すし,110,ok,0001200',
+'463,おきなわそば,500,ok,0001210',
+'464,タコス,360,ok,0001220',
+'470,トイレットペーパー,300,ok,0001230',
+'471,たこやき,500,ok,0001240',
+'472,べんとう,400,ok,0001250',
+'473,おこのみやき,500,ok,0001260',
+'474,すし,90,ok,0001270',
+'500,すし,90,ok,0001280',
+'501,すし,90,ok,0001290',
+'502,すし,90,ok,0001300',
+'503,ツナかん,90,ok,0001310',
+'504,せっけん,100,ok,0001320',
+'510,たまご,100,ok,0001330',
+'511,インスタントしょくひん,120,ok,0001340',
+'512,ラーメン,100,ok,0001350',
+'513,ラーメン,100,ok,0001360',
+'514,ハンバーグ,300,ok,0001370',
+'520,にんじん,90,ok,0001380',
+'521,じゃがいも,90,ok,0001390',
+'522,たまねぎ,90,ok,0001400',
+]; // 最終的な二次元配列を入れるための配列
+var syouhin = []; // 最終的な二次元配列を入れるための配列
+// 各行ごとにカンマで区切った文字列を要素とした二次元配列を生成
+for(var i = 0; i < data.length; i++){
+    syouhin[i] = data[i].split(',');
+}
+
+var data2 = [
+'9000010,生徒01',
+'9000020,生徒02',
+'9000030,生徒03',
+'9000040,生徒04',
+'9000050,生徒05',
+'9000060,生徒06',
+'9000070,生徒07',
+'9000080,生徒08',
+'9000090,生徒09',
+'9000100,生徒10',
+];
+var card = []; // 最終的な二次元配列を入れるための配列
+// 各行ごとにカンマで区切った文字列を要素とした二次元配列を生成
+for(var i = 0; i < data2.length; i++){
+    card[i] = data2[i].split(',');
+}
+
+var BMode = 0;
+var syouhin_name = "";
+var nedan = 0;
+var nedan2 = 0;
+
+var ID = 0;// 誰が支払うか？
+var s_ID = 0;// 何を買ったか？
+
+var KMode = 1;//確認モード（０：正解のとき、おつり表示、１：正解のとき、おつりを求める）
+
+var s_count = 0;//説明用カウント
+
+var xx9 = 0;
+var yy9 = 0;
+var zz9 = 0;
+
+var o100 = 0;
+var o10 = 0;
+var o1 = 0;
+
+var h100 = 0;
+var h10 = 0;
+var h1 = 0;
+
+/*
+var ret = "";
+for( var i = 0 ; i < data.length ; i++ ) {
+   ret += '[' + (i+1) + '] ' + syouhin[i][1] + "\n";
+}
+// 表示
+alert(ret);
+*/
+</script>
+</head>
+
+
+<body>
+<!--
+    <center><div class="tx" id="tx1"><span id="Q"></span> 円</div></center>
+    <center><div class="tx" id="tx2">で かえる ものは どれかな？</div></center>
+    <div class="tx" id="tx3">幅：<span id="www"></span>　高さ：<span id="hhh"></span>　サイズ：<span id="zzz"></span></div>
+
+    <input type="button" class="free" id="start" value="スタート" style="background:#AFF;">
+    <input type="button" class="free" id="kaikei" value="かいけい" style="background:#DDD;">
+
+    <div class="free" id="box1" style="background:#88F;" align="center"></div>
+    <div class="free" id="box1b" style="background:#F00;"></div>
+        <script type="text/javascript" src="script.js"></script>
+-->
+<!-- 解答画面 -->
+    <div class="free" id="menu_k" style="background:#8CF;">
+	    <input type="button" class="free" id="modoru2" style="background-color:#AFF" value="けっか">
+	    <input type="button" class="free" id="setumei1" style="background-color:#AFA" value="せつめい">
+	    <input type="button" class="free" id="setumei2" style="background-color:#9F9" value="せつめい">
+        <br>
+	    <div id="m_taitoru2" width="100%" style="text-align:center; background:#FFF;"></div>
+	    <hr>
+	    <div id="name_2" style="text-align:right"></div>
+        <hr>
+        <canvas id="pic_2" width=600 height=400></canvas>
+	    <hr>
+        <canvas id="pic_3" width=600 height=150></canvas>
+    </div>
+        
+<!-- バーコード・スキャン画面 -->
+    <div class="free" id="menu_b" style="background:#8CF;">
+		<!-- <div id="num">0 個</div> -->
+		<input type="number" pattern="\d*" class="txt1" id="scan1" autofocus onchange="scan(this.value);" value="" onblur="myFnc();">
+		<input type="button" id="tuika" style="background-color:#AFF" value="ついか！">
+		<input type="button" id="torikesi" style="background-color:#F88" value="×とりけし">
+        <br>
+		<div id="m_taitoru" width="100%" style="text-align:center; background:#FFF;">商品のバーコードを<br>スキャンしてください！</div>
+		<hr>
+        <div style="text-align:center;"><canvas id="pic_1" width=300 height=300 style="text-align:center"></canvas></div>
+		<div class="txt1" id="name_1" style="text-align:center"></div>
+        <div class="txt1" id="en_1" style="text-align:center"></div>
+	    <hr>
+    </div>
+    
+<!-- 判定画面 -->
+    <div class="free" id="menu_h" style="background:#FFF;">
+        <br>
+	    <div style="text-align:right;"><input type="button" class="" id="modoru_h" style="background-color:#AFF" value="もどる"></div>
+        <br>
+	    <div id="m_taitoru_h" width="100%" style="text-align:center; background:#FFF;">ああああ<br>あああ</div>
+        <br>
+        <div style="text-align:center;"><canvas id="pic_h" width=800 height=600 style="text-align:center"></canvas></div>
+    </div>
+
+<!-- バーコード・スキャン画面（プログラム） -->
+<script type="text/javascript">
+    ////////////////////////////////////////////////////////////////////////
+    //　メイン画面設定
+    ////////////////////////////////////////////////////////////////////////
+    
+    // 確認画面
+    document.getElementById('menu_k').style.width = sw+"px";
+    document.getElementById('menu_k').style.height = sh+"px";
+    document.getElementById('menu_k').style.visibility = "visible";
+
+    document.getElementById('pic_2').width = sw;
+    document.getElementById('pic_2').height = sh*0.5;
+    document.getElementById('pic_3').width = sw;
+    document.getElementById('pic_3').height = sh*0.2;
+
+	document.getElementById('setumei1').style.fontSize = sz*0.3+"px";
+    document.getElementById('setumei1').style.width = sz*2+"px";
+    document.getElementById('setumei1').style.height = sz*1+"px";
+    document.getElementById('setumei1').style.left = "70%";
+    document.getElementById('setumei1').style.top = "60%";
+
+	document.getElementById('setumei2').style.fontSize = sz*0.3+"px";
+    document.getElementById('setumei2').style.width = sz*2+"px";
+    document.getElementById('setumei2').style.height = sz*1+"px";
+    document.getElementById('setumei2').style.left = "70%";
+    document.getElementById('setumei2').style.top = "60%";
+
+	document.getElementById('modoru2').style.fontSize = sz*0.3+"px";
+    document.getElementById('modoru2').style.width = sz*2+"px";
+    document.getElementById('modoru2').style.height = sz*0.7+"px";
+    document.getElementById('modoru2').style.left = "70%";
+    document.getElementById('modoru2').style.top = "79%";
+
+	document.getElementById('m_taitoru2').style.fontSize = sz*0.4+"px";
+	document.getElementById('name_2').style.fontSize = sz*0.3+"px";
+
+    //バーコードスキャン画面
+    document.getElementById('menu_b').style.width = sw+"px";
+    document.getElementById('menu_b').style.height = sh+"px";
+    document.getElementById('menu_b').style.visibility = "visivle";
+
+	document.getElementById('m_taitoru').style.fontSize = sz*0.4+"px";
+	document.getElementById('tuika').style.fontSize = sz*0.3+"px";
+	document.getElementById('torikesi').style.fontSize = sz*0.3+"px";
+	document.getElementById('name_1').style.fontSize = sz*0.4+"px";
+	document.getElementById('en_1').style.fontSize = sz*0.4+"px";
+
+    //結果画面
+    document.getElementById('menu_h').style.visibility = "hidden";
+
+    document.getElementById('pic_h').width = sw;
+    document.getElementById('pic_h').height = sh;
+    document.getElementById('pic_h').getContext('2d').clearRect(0,0,sw,sh);
+    document.getElementById('pic_h').getContext('2d').fillStyle = 'rgb(255,255,255)'; //塗りつぶしの色は赤
+    document.getElementById('pic_h').getContext('2d').fillRect(0,0,sw,sh);
+    document.getElementById('pic_h').getContext('2d').fillStyle = 'rgb(0,0,0)'; //塗りつぶしの色は赤
+
+	document.getElementById('modoru_h').style.fontSize = sz*0.3+"px";
+    document.getElementById('modoru_h').style.width = sz*2+"px";
+    document.getElementById('modoru_h').style.height = sz*0.7+"px";
+    document.getElementById('modoru_h').style.left = "70%";
+    document.getElementById('modoru_h').style.top = "79%";
+
+	document.getElementById('m_taitoru_h').style.fontSize = sz*0.4+"px";
+	
+	audioElem3.play();
+
+
+    ////////////////////////////////////////////////////////////////////////
+    //　1 秒後に実行される関数
+    ////////////////////////////////////////////////////////////////////////
+    function myFnc(){
+        setTimeout(function (){document.getElementById("scan1").focus();},100);// 要素にフォーカスを与える
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //　スキャン
+    ////////////////////////////////////////////////////////////////////////
+    function scan(txt){
+        document.getElementById("scan1").value = "";
+        txt = txt.padEnd(7, "0000000");
+        txt = txt.substr(0,6);
+        txt += "0";
+	         
+        if (txt == "9000000"){ //商品の取り消し
+            document.getElementById('pic_1').getContext('2d').clearRect(0, 0, 300, 300);
+	        document.getElementById('name_1').innerHTML = "";
+	        document.getElementById('en_1').innerHTML = "";
+	        document.getElementById('m_taitoru').innerHTML = "商品のバーコードを<br>スキャンしてください！";
+	        BMode = 0;
+        } else if (BMode == 0){//商品設定
+            for(var i = 0; i < syouhin.length;i++){
+                if (txt == syouhin[i][4]){//商品設定
+                    s_ID = i;
+                    audioBeep.play();
+                    BMode = 1;
+		            zz9 = parseInt(syouhin[i][0]/100);
+                    yy9 = parseInt((syouhin[i][0]/10)%10);
+		            xx9 = parseInt(syouhin[i][0]%10);
+		            document.getElementById('pic_1').getContext('2d').clearRect(0, 0, 300, 300);
+
+    		        if (zz9 == 1) {img_pic = img_pic1;
+	    	        } else if (zz9 == 2) {img_pic = img_pic2;
+		            } else if (zz9 == 3) {img_pic = img_pic3;
+		            } else if (zz9 == 4) {img_pic = img_pic4;
+		            } else if (zz9 == 5) {img_pic = img_pic5;
+		            }
+         	        syouhin_name = syouhin[i][1];
+         	        nedan = syouhin[i][2];
+		            document.getElementById('pic_1').getContext('2d').drawImage(img_pic, 100*xx9, 100*yy9, 100, 100, 0, 0, 300, 300);
+	                document.getElementById("name_1").innerHTML = syouhin_name;
+	                document.getElementById("en_1").innerHTML = nedan + "円";
+         	        document.getElementById("m_taitoru").innerHTML = "カードを<br>スキャンしてください！！";
+
+	            }
+            }
+        } else if(BMode == 1) {//カードスキャン
+            for(var i = 0; i < card.length;i++){
+                if (txt == card[i][0]){
+                    ID = i;
+                    BMode = 2;
+                    audioBeep.play();
+                    kaitou();
+                }
+            }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //　マウスが要素内で押されたとき、又はタッチされたとき発火
+    ////////////////////////////////////////////////////////////////////////
+    document.getElementById("tuika").addEventListener("mousedown", s_set, false);
+    document.getElementById("tuika").addEventListener("touchstart", s_set, false);
+    document.getElementById("torikesi").addEventListener("mousedown", kesu, false);
+    document.getElementById("torikesi").addEventListener("touchstart", kesu, false);
+
+    document.getElementById("modoru2").addEventListener("mousedown", kekka, false);
+    document.getElementById("modoru2").addEventListener("touchstart", kekka, false);
+
+    document.getElementById("modoru_h").addEventListener("mousedown", modoru, false);
+    document.getElementById("modoru_h").addEventListener("touchstart", modoru, false);
+
+    document.getElementById("setumei1").addEventListener("mousedown", b_setumei1, {passive: false});
+    document.getElementById("setumei1").addEventListener("touchstart", b_setumei1, {passive: false});
+    
+    document.getElementById("setumei2").addEventListener("mousedown", b_setumei2, {passive: false});
+    document.getElementById("setumei2").addEventListener("touchstart", b_setumei2, {passive: false});
+
+    ////////////////////////////////////////////////////////////////////////
+    //　商品セット
+    ////////////////////////////////////////////////////////////////////////
+    function s_set(){
+	    scan(document.getElementById('scan1').value);
+        setTimeout(function (){document.getElementById("scan1").focus();},100);// 要素にフォーカスを与える
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //　商品の取り消し【ボタン】
+    ////////////////////////////////////////////////////////////////////////
+    function kesu(e){
+        // touchstar以降のイベントを発生させないように（最後はfoo();）
+        e.preventDefault();
+
+            //タッチデイベントとマウスのイベントの差異を吸収
+            if(e.type === "mousedown") {
+                event = e;
+            } else {
+                event = e.changedTouches[0];
+            }
+
+                    audioBeep.play();
+		    document.getElementById('pic_1').getContext('2d').clearRect(0, 0, 300, 300);
+	        document.getElementById("name_1").innerHTML = "";
+	        document.getElementById("en_1").innerHTML = "";
+	        document.getElementById("m_taitoru").innerHTML = "商品のバーコードを<br>スキャンしてください！";
+            //document.getElementById('setumei').style.visibility = "hidden";
+	        BMode = 0;
+            setTimeout(function (){document.getElementById("scan1").focus();},100);// 要素にフォーカスを与える             
+        foo();
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //　戻る【ボタン】
+    ////////////////////////////////////////////////////////////////////////
+    function modoru(e){
+        // touchstar以降のイベントを発生させないように（最後はfoo();）
+        e.preventDefault();
+
+            //タッチデイベントとマウスのイベントの差異を吸収
+            if(e.type === "mousedown") {
+                event = e;
+            } else {
+                event = e.changedTouches[0];
+            }
+            
+            document.getElementById('menu_h').style.visibility = "hidden";
+            document.getElementById('menu_b').style.visibility = "visible";
+
+	        BMode = 0;
+	        s_count = 0;
+             		    document.getElementById('pic_1').getContext('2d').clearRect(0, 0, 300, 300);
+	                    document.getElementById('name_1').innerHTML = "";
+	                    document.getElementById('en_1').innerHTML = "";
+	                    document.getElementById('m_taitoru').innerHTML = "商品のバーコードを<br>スキャンしてください！";
+            
+            audioElem3.play();
+            
+        foo();
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //　結果発表【ボタン】
+    ////////////////////////////////////////////////////////////////////////
+    function kekka(e){
+        // touchstar以降のイベントを発生させないように（最後はfoo();）
+        e.preventDefault();
+
+            kekka_happyou();
+            
+        foo();
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    // 角丸四角の基本変数定義
+    // x = 左上の頂点x座標
+    // y = 左上の頂点y座標
+    // w = 横の長さ
+    // h = 縦の長さ
+    // r = 角丸の半径
+    // color = "#9999FF";  //塗りつぶし色
+    ////////////////////////////////////////////////////////////////////////
+        function drawsq(x,y,w,h,r,color) {
+            document.getElementById('pic_h').getContext('2d').beginPath();
+            document.getElementById('pic_h').getContext('2d').lineWidth = 1;
+            document.getElementById('pic_h').getContext('2d').strokeStyle = color;
+            document.getElementById('pic_h').getContext('2d').fillStyle = color;
+            document.getElementById('pic_h').getContext('2d').moveTo(x,y + r);
+            document.getElementById('pic_h').getContext('2d').arc(x+r,y+h-r,r,Math.PI,Math.PI*0.5,true);
+            document.getElementById('pic_h').getContext('2d').arc(x+w-r,y+h-r,r,Math.PI*0.5,0,1);
+            document.getElementById('pic_h').getContext('2d').arc(x+w-r,y+r,r,0,Math.PI*1.5,1);
+            document.getElementById('pic_h').getContext('2d').arc(x+r,y+r,r,Math.PI*1.5,Math.PI,1);       
+            document.getElementById('pic_h').getContext('2d').closePath();
+            document.getElementById('pic_h').getContext('2d').stroke();
+            document.getElementById('pic_h').getContext('2d').fill();
+        }
+        
+    ////////////////////////////////////////////////////////////////////////
+    //　結果発表
+    ////////////////////////////////////////////////////////////////////////
+    function kekka_happyou() {
+        document.getElementById('menu_h').style.visibility = "visible";
+        document.getElementById('menu_h').style.width = sw+"px";
+        document.getElementById('menu_h').style.height = sh+"px";
+
+        document.getElementById('pic_h').getContext('2d').fillStyle = 'rgb(255,255,255)'; //塗りつぶしの色は赤
+        document.getElementById('pic_h').getContext('2d').fillRect(0,0,sw,sh);
+		document.getElementById('pic_h').getContext('2d').drawImage(img_pic, 100*xx9, 100*yy9, 100, 100, sw-sz*2.8, 0, sz*2.5, sz*2.5);
+
+        // お金トレイ
+        var r = sz*0.24;
+        drawsq(sz*0.1, sz*2.3, sz*4.2, sz*3.2, r, "#00AAFF");
+        drawsq(sz*0.2, sz*2.4, sz*4, sz*3.0, r, "#0088FF");
+        drawsq(sz*0.45, sz*2.7, sz*3.5, sz*2.4, r, "#0099FF");
+        
+        for (var iy = 0; iy < 26; iy++){
+            for (var ix = 0; ix < 39; ix++){
+                document.getElementById('pic_h').getContext('2d').beginPath();
+                document.getElementById('pic_h').getContext('2d').lineWidth = 1;
+                document.getElementById('pic_h').getContext('2d').strokeStyle = "#0088FF";
+                document.getElementById('pic_h').getContext('2d').arc(sz*0.45+ix*r*0.4, sz*2.75+iy*r*0.4, r*0.4, 0*Math.PI/180, 360*Math.PI/180, false);
+                document.getElementById('pic_h').getContext('2d').stroke();
+            }
+        }
+        document.getElementById('pic_h').getContext('2d').fillStyle = 'rgb(0,0,0)'; //塗りつぶしの色は赤
+
+        if (nedan == 500) {//正解
+            audioElem1.play();
+            document.getElementById("m_taitoru_h").innerHTML = "ちょうどです。<br>ありがとうございました。";
+            document.getElementById('menu_h').style="background:#8CF;";
+            //document.getElementById("name_h").innerHTML = syouhin_name + "【" + nedan + " 円】";
+        } else if (nedan < 500) {//正解
+            audioElem1.play();
+         	document.getElementById("m_taitoru_h").innerHTML = (500-nedan)+" 円の　おかえしです。<br>ありがとうございました。";
+            document.getElementById('menu_h').style="background:#8CF;";
+    	    //document.getElementById("name_h").innerHTML = syouhin_name + "【" + nedan + " 円】";
+
+            document.getElementById('pic_h').getContext('2d').beginPath();
+        	document.getElementById('pic_h').getContext('2d').font = sz*0.6+"px serif";
+        	document.getElementById('pic_h').getContext('2d').fillText("おつり", c_sz, c_sz*3.5);
+
+    	    var oturi = 500-nedan;
+		    o100 = parseInt(oturi/100);
+            o10 = parseInt((oturi/10)%10);
+		    o1 = parseInt(oturi%10);
+    	        
+    	    for (var i = 0; i < o100; i++){
+     		    document.getElementById('pic_h').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+1.0), c_sz*5, c_sz, c_sz);
+    	    }
+    	    for (var i = 0; i < o10; i++){
+    	        if (i < 5){
+     		        document.getElementById('pic_h').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i+1.0), c_sz*6, c_sz, c_sz);
+     		    } else {
+     		        document.getElementById('pic_h').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i-5+1.0), c_sz*7, c_sz, c_sz);
+    	        }
+    	    }
+
+            document.getElementById('pic_h').getContext('2d').fillStyle = 'rgb(255,0,0)'; //塗りつぶしの色は赤
+        	document.getElementById('pic_h').getContext('2d').font = sz*8+"px serif";
+        	document.getElementById('pic_h').getContext('2d').fillText("○", sz*1, sz*4.5);
+
+        document.getElementById('pic_h').getContext('2d').fillStyle = 'rgb(0,0,0)'; //塗りつぶしの色は赤
+
+
+        } else {//不正解         	
+            audioElem2.play();
+         	document.getElementById("m_taitoru_h").innerHTML = "おかねが　たりません！<br>かえないです。";
+            document.getElementById('menu_h').style="background:#FCC;";
+    	    //document.getElementById("name_h").innerHTML = syouhin_name + "【" + nedan + " 円】";
+
+        document.getElementById('pic_h').getContext('2d').fillStyle = 'rgba(255,255,255,0.9)'; //塗りつぶしの色は赤
+        document.getElementById('pic_h').getContext('2d').fillRect(sw-sz*2.8, 0, sz*2.5, sz*2.5);
+		//document.getElementById('pic_h').getContext('2d').drawImage(img_pic, 100*xx9, 100*yy9, 100, 100, sw-sz*2.8, 0, sz*2.5, sz*2.5);
+
+        // お金トレイ
+        var r = sz*0.24;
+        drawsq(sz*0.1, sz*2.3, sz*4.2, sz*3.2, r, "#00AAFF");
+        drawsq(sz*0.2, sz*2.4, sz*4, sz*3.0, r, "#0088FF");
+        drawsq(sz*0.45, sz*2.7, sz*3.5, sz*2.4, r, "#0099FF");
+        
+        for (var iy = 0; iy < 26; iy++){
+            for (var ix = 0; ix < 39; ix++){
+                document.getElementById('pic_h').getContext('2d').beginPath();
+                document.getElementById('pic_h').getContext('2d').lineWidth = 1;
+                document.getElementById('pic_h').getContext('2d').strokeStyle = "#0088FF";
+                document.getElementById('pic_h').getContext('2d').arc(sz*0.45+ix*r*0.4, sz*2.75+iy*r*0.4, r*0.4, 0*Math.PI/180, 360*Math.PI/180, false);
+                document.getElementById('pic_h').getContext('2d').stroke();
+            }
+        }
+
+
+            document.getElementById('pic_h').getContext('2d').fillStyle = 'rgb(255,0,0)'; //塗りつぶしの色は赤
+        	document.getElementById('pic_h').getContext('2d').font = sz*8+"px serif";
+        	document.getElementById('pic_h').getContext('2d').fillText("×", sz*1, sz*4.5);
+
+        document.getElementById('pic_h').getContext('2d').fillStyle = 'rgb(0,0,0)'; //塗りつぶしの色は赤
+
+        }
+
+
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //　解　　答
+    ////////////////////////////////////////////////////////////////////////
+    function kaitou(){
+        KMode = 1;
+
+        //////////////////////////////////////////////////////////////////
+        // データ保存
+        //////////////////////////////////////////////////////////////////
+        data_s = localStorage.kaimono_bar;
+        now = new Date();
+        YY1 = now.getFullYear();
+        MM1 = now.getMonth()+1;
+        DD1 = now.getDate();
+        HH2 = now.getHours();
+        MM2 = now.getMinutes();
+        SS2 = now.getSeconds();
+        data_s = data_s + YY1 + "年" + MM1 + "月" + DD1 + "日" + HH2 + ":" + MM2 + ":" + SS2 + ",";
+        if (nedan <= 500){
+            data_s = data_s + "【" + ID + "◎】";
+        } else {
+            data_s = data_s + "【" + ID + "×】";
+        }
+        data_s = data_s + "[" + s_ID + "]" + card[ID][1]+",";
+        localStorage.kaimono_bar = data_s;
+
+            document.getElementById('pic_2').getContext('2d').clearRect(0, 0, sw, sh);
+		    document.getElementById('pic_2').getContext('2d').drawImage(img_pic, 100*xx9, 100*yy9, 100, 100, sw-sz*2.8, 0, sz*2.5, sz*2.5);
+            document.getElementById('name_2').style.left = (sw-250)+"px";
+            var rect = document.getElementById("pic_2").getBoundingClientRect();
+            document.getElementById('name_2').style.top = rect.top + "px";
+
+            document.getElementById('pic_3').getContext('2d').clearRect(0, 0, sw, sh);
+            document.getElementById('pic_3').getContext('2d').fillStyle = 'rgb(255,255,100)'; //塗りつぶしの色は赤
+            document.getElementById('pic_3').getContext('2d').fillRect(0,0,sw,sh);
+
+            document.getElementById('pic_2').getContext('2d').fillStyle = 'rgb(0,0,0)'; //塗りつぶしの色は赤
+            document.getElementById('pic_3').getContext('2d').fillStyle = 'rgb(0,0,0)'; //塗りつぶしの色は赤
+
+            if (nedan <= 500) {//正解
+                if (nedan == 500) {//正解
+         	        document.getElementById("m_taitoru2").innerHTML = card[ID][1]+" さん の<br>かいけい です！！";
+                    document.getElementById('menu_k').style="background:#8CF;";
+    	            document.getElementById("name_2").innerHTML = syouhin_name + "【" + nedan + " 円】";
+    	        }
+
+                if (nedan < 500) {//正解
+         	        document.getElementById("m_taitoru2").innerHTML = card[ID][1]+" さん の<br>かいけい です！！";
+                    document.getElementById('menu_k').style="background:#8CF;";
+    	            document.getElementById("name_2").innerHTML = syouhin_name + "【" + nedan + " 円】";
+                }
+            
+    	        if (KMode == 1) {
+    	            nedan2 = nedan;
+    	            var oturi = 500-nedan;
+    		        o100 = parseInt(nedan/100);
+                    o10 = parseInt((nedan/10)%10);
+		            o1 = parseInt(nedan%10);
+        	        document.getElementById('pic_2').getContext('2d').font = sz*1+"px serif";
+        	        if (o100 > 0) {document.getElementById('pic_2').getContext('2d').fillText(o100, sz*0.6*1, sz*1.5);}
+        	        document.getElementById('pic_2').getContext('2d').fillText(o10, sz*0.6*2, sz*1.5);
+        	        document.getElementById('pic_2').getContext('2d').fillText(o1, sz*0.6*3, sz*1.5);
+        	        document.getElementById('pic_2').getContext('2d').font = sz*0.8+"px serif";
+        	        document.getElementById('pic_2').getContext('2d').fillText("円", sz*0.6*4, sz*1.5);
+        	        document.getElementById('pic_2').getContext('2d').font = sz*0.6+"px serif";
+        	        document.getElementById('pic_2').getContext('2d').fillText("のこり", sz*0.6*1, sz*0.5);
+                    document.getElementById('setumei1').style.visibility = "visible";
+                    document.getElementById('setumei2').style.visibility = "hidden";
+    	        
+        	        for (var i = 0; i < o100; i++){
+         		        document.getElementById('pic_2').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*3, c_sz, c_sz);
+    	            }
+    	            for (var i = 0; i < o10; i++){
+    	                if (i < 5){
+     		                document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i+0.5), c_sz*4, c_sz, c_sz);
+     		            } else {
+     		                document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i-5+0.5), c_sz*5, c_sz, c_sz);
+    	                }
+    	            }
+
+    	            for (var i = 0; i < 5; i++){
+     		            document.getElementById('pic_3').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*0.2+c_sz*0, c_sz, c_sz);
+    	            }
+    	        }
+    	        
+            } else {//不正解
+         	    document.getElementById("m_taitoru2").innerHTML = card[ID][1]+" さん の<br>かいけい です！！";
+                document.getElementById('menu_k').style="background:#FCC;";
+    	        document.getElementById("name_2").innerHTML = syouhin_name + "【" + nedan + " 円】";
+
+    	            nedan2 = nedan;
+    	            var oturi = 500-nedan;
+    		        o100 = parseInt(nedan/100);
+                    o10 = parseInt((nedan/10)%10);
+		            o1 = parseInt(nedan%10);
+
+    	        if (nedan < 1000) {
+        	        document.getElementById('pic_2').getContext('2d').font = sz*1+"px serif";
+        	        if (o100 > 0) {document.getElementById('pic_2').getContext('2d').fillText(o100, sz*0.6*1, sz*1.5);}
+        	        document.getElementById('pic_2').getContext('2d').fillText(o10, sz*0.6*2, sz*1.5);
+        	        document.getElementById('pic_2').getContext('2d').fillText(o1, sz*0.6*3, sz*1.5);
+        	        document.getElementById('pic_2').getContext('2d').font = sz*0.8+"px serif";
+        	        document.getElementById('pic_2').getContext('2d').fillText("円", sz*0.6*4, sz*1.5);
+        	        document.getElementById('pic_2').getContext('2d').font = sz*0.6+"px serif";
+        	        document.getElementById('pic_2').getContext('2d').fillText("あと", sz*0.6*1, sz*0.5);
+                    document.getElementById('setumei1').style.visibility = "visible";
+                    document.getElementById('setumei2').style.visibility = "hidden";
+                }
+    	        
+    	        if (nedan >= 1000) {
+            audioElem2.play();
+         	    document.getElementById("m_taitoru2").innerHTML = card[ID][1]+" さん<br>おかね が たりません！！";
+                    document.getElementById('setumei1').style.visibility = "hidden";
+                    document.getElementById('setumei2').style.visibility = "hidden";
+                    var max100 = o100;
+                    if (max100 > 200) {max100 = 200;}
+    	            for (var i = 0; i < max100; i++){
+    		            var rx = Math.floor( Math.random() * 28) - 14;
+    		            var ry = Math.floor( Math.random() * 28) - 14;
+     		            document.getElementById('pic_2').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*2.5+rx*10, c_sz*2.5+ry*10, c_sz, c_sz);
+    	            }
+    	        } else if (nedan >= 600){
+                    document.getElementById('setumei1').style.visibility = "hidden";
+                    document.getElementById('setumei2').style.visibility = "visible";
+        	        for (var i = 0; i < o100; i++){
+    	                if (i < 5){
+             		        document.getElementById('pic_2').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*3, c_sz, c_sz);
+     		            } else {
+             		        document.getElementById('pic_2').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i-5+0.5), c_sz*4, c_sz, c_sz);
+    	               }
+    	            }
+    	            for (var i = 0; i < o10; i++){
+    	                if (i < 5){
+     		                document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i+0.5), c_sz*5, c_sz, c_sz);
+     		            } else {
+     		                document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i-5+0.5), c_sz*6, c_sz, c_sz);
+    	               }
+    	            }
+    	        } else {//501-599
+                    document.getElementById('setumei1').style.visibility = "hidden";
+                    document.getElementById('setumei2').style.visibility = "visible";
+        	        for (var i = 0; i < o100; i++){
+         		        document.getElementById('pic_2').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*3, c_sz, c_sz);
+    	            }
+    	            for (var i = 0; i < o10; i++){
+    	                if (i < 5){
+     		                document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i+0.5), c_sz*4, c_sz, c_sz);
+     		            } else {
+     		                document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i-5+0.5), c_sz*5, c_sz, c_sz);
+    	                }
+    	            }
+    	        }
+
+        	    for (var i = 0; i < 5; i++){
+        		    document.getElementById('pic_3').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*0.2, c_sz, c_sz);
+		        }
+            }
+            
+            document.getElementById('menu_b').style.visibility = "hidden";
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //　説　明【正解パターン】
+    ////////////////////////////////////////////////////////////////////////
+    function b_setumei1(e){
+        // touchstar以降のイベントを発生させないように（最後はfoo();）
+        e.preventDefault();
+
+            //タッチデイベントとマウスのイベントの差異を吸収
+            if(e.type === "mousedown") {
+                event = e;
+            } else {
+                event = e.changedTouches[0];
+            }
+
+    if (nedan2 >= 100 && KMode == 1){// １００円玉５枚を表示
+        for (var i = 0; i < 5; i++){
+            document.getElementById('pic_3').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*0.2+c_sz*0, c_sz, c_sz);
+    	}
+    } else if (nedan2 < 100 && KMode == 1){// 両替え後の表示
+        audioElem4.play();
+        for (var i = 0; i < 5; i++){
+            document.getElementById('pic_3').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*0.2+c_sz*0, c_sz, c_sz);
+    	}
+    	for (var i = 0; i < 10; i++){
+     		document.getElementById('pic_3').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i+0.5), c_sz*0.2+c_sz*1, c_sz, c_sz);
+        }
+        KMode = 2;
+    } else if (KMode == 2) {// 両替え後の操作１回待ち
+        KMode = 3;
+    }
+
+        if (nedan2 > 0) {
+            ////////////////////////////////////////////////////////////////////////
+            //　商品代の確認
+            ////////////////////////////////////////////////////////////////////////
+        	for (var i = 0; i < o100; i++){// 金額の再表示（綺麗に半透明にするため！）
+         	    document.getElementById('pic_2').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*3, c_sz, c_sz);
+    	    }
+    	    for (var i = 0; i < o10; i++){// 金額の再表示（綺麗に半透明にするため！）
+    	        if (i < 5){
+     		        document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i+0.5), c_sz*4, c_sz, c_sz);
+     		    } else {
+     		        document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i-5+0.5), c_sz*5, c_sz, c_sz);
+    	        }
+    	    }
+            document.getElementById('pic_2').getContext('2d').fillStyle = 'rgba(127,207,255,0.9)'; //塗りつぶしの色は赤
+            if (o100 <= 5) {
+                for (var i = 0; i < o100-parseInt(nedan2/100)+1; i++){
+                    document.getElementById('pic_2').getContext('2d').fillRect(c_sz*(i+0.5)-1, c_sz*3-1, c_sz+1, c_sz+1);
+                }
+            }
+            if (KMode == 3 && o10 > 5) {
+                for (var i = 0; i < o10-parseInt((nedan2/10)%10)+1; i++){
+                    if (i < 5){
+                        document.getElementById('pic_2').getContext('2d').fillRect(c_sz*(i+0.5)-1, c_sz*4-1, c_sz+1, c_sz+1);
+                    } else {
+                        document.getElementById('pic_2').getContext('2d').fillRect(c_sz*(i-5+0.5)-1, c_sz*5-1, c_sz*+1, c_sz+1);
+                    }
+                }
+            } else if (KMode == 3 && o10 <= 5) {
+                for (var i = 0; i < o10-parseInt((nedan2/10)%10)+1; i++){
+                    document.getElementById('pic_2').getContext('2d').fillRect(c_sz*(i+0.5)-1, c_sz*4-1, c_sz+1, c_sz+1);
+                }
+            }
+            ////////////////////////////////////////////////////////////////////////
+            //　所持金の確認
+            ////////////////////////////////////////////////////////////////////////
+            for (var i = 0; i < 5; i++){// 金額の再表示（綺麗に半透明にするため！）
+                document.getElementById('pic_3').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*0.2+c_sz*0, c_sz, c_sz);
+    	    }
+            document.getElementById('pic_3').getContext('2d').fillStyle = 'rgba(255,255,100,0.9)'; //塗りつぶしの色は赤
+            if (o100 <= 5) {
+                for (var i = 0; i < o100-parseInt(nedan2/100)+1; i++){
+                    document.getElementById('pic_3').getContext('2d').fillRect(c_sz*(i+0.5)-1, c_sz*0.2+c_sz*0-1, c_sz+1, c_sz+1);
+                }
+            }
+            if (KMode == 3) {
+                for (var i = 0; i < o10-parseInt((nedan2/10)%10)+1; i++){
+                    document.getElementById('pic_3').getContext('2d').fillRect(c_sz*(i+0.5)-1, c_sz*0.2+c_sz*1-1, c_sz+1, c_sz+1);
+                }
+            }
+        audioElem5.play();
+
+            if (nedan2 >= 100 && KMode == 1) {
+                nedan2 = nedan2 - 100;
+            } else if (nedan2 >= 10 && KMode == 3) { 
+                nedan2 = nedan2 - 10;
+            }
+            
+            if (nedan2 == 0){audioElem1.play();}
+
+        } else {
+            ////////////////////////////////////////////////////////////////////////
+            //　リセット
+            ////////////////////////////////////////////////////////////////////////
+            KMode = 1;
+            nedan2 = nedan;
+
+            document.getElementById('pic_3').getContext('2d').fillStyle = 'rgb(255,255,100)'; //塗りつぶしの色
+            //document.getElementById('pic_2').getContext('2d').fillStyle = 'rgb(255,255,255)'; //塗りつぶしの色
+            document.getElementById('pic_3').getContext('2d').fillRect(c_sz*(0.5)-1, c_sz*0.2+c_sz*0-1, c_sz*10+2, c_sz*3+2);
+
+        	for (var i = 0; i < o100; i++){
+         	    document.getElementById('pic_2').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*3, c_sz, c_sz);
+    	    }
+    	    for (var i = 0; i < o10; i++){
+    	        if (i < 5){
+     		        document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i+0.5), c_sz*4, c_sz, c_sz);
+     		    } else {
+     		        document.getElementById('pic_2').getContext('2d').drawImage(img_c10, 0, 0, 111, 111, c_sz*(i-5+0.5), c_sz*5, c_sz, c_sz);
+    	        }
+    	    }
+
+            for (var i = 0; i < 5; i++){
+                document.getElementById('pic_3').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*0.2+c_sz*0, c_sz, c_sz);
+    	    }
+        }
+            ////////////////////////////////////////////////////////////////////////
+            //　商品代の表示
+            ////////////////////////////////////////////////////////////////////////
+    		h100 = parseInt(nedan2/100);
+            h10 = parseInt((nedan2/10)%10);
+		    h1 = parseInt(nedan2%10);
+            document.getElementById('pic_2').getContext('2d').fillStyle = 'rgb(127,207,255)'; //塗りつぶしの色
+            //document.getElementById('pic_2').getContext('2d').fillStyle = 'rgb(255,255,255)'; //塗りつぶしの色
+            document.getElementById('pic_2').getContext('2d').fillRect(sz*0.6*1-4, 8+sz*0.5, sz*0.6*3+8, sz);
+            document.getElementById('pic_2').getContext('2d').fillStyle = 'rgb(0,0,0)'; //塗りつぶしの色は赤
+
+        	document.getElementById('pic_2').getContext('2d').font = sz*1+"px serif";
+        	if (h100 > 0) {document.getElementById('pic_2').getContext('2d').fillText(h100, sz*0.6*1, sz*1.5);}
+        	if (nedan2 > 0) {document.getElementById('pic_2').getContext('2d').fillText(h10, sz*0.6*2, sz*1.5);}
+        	document.getElementById('pic_2').getContext('2d').fillText(h1, sz*0.6*3, sz*1.5);
+        	document.getElementById('pic_2').getContext('2d').font = sz*0.8+"px serif";
+        	document.getElementById('pic_2').getContext('2d').fillText("円", sz*0.6*4, sz*1.5);
+        	document.getElementById('pic_2').getContext('2d').font = sz*0.6+"px serif";
+        	document.getElementById('pic_2').getContext('2d').fillText("のこり", sz*0.6*1, sz*0.5);
+            
+        foo();
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //　説　明【不正解パターン】
+    ////////////////////////////////////////////////////////////////////////
+    function b_setumei2(e){
+        // touchstar以降のイベントを発生させないように（最後はfoo();）
+        e.preventDefault();
+
+            //タッチデイベントとマウスのイベントの差異を吸収
+            if(e.type === "mousedown") {
+                event = e;
+            } else {
+                event = e.changedTouches[0];
+            }
+
+        for (var i = 0; i < 5; i++){// 金額の再表示（綺麗に半透明にするため！）
+            document.getElementById('pic_2').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*3, c_sz, c_sz);
+            document.getElementById('pic_3').getContext('2d').drawImage(img_c100, 0, 0, 102, 102, c_sz*(i+0.5), c_sz*0.2, c_sz, c_sz);
+    	}
+
+        if (s_count < 5) {
+            ////////////////////////////////////////////////////////////////////////
+            //　商品代の確認
+            ////////////////////////////////////////////////////////////////////////
+            document.getElementById('pic_2').getContext('2d').fillStyle = 'rgba(255,207,207,0.9)'; //塗りつぶしの色は赤
+            document.getElementById('pic_2').getContext('2d').fillRect(c_sz*(0.5)-1, c_sz*3-1, c_sz*(s_count+1)+1, c_sz+1);
+            ////////////////////////////////////////////////////////////////////////
+            //　所持金の確認
+            ////////////////////////////////////////////////////////////////////////
+            document.getElementById('pic_3').getContext('2d').fillStyle = 'rgba(255,255,100,0.9)'; //塗りつぶしの色は赤
+            document.getElementById('pic_3').getContext('2d').fillRect(c_sz*(0.5)-1, c_sz*0.2-1, c_sz*(s_count+1)+1, c_sz+1);
+        audioElem5.play();
+            s_count++;
+
+            if (s_count == 5){audioElem2.play();}
+
+            if (nedan2 >= 100 && KMode == 1) {
+                nedan2 = nedan2 - 100;
+            } else if (nedan2 >= 10 && KMode == 3) { 
+                nedan2 = nedan2 - 10;
+            }
+
+        } else {
+            ////////////////////////////////////////////////////////////////////////
+            //　リセット
+            ////////////////////////////////////////////////////////////////////////
+            s_count = 0;
+            nedan2 = nedan;
+        }
+            ////////////////////////////////////////////////////////////////////////
+            //　商品代の表示
+            ////////////////////////////////////////////////////////////////////////
+    		h100 = parseInt(nedan2/100);
+            h10 = parseInt((nedan2/10)%10);
+		    h1 = parseInt(nedan2%10);
+            document.getElementById('pic_2').getContext('2d').fillStyle = 'rgb(255,207,207)'; //塗りつぶしの色は赤
+            //document.getElementById('pic_2').getContext('2d').fillStyle = 'rgb(255,255,255)'; //塗りつぶしの色は赤
+            document.getElementById('pic_2').getContext('2d').fillRect(sz*0.6*1-4, 8+sz*0.5, sz*0.6*3+8, sz);
+            document.getElementById('pic_2').getContext('2d').fillStyle = 'rgb(0,0,0)'; //塗りつぶしの色は赤
+
+        	document.getElementById('pic_2').getContext('2d').font = sz*1+"px serif";
+        	if (h100 > 0) {document.getElementById('pic_2').getContext('2d').fillText(h100, sz*0.6*1, sz*1.5);}
+        	if (nedan2 > 0) {document.getElementById('pic_2').getContext('2d').fillText(h10, sz*0.6*2, sz*1.5);}
+        	document.getElementById('pic_2').getContext('2d').fillText(h1, sz*0.6*3, sz*1.5);
+        	document.getElementById('pic_2').getContext('2d').font = sz*0.8+"px serif";
+        	document.getElementById('pic_2').getContext('2d').fillText("円", sz*0.6*4, sz*1.5);
+        	document.getElementById('pic_2').getContext('2d').font = sz*0.6+"px serif";
+        	document.getElementById('pic_2').getContext('2d').fillText("あと", sz*0.6*1, sz*0.5);
+            
+        foo();
+    }
+</script>
+</body>
+</html>
