@@ -3,7 +3,7 @@
 (function(){
 
     ////////////////////////////////////////////////////////////////////////
-    //　初期設定
+    // 初期設定
     ////////////////////////////////////////////////////////////////////////
     var event;
     var x;
@@ -65,7 +65,7 @@
     el_q.innerHTML = "500";
 
     ////////////////////////////////////////////////////////////////////////
-    //　カート設定
+    // カート設定
     ////////////////////////////////////////////////////////////////////////
     document.getElementById('box1').style.width = sw*0.25 + "px";
     document.getElementById('box1').style.height = sz + "px";
@@ -81,7 +81,7 @@
     document.getElementById("box1b").style.top = b1_y + "px";
 
     ////////////////////////////////////////////////////////////////////////
-    //　かいけい・ボタン設定
+    // かいけい・ボタン設定
     ////////////////////////////////////////////////////////////////////////
     document.getElementById('kaikei').style.width = sz*1.2 + "px";
     document.getElementById('kaikei').style.height = sz*0.6 + "px";
@@ -90,7 +90,7 @@
     document.getElementById("kaikei").style.visibility = "hidden";
 
     ////////////////////////////////////////////////////////////////////////
-    //　スタート・ボタン設定
+    // スタート・ボタン設定
     ////////////////////////////////////////////////////////////////////////
     document.getElementById('start').style.fontSize = sz*0.4 +"px";
     document.getElementById('start').style.width = sz*2.8 + "px";
@@ -99,7 +99,7 @@
     document.getElementById('start').style.top = sh*0.3 + "px";
 
     ////////////////////////////////////////////////////////////////////////
-    //　メモリ作成
+    // メモリ作成
     ////////////////////////////////////////////////////////////////////////
     var memW = sw * 0.2;
     document.write('<div class="free" id="memoriZ" style="background:#CCC;"></div>')
@@ -152,7 +152,7 @@
     document.getElementById('coin500').style.top = b1_y+b1_h + sz/2 + sz*0.2 + "px";
 
     ////////////////////////////////////////////////////////////////////////
-    //　カード作成
+    // カード作成
     ////////////////////////////////////////////////////////////////////////
     document.write('<div class="drag-and-drop" id="card1" align="center" style="background:#EEE;">'+
                    '<canvas id="pic1" width='+sz+' height='+sz+'></canvas>'+
@@ -188,7 +188,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　タイヤ作成
+    // タイヤ作成
     ////////////////////////////////////////////////////////////////////////
     document.write('<div class="free" id="taiya1">●</div>')
     document.getElementById('taiya1').style.fontSize = sz*1+"px";
@@ -200,7 +200,7 @@
     document.getElementById("taiya2").style.top = sz*3.4 + "px";
 
     ////////////////////////////////////////////////////////////////////////
-    //　スタート画面の準備
+    // スタート画面の準備
     ////////////////////////////////////////////////////////////////////////
     document.getElementById('box1').style.visibility = "hidden";
     document.getElementById('box1b').style.visibility = "hidden";
@@ -208,7 +208,7 @@
     document.getElementById("taiya2").style.visibility = "hidden";
 
     ////////////////////////////////////////////////////////////////////////
-    //　〇×作成
+    // 〇×作成
     ////////////////////////////////////////////////////////////////////////
     for (var i = 0; i < 5; i++){
         document.write('<img src="img/maru.png" class="free" id="maru' + i +'" width="' + sz + '" position="absolute" alt="">')
@@ -333,7 +333,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　判定後の解説用のキャンバス
+    // 判定後の解説用のキャンバス
     ////////////////////////////////////////////////////////////////////////
     document.write('<div class="free" id="kaisetu" align="center" style="background:#5EE;">'+
                    '<canvas id="c_kaisetu" width='+sw+' height='+sz*4+'></canvas></div>')
@@ -367,7 +367,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　カード整列アニメーション
+    // カード整列アニメーション
     ////////////////////////////////////////////////////////////////////////
     function seiretu_anime() {
         count = 0;//カウンターリセット
@@ -384,7 +384,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　リセット
+    // リセット
     ////////////////////////////////////////////////////////////////////////
     function reset() {
         document.getElementById('bar').style.width = 0 + "px";
@@ -420,7 +420,7 @@
     }
     
     ////////////////////////////////////////////////////////////////////////
-    //　ALL リセット
+    // ALL リセット
     ////////////////////////////////////////////////////////////////////////
     function all_reset() {
         audioElem3.play();
@@ -543,7 +543,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　カード整列
+    // カード整列
     ////////////////////////////////////////////////////////////////////////
     function seiretu() {
     	for (var i = 0; i < 5; i++){
@@ -558,7 +558,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　移動アニメーション
+    // 移動アニメーション
     ////////////////////////////////////////////////////////////////////////
     var countup = function(){
         if (count < 10) {
@@ -751,7 +751,7 @@
     }
     
     ////////////////////////////////////////////////////////////////////////
-    //　判　定
+    // 判 定
     ////////////////////////////////////////////////////////////////////////
     var hantei = function(){
         //////////////////////////////////////////////////////////////////
@@ -804,16 +804,16 @@
         }
 
         var avg = Math.round((count1/(count1+count2+count3))*100*10)/10;
-        document.getElementById("kekka1").innerHTML = "正答率　"+avg+" ％";
-        document.getElementById("kekka2").innerHTML = "正答率　"+avg+" ％";
-        document.getElementById("kekka3").innerHTML = "正答率　"+avg+" ％";
-        document.getElementById("kekka1z").innerHTML = "連続正解の最大数　"+count9z+" 回／全"+(count1+count2+count3)+" 回";
-        document.getElementById("kekka2z").innerHTML = "連続正解の最大数　"+count9z+" 回／全"+(count1+count2+count3)+" 回";
-        document.getElementById("kekka3z").innerHTML = "連続正解の最大数　"+count9z+" 回／全"+(count1+count2+count3)+" 回";
+        document.getElementById("kekka1").innerHTML = "正答率 "+avg+" ％";
+        document.getElementById("kekka2").innerHTML = "正答率 "+avg+" ％";
+        document.getElementById("kekka3").innerHTML = "正答率 "+avg+" ％";
+        document.getElementById("kekka1z").innerHTML = "連続正解の最大数 "+count9z+" 回／全"+(count1+count2+count3)+" 回";
+        document.getElementById("kekka2z").innerHTML = "連続正解の最大数 "+count9z+" 回／全"+(count1+count2+count3)+" 回";
+        document.getElementById("kekka3z").innerHTML = "連続正解の最大数 "+count9z+" 回／全"+(count1+count2+count3)+" 回";
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　解答アニメーション    
+    // 解答アニメーション    
     ////////////////////////////////////////////////////////////////////////
     var kaitou_anime = function(){
         count = 0;//カウンターリセット
@@ -846,7 +846,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　マウスが要素内で押されたとき、又はタッチされたとき発火
+    // マウスが要素内で押されたとき、又はタッチされたとき発火
     ////////////////////////////////////////////////////////////////////////
     for(var i = 1; i <= 5; i++) {
         document.getElementById('card'+i).addEventListener("mousedown", mdown, false);
@@ -854,7 +854,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　マウスが要素内で押されたとき、又はタッチされたとき発火
+    // マウスが要素内で押されたとき、又はタッチされたとき発火
     ////////////////////////////////////////////////////////////////////////
     document.getElementById("kaitou1").addEventListener("mousedown", mdown2, false);
     document.getElementById("kaitou1").addEventListener("touchstart", mdown2, false);
@@ -873,7 +873,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　選択無効
+    // 選択無効
     ////////////////////////////////////////////////////////////////////////
     document.onselectstart = function() {
         return false;
@@ -891,7 +891,7 @@
 	    document.getElementById('box1b').style.visibility = "visible";
 	    document.getElementById("taiya1").style.visibility = "visible";
 	    document.getElementById("taiya2").style.visibility = "visible";
-    　  for(var i = 1; i <= 5; i++) {
+       for(var i = 1; i <= 5; i++) {
 	        document.getElementById("card"+i).style.visibility = "visible";
 	    }
             all_reset();//スタート時オールリセット
@@ -922,7 +922,7 @@
     };
 
     ////////////////////////////////////////////////////////////////////////
-    //　マウスが押された際の関数（１回目：結果発表　＆　２回目：次の問題へ）
+    // マウスが押された際の関数（１回目：結果発表 ＆ ２回目：次の問題へ）
     ////////////////////////////////////////////////////////////////////////
     function mdown2(e) {
         // touchstar以降のイベントを発生させないように（最後はfoo();）
@@ -1016,7 +1016,7 @@
     }
 
     ////////////////////////////////////////////////////////////////////////
-    //　マウスが押された際の関数
+    // マウスが押された際の関数
     ////////////////////////////////////////////////////////////////////////
     function mdown(e) {
         // touchstar以降のイベントを発生させないように（最後はfoo();）
@@ -1040,4 +1040,64 @@
         foo();      
     }
     
+    ////////////////////////////////////////////////////////////////////////
+    // 先生用：データ出力（CSV）と共有機能（Web Share API）の追加
+    ////////////////////////////////////////////////////////////////////////
+    var btnExport = document.getElementById("exportData");
+    if (btnExport) {
+        btnExport.addEventListener("mousedown", exportCSV, false);
+        btnExport.addEventListener("touchstart", exportCSV, {passive: false});
+    }
+
+    function exportCSV(e) {
+        e.preventDefault();
+        
+        var data_str = localStorage.kaimono100;
+        if (!data_str) {
+            alert("出力するデータがありません。");
+            return;
+        }
+
+        // 文字化け防止（BOM付きUTF-8）と、CSVとして見やすい改行の挿入
+        var bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        var formattedData = data_str.replace(/買い物学習,/g, "買い物学習\n")
+                                    .replace(/評価/g, "\n評価");
+                                    
+        var blob = new Blob([bom, formattedData], { type: "text/csv;charset=utf-8;" });
+        var fileName = "kaimono_record.csv";
+        var file = new File([blob], fileName, { type: "text/csv" });
+
+        // iPadOS等のネイティブ共有メニュー（AirDrop等）を呼び出す
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+                files: [file],
+                title: '買い物学習記録',
+                text: '生徒の買い物学習の履歴データです。'
+            }).catch(function(error) {
+                console.log('共有がキャンセルされたか、失敗しました', error);
+            });
+        } else {
+            // 非対応ブラウザ用のダウンロードフォールバック
+            var link = document.createElement("a");
+            if (link.download !== undefined) {
+                var url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert("お使いのブラウザはファイル共有に対応していません。");
+            }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    // エラー回避用の空関数（元のコードで未定義のまま呼び出されていたため補足）
+    ////////////////////////////////////////////////////////////////////////
+    function foo() {
+        // 何も処理を行いません。
+    }
+
 })()
