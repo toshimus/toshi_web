@@ -66,7 +66,7 @@ data_s = data_s + YY1 + "年" + MM1 + "月" + DD1 + "日" + HH2 + ":" + MM2 + ":
 localStorage.kaimono100 = data_s;
             
     ////////////////////////////////////////////////////////////////////////
-    //　効果音の設定
+    // 効果音の設定
     ////////////////////////////////////////////////////////////////////////
     const audioElem0 = new Audio();
     const audioElem1 = new Audio();
@@ -78,7 +78,7 @@ localStorage.kaimono100 = data_s;
     audioElem3.src = "img/sound3.mp3";
 
     ////////////////////////////////////////////////////////////////////////
-    //　画像の設定
+    // 画像の設定
     ////////////////////////////////////////////////////////////////////////
     const img_pic1 = new Image()
     const img_pic2 = new Image()
@@ -262,13 +262,15 @@ alert(ret);
     <body>
         <center><div class="tx" id="tx1"><span id="Q"></span> 円</div></center>
         <center><div class="tx" id="tx2">で かえる ものは どれかな？</div></center>
-        <div class="tx" id="tx3">幅：<span id="www"></span>　高さ：<span id="hhh"></span>　サイズ：<span id="zzz"></span></div>
+        <div class="tx" id="tx3">幅：<span id="www"></span> 高さ：<span id="hhh"></span> サイズ：<span id="zzz"></span></div>
 
         <input type="button" class="free" id="start" value="スタート" style="background:#AFF;">
         <input type="button" class="free" id="kaikei" value="かいけい" style="background:#DDD;">
 
         <div class="free" id="box1" style="background:#88F;" align="center"></div>
         <div class="free" id="box1b" style="background:#F00;"></div>
+
+        <input type="button" class="free" id="exportData" value="記録出力" style="background:#FFD; top:5px; right:5px; left:auto; width:80px; height:30px; font-size:14px; z-index:100;">
 
         <script type="text/javascript" src="script.js"></script>
     </body>
