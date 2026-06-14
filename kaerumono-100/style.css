@@ -1,0 +1,23 @@
+.drag-and-drop {
+    cursor: move;
+    position: absolute;
+    top:300px;
+    left:100px;
+}
+.free {
+    position: absolute;
+    top:0px;
+    left:0px;
+}
+body , input , textarea , select {
+    /* 入力欄にフォーカスが当たっても拡大しない */
+    font-size:24px;
+}
+ 
+body {
+    background-color : white;
+    -webkit-touch-callout:none; // リンク長押しのポップアップを無効化
+    -webkit-user-select:none; // テキスト長押しの選択ボックスを無効化
+    -webkit-overflow-scrolling: touch;
+
+}

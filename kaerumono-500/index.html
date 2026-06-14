@@ -1,0 +1,273 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="user-scalable=no,initial-scale=1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <title>５００円で買えるものは？</title>
+        <link rel="stylesheet" href="style.css" type="text/css" media="all" />
+        <style>
+            body {
+                background-image: url("img/back.jpg");
+            }
+            html, body {
+                height: 100%;
+                overflow: hidden;
+            }
+        </style>
+
+        <script>
+            /* ピッチインピッチアウトによる拡大縮小を禁止 */
+            document.documentElement.addEventListener('touchstart', function (e) {
+                if (e.touches.length >= 2) {e.preventDefault();}
+            }, {passive: false});
+            /* ダブルタップによる拡大を禁止 */
+            var t = 0;
+            document.documentElement.addEventListener('touchend', function (e) {
+                var now = new Date().getTime();
+                if ((now - t) < 350){
+                    e.preventDefault();
+                }
+                t = now;
+            }, false);
+            
+            //データの削除
+            //localStorage.clear();//全て削除
+            //localStorage.removeItem("data");
+
+            // 保存データの確認
+            var save_flg = 0;
+            var data_s;
+            for(var i = 0; i < localStorage.length; i++){
+                //document.getElementById("tx"+i+"b").innerHTML = localStorage.getItem(k);
+                if (localStorage.key(i) == "kaimono") {
+                    save_flg = 1;
+                    //var k = localStorage.key(i);
+                    //data_s = localStorage.getItem(k);
+                    data_s = localStorage.kaimono;
+                }
+            } 
+            if (save_flg == 0){
+                //alert('キーは無いです！');
+                localStorage.setItem("kaimono","買い物学習,");
+                data_s = localStorage.kaimono;
+            }else{
+                //alert('準備完了！！'+data_s);
+            }
+      now = new Date();      
+      var YY1 = now.getFullYear();
+      var MM1 = now.getMonth()+1;
+      var DD1 = now.getDate();
+      var HH2 = now.getHours();
+      var MM2 = now.getMinutes();
+      var SS2 = now.getSeconds();
+data_s = data_s + YY1 + "年" + MM1 + "月" + DD1 + "日" + HH2 + ":" + MM2 + ":" + SS2 + ",";
+localStorage.kaimono = data_s;
+            
+    ////////////////////////////////////////////////////////////////////////
+    //　効果音の設定
+    ////////////////////////////////////////////////////////////////////////
+    const audioElem0 = new Audio();
+    const audioElem1 = new Audio();
+    const audioElem2 = new Audio();
+    const audioElem3 = new Audio();
+    audioElem0.src = "img/sound0.mp3";
+    audioElem1.src = "img/sound1.mp3";
+    audioElem2.src = "img/sound2.mp3";
+    audioElem3.src = "img/sound3.mp3";
+
+    ////////////////////////////////////////////////////////////////////////
+    //　画像の設定
+    ////////////////////////////////////////////////////////////////////////
+    const img_pic1 = new Image()
+    const img_pic2 = new Image()
+    const img_pic3 = new Image()
+    const img_pic4 = new Image()
+    const img_pic5 = new Image()
+    img_pic1.src = ('img/pic1.png')
+    img_pic2.src = ('img/pic2.png')
+    img_pic3.src = ('img/pic3.png')
+    img_pic4.src = ('img/pic4.png')
+    img_pic5.src = ('img/pic5.png')
+    const img_maru = new Image()
+    img_maru.src = ('img/maru.png')
+    const img_batu = new Image()
+    img_batu.src = ('img/batu.png')
+    const img_500 = new Image()
+    img_500.src = ('img/c500.png')
+        
+ 
+var data = [
+'100,ていしょく,700,ng,0000010',
+'101,ステーキ,1500,ng,0000020',
+'102,ミートスパゲティ,600,ng,0000030',
+'103,カルボナーラ,700,ng,0000040',
+'104,イカすみスパゲティ,700,ng,0000050',
+'110,めんたいこスパゲティ,700,ng,0000060',
+'111,イチゴ,560,ng,0000070',
+'112,メロン,520,ng,0000080',
+'113,ゲーム,14800,ng,0000090',
+'114,ウォークマン,5000,ng,0000100',
+'120,テレビゲーム,24000,ng,0000110',
+'121,オセロ,1000,ng,0000120',
+'122,ブレイブボード,8000,ng,0000130',
+'123,スケボー,3000,ng,0000140',
+'124,ラジコンひこうき,5000,ng,0000150',
+'130,ドローン,100000,ng,0000160',
+'131,くうきいれ,1000,ng,0000170',
+'132,さんしんしゃ,5000,ng,0000180',
+'133,サーフボード,50000,ng,0000190',
+'134,いちりんしゃ,7000,ng,0000200',
+'140,じてんしゃ,15000,ng,0000210',
+'141,デジカメ,10000,ng,0000220',
+'142,けいたいでんわ,30000,ng,0000230',
+'143,カセットウォームマン,3000,ng,0000240',
+'144,CDウォークマン,6000,ng,0000250',
+'150,スマートフォン,80000,ng,0000260',
+'151,デジタルビデオ,30000,ng,0000270',
+'152,せんぷうき,3000,ng,0000280',
+'153,ノートパソコン,13000,ng,0000290',
+'154,パソコン,10000,ng,0000300',
+'160,テレビ,30000,ng,0000310',
+'161,ストーブ,5000,ng,0000320',
+'162,れいぞうこ,35000,ng,0000330',
+'163,せんたっき,40000,ng,0000340',
+'164,のこぎり,1500,ng,0000350',
+'170,チェンソー,20000,ng,0000360',
+'171,でんどうドライバー,4000,ng,0000370',
+'172,エアロバイク,15000,ng,0000380',
+'173,いちりんしゃ,8000,ng,0000390',
+'174,オートバイ,500000,ng,0000400',
+'200,げんつき,150000,ng,0000410',
+'201,いえ,30000000,ng,0000420',
+'202,いえ,30000000,ng,0000430',
+'203,ひこうき,6500000000,ng,0000440',
+'204,ジェットき,8000000000,ng,0000450',
+'210,くるま,2000000,ng,0000460',
+'211,くるま,2000000,ng,0000470',
+'300,えんぴつ,80,ok,0000480',
+'301,じょうぎ,100,ok,0000490',
+'302,はぶらし,110,ok,0000500',
+'303,はくさい,80,ok,0000510',
+'304,えのき,170,ok,0000520',
+'310,しめじ,170,ok,0000530',
+'311,ねぎ,90,ok,0000540',
+'312,レタス,160,ok,0000550',
+'313,キャベツ,160,ok,0000560',
+'314,トマト,150,ok,0000570',
+'320,きゅうり,90,ok,0000580',
+'321,はみがきこ,320,ok,0000590',
+'322,ピーマン,80,ok,0000600',
+'323,ゴーヤー,140,ok,0000610',
+'324,ティッシュ,200,ok,0000620',
+'330,ラムネ,120,ok,0000630',
+'331,タピオカ,320,ok,0000640',
+'332,おちゃ,90,ok,0000650',
+'333,やさいジュース,80,ok,0000660',
+'334,りんごジュース,80,ok,0000670',
+'340,カッター,360,ok,0000680',
+'341,ぎゅうにゅう,100,ok,0000690',
+'342,コーヒー,210,ok,0000700',
+'343,コーラ,160,ok,0000710',
+'344,コーラ,100,ok,0000720',
+'350,おちゃ,90,ok,0000730',
+'351,コーヒー,210,ok,0000740',
+'352,ぎゅうにゅう,240,ok,0000750',
+'353,ヤクルト,100,ok,0000760',
+'354,のり,110,ok,0000770',
+'360,チューチュー,100,ok,0000780',
+'361,アイスクリーム,100,ok,0000790',
+'362,チョコレート,110,ok,0000800',
+'363,プリン,200,ok,0000810',
+'364,たいやき,100,ok,0000820',
+'370,チョコレート,110,ok,0000830',
+'371,チョコレート,110,ok,0000840',
+'372,チョコレート,110,ok,0000850',
+'373,はさみ,200,ok,0000860',
+'374,チョコレート,110,ok,0000870',
+'400,チョコレート,110,ok,0000880',
+'401,チョコレート,110,ok,0000890',
+'402,チョコレート,110,ok,0000900',
+'403,ポテトチップ,130,ok,0000910',
+'404,ノート,80,ok,0000920',
+'410,ポテトチップ,130,ok,0000930',
+'411,あめ,150,ok,0000940',
+'412,チョコレート,110,ok,0000950',
+'413,チョコレート,110,ok,0000960',
+'414,ガチャポン,100,ok,0000970',
+'420,チョココロネ,120,ok,0000980',
+'421,メロンパン,120,ok,0000990',
+'422,クリームパン,120,ok,0001000',
+'423,ボールペン,110,ok,0001010',
+'424,しょくパン,200,ok,0001020',
+'430,クロワッサン,130,ok,0001030',
+'431,りんご,200,ok,0001040',
+'432,バナナ,300,ok,0001050',
+'433,ぶどう,300,ok,0001060',
+'434,みかん,300,ok,0001070',
+'440,そば,380,ok,0001080',
+'441,なっとう,100,ok,0001090',
+'442,ポテト,100,ok,0001100',
+'443,ギョウザ,230,ok,0001110',
+'444,けしごむ,80,ok,0001120',
+'450,ぎゅうどん,360,ok,0001130',
+'451,ハンバーガー,240,ok,0001140',
+'452,カツカレー,500,ok,0001150',
+'453,おにぎり,110,ok,0001160',
+'454,ポテトサラダ,110,ok,0001170',
+'460,サンドイッチ,110,ok,0001180',
+'461,ざるそば,360,ok,0001190',
+'462,すし,110,ok,0001200',
+'463,おきなわそば,500,ok,0001210',
+'464,タコス,360,ok,0001220',
+'470,トイレットペーパー,300,ok,0001230',
+'471,たこやき,500,ok,0001240',
+'472,べんとう,400,ok,0001250',
+'473,おこのみやき,500,ok,0001260',
+'474,すし,90,ok,0001270',
+'500,すし,90,ok,0001280',
+'501,すし,90,ok,0001290',
+'502,すし,90,ok,0001300',
+'503,ツナかん,90,ok,0001310',
+'504,せっけん,100,ok,0001320',
+'510,たまご,100,ok,0001330',
+'511,インスタントしょくひん,120,ok,0001340',
+'512,ラーメン,100,ok,0001350',
+'513,ラーメン,100,ok,0001360',
+'514,ハンバーグ,300,ok,0001370',
+'520,にんじん,90,ok,0001380',
+'521,じゃがいも,90,ok,0001390',
+'522,たまねぎ,90,ok,0001400',
+]; // 最終的な二次元配列を入れるための配列
+var syouhin = []; // 最終的な二次元配列を入れるための配列
+// 各行ごとにカンマで区切った文字列を要素とした二次元配列を生成
+for(var i = 0; i < data.length; i++){
+    syouhin[i] = data[i].split(',');
+}
+/*
+var ret = "";
+for( var i = 0 ; i < data.length ; i++ ) {
+   ret += '[' + (i+1) + '] ' + syouhin[i][1] + "\n";
+}
+// 表示
+alert(ret);
+*/
+
+        </script>
+    </head>
+
+    <body>
+        <center><div class="tx" id="tx1"><span id="Q"></span> 円</div></center>
+        <center><div class="tx" id="tx2">で かえる ものは どれかな？</div></center>
+        <div class="tx" id="tx3">幅：<span id="www"></span>　高さ：<span id="hhh"></span>　サイズ：<span id="zzz"></span></div>
+
+        <input type="button" class="free" id="start" value="スタート" style="background:#AFF;">
+        <input type="button" class="free" id="kaikei" value="かいけい" style="background:#DDD;">
+
+        <div class="free" id="box1" style="background:#88F;" align="center"></div>
+        <div class="free" id="box1b" style="background:#F00;"></div>
+
+        <script type="text/javascript" src="script.js"></script>
+    </body>
+</html>
