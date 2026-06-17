@@ -7,21 +7,19 @@
 <style>
     html, body {
         height: 100%;
-        overflow: hidden;
-        position: fixed;
+        overflow: auto;
         width: 100%;
     }
     body {
         font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         margin: 0;
-        padding: 0;
+        padding: 30px 10px;
         background-color: #f8f9fa;
         color: #333;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        touch-action: none;
+        touch-action: pan-y;
         box-sizing: border-box;
     }
     h1 {
@@ -34,25 +32,27 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        width: 85%;
+        width: 90%;
         max-width: 500px;
     }
     .menu-button {
         display: block;
-        padding: 14px;
+        padding: 15px;
         font-size: 1.2rem;
         text-align: center;
         text-decoration: none;
         color: #ffffff;
         border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: background-color 0.2s ease;
+        transition: background-color 0.2s ease, transform 0.1s;
         touch-action: manipulation;
     }
     .menu-button:active {
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         transform: translateY(2px);
     }
+    
+    /* ボタンのカラーバリエーション */
     .btn-001 { background-color: #3498db; }
     .btn-001:active { background-color: #2980b9; }
     
@@ -76,6 +76,12 @@
     
     .btn-008 { background-color: #34495e; }
     .btn-008:active { background-color: #2c3e50; }
+    
+    .btn-009 { background-color: #e84393; }
+    .btn-009:active { background-color: #b33939; }
+    
+    .btn-010 { background-color: #00cec9; }
+    .btn-010:active { background-color: #00b894; }
 </style>
 </head>
 <body>
@@ -90,6 +96,8 @@
         <a href="006.html" class="menu-button btn-006">6. 分母と分子</a>
         <a href="007.html" class="menu-button btn-007">7. 数直線の分数</a>
         <a href="008.html" class="menu-button btn-008">8. 1より大きい分数の数直線</a>
+        <a href="009.html" class="menu-button btn-009">9. 分数の分類</a>
+        <a href="010.html" class="menu-button btn-010">10. 分数の大きさくらべ</a>
     </div>
 
 </body>
