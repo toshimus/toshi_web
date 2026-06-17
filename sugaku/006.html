@@ -19,6 +19,8 @@
         color: #333;
         touch-action: none;
         box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
     }
     h1 {
         font-size: 1.2rem;
@@ -33,15 +35,14 @@
     .problem-container {
         display: flex;
         flex-direction: row;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         width: 100%;
         max-width: 800px;
         align-items: center;
         justify-content: center;
-        padding: 20px 0;
+        padding: 10px 0;
     }
     
-    /* 問題の分数表示エリア */
     .fraction-display {
         display: flex;
         align-items: center;
@@ -62,11 +63,10 @@
         padding: 0 15px;
     }
     
-    /* 回答入力エリア */
     .answer-panel {
         display: flex;
         flex-direction: column;
-        gap: 30px;
+        gap: 20px;
     }
     .input-row {
         display: flex;
@@ -79,40 +79,67 @@
         margin-right: 20px;
     }
     
-    .ctrl-group {
-        display: flex;
-        align-items: center;
-    }
-    .ctrl-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.8rem;
-        border: 1px solid #999;
-        background-color: #fff;
+    /* ドロップゾーン（□の枠） */
+    .drop-zone {
+        width: 65px;
+        height: 65px;
+        border: 2px dashed #3498db;
+        background-color: #f0f8ff;
         border-radius: 8px;
         display: flex;
         justify-content: center;
         align-items: center;
-        cursor: pointer;
-        touch-action: manipulation;
-        outline: none;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .ctrl-btn:active {
-        background-color: #e0e0e0;
-    }
-    .ctrl-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    .val-display {
-        width: 80px;
-        text-align: center;
         font-size: 2.2rem;
         font-weight: bold;
-        border-bottom: 2px solid #000;
-        margin: 0 10px;
-        padding-bottom: 5px;
+        cursor: pointer;
+        color: #333;
+    }
+
+    /* 0〜9の駒エリア */
+    .pieces-container {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #ecf0f1;
+        border-radius: 12px;
+    }
+    .piece {
+        width: 55px;
+        height: 55px;
+        border: 2px solid #2c3e50;
+        background-color: #f1c40f;
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: grab;
+        color: #2c3e50;
+        box-shadow: 0 4px 0 #d4ac0d;
+        touch-action: none;
+    }
+    .piece:active {
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+    .piece.dragging {
+        position: fixed;
+        z-index: 1000;
+        pointer-events: none;
+        opacity: 0.9;
+        box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+        transform: scale(1.1);
+    }
+    .hint-text {
+        text-align: center;
+        color: #e74c3c;
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-top: 10px;
     }
     
     .check-btn-container {
@@ -143,20 +170,19 @@
     }
     
     .result-display {
-        font-size: 8rem;
+        font-size: 7rem;
         color: red;
         font-weight: bold;
         text-align: center;
         width: 100%;
         margin-top: 10px;
-        min-height: 120px; 
+        min-height: 100px; 
         display: flex;
         justify-content: center;
         align-items: center;
         white-space: nowrap;
     }
     
-    /* 最終結果表示用のスタイル */
     .clear-message {
         text-align: center;
         margin-top: 20px;
@@ -193,18 +219,11 @@
         color: #fff;
         margin-right: 15px;
     }
-    .retry-btn:active {
-        background-color: #8bb4f5;
-    }
     .menu-btn {
         background-color: #95a5a6;
         color: #fff;
     }
-    .menu-btn:active {
-        background-color: #7f8c8d;
-    }
     
-    /* 上部に戻るボタン用 */
     .top-nav {
         display: flex;
         justify-content: flex-end;
@@ -231,12 +250,11 @@
     <div id="app"></div>
 
     <script>
-        // ランダムな真分数を10問生成します
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 8) + 2; // 分母は2から9
-            const num = Math.floor(Math.random() * (den - 1)) + 1; // 分子は1から分母-1の真分数
+            const den = Math.floor(Math.random() * 9) + 2; // 分母は2から10
+            const num = Math.floor(Math.random() * (den - 1)) + 1;
             const fracKey = `${num}/${den}`;
             if (!seen.has(fracKey)) {
                 seen.add(fracKey);
@@ -281,10 +299,6 @@
             }
 
             const prob = problems[currentIndex];
-            
-            // ユーザー入力用の初期値（ヒントにならないよう固定）
-            let ansDen = 1;
-            let ansNum = 1;
 
             const statusBar = document.createElement('div');
             statusBar.className = 'status-bar';
@@ -297,14 +311,12 @@
             // --- 問題の分数表示エリア ---
             const fracDisplay = document.createElement('div');
             fracDisplay.className = 'fraction-display';
-
             const fraction = document.createElement('div');
             fraction.className = 'fraction';
             
             const numEl = document.createElement('div');
             numEl.className = 'numerator';
             numEl.textContent = prob.num;
-            
             const denEl = document.createElement('div');
             denEl.className = 'denominator';
             denEl.textContent = prob.den;
@@ -318,55 +330,31 @@
             const answerPanel = document.createElement('div');
             answerPanel.className = 'answer-panel';
 
-            // 分母入力行
+            // 分母
             const denRow = document.createElement('div');
             denRow.className = 'input-row';
             const denLabel = document.createElement('div');
             denLabel.className = 'answer-label';
             denLabel.textContent = '分母：';
-            
-            const denControls = document.createElement('div');
-            denControls.className = 'ctrl-group';
-            const denMinus = document.createElement('button');
-            denMinus.className = 'ctrl-btn';
-            denMinus.textContent = 'ー';
-            const denVal = document.createElement('div');
-            denVal.className = 'val-display';
-            denVal.textContent = ansDen;
-            const denPlus = document.createElement('button');
-            denPlus.className = 'ctrl-btn';
-            denPlus.textContent = '＋';
-            
-            denControls.appendChild(denMinus);
-            denControls.appendChild(denVal);
-            denControls.appendChild(denPlus);
+            const denZone = document.createElement('div');
+            denZone.className = 'drop-zone';
+            denZone.id = 'ans-den';
+            denZone.addEventListener('click', () => { denZone.textContent = ''; });
             denRow.appendChild(denLabel);
-            denRow.appendChild(denControls);
+            denRow.appendChild(denZone);
 
-            // 分子入力行
+            // 分子
             const numRow = document.createElement('div');
             numRow.className = 'input-row';
             const numLabel = document.createElement('div');
             numLabel.className = 'answer-label';
             numLabel.textContent = '分子：';
-            
-            const numControls = document.createElement('div');
-            numControls.className = 'ctrl-group';
-            const numMinus = document.createElement('button');
-            numMinus.className = 'ctrl-btn';
-            numMinus.textContent = 'ー';
-            const numVal = document.createElement('div');
-            numVal.className = 'val-display';
-            numVal.textContent = ansNum;
-            const numPlus = document.createElement('button');
-            numPlus.className = 'ctrl-btn';
-            numPlus.textContent = '＋';
-            
-            numControls.appendChild(numMinus);
-            numControls.appendChild(numVal);
-            numControls.appendChild(numPlus);
+            const numZone = document.createElement('div');
+            numZone.className = 'drop-zone';
+            numZone.id = 'ans-num';
+            numZone.addEventListener('click', () => { numZone.textContent = ''; });
             numRow.appendChild(numLabel);
-            numRow.appendChild(numControls);
+            numRow.appendChild(numZone);
 
             answerPanel.appendChild(denRow);
             answerPanel.appendChild(numRow);
@@ -374,11 +362,22 @@
 
             appContainer.appendChild(container);
 
-            // ボタンのイベントリスナー
-            denMinus.addEventListener('click', () => { if (ansDen > 1) { ansDen--; denVal.textContent = ansDen; }});
-            denPlus.addEventListener('click', () => { if (ansDen < 20) { ansDen++; denVal.textContent = ansDen; }});
-            numMinus.addEventListener('click', () => { if (ansNum > 1) { ansNum--; numVal.textContent = ansNum; }});
-            numPlus.addEventListener('click', () => { if (ansNum < 20) { ansNum++; numVal.textContent = ansNum; }});
+            // --- 0〜9の駒エリア ---
+            const hintText = document.createElement('div');
+            hintText.className = 'hint-text';
+            hintText.innerHTML = '駒（こま）をドラッグして□にはめよう！<br>※枠をタップすると数字を消せます';
+            appContainer.appendChild(hintText);
+
+            const piecesContainer = document.createElement('div');
+            piecesContainer.className = 'pieces-container';
+            for (let i = 0; i <= 9; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.dataset.val = i;
+                piece.textContent = i;
+                piecesContainer.appendChild(piece);
+            }
+            appContainer.appendChild(piecesContainer);
 
             // 判定ボタン
             const checkBtnContainer = document.createElement('div');
@@ -387,7 +386,6 @@
             checkBtn.className = 'check-btn';
             checkBtn.textContent = 'できた';
             checkBtnContainer.appendChild(checkBtn);
-            
             appContainer.appendChild(checkBtnContainer);
 
             const resultDisplay = document.createElement('div');
@@ -395,15 +393,16 @@
             appContainer.appendChild(resultDisplay);
 
             checkBtn.addEventListener('click', () => {
-                const isCorrect = (ansDen === prob.den) && (ansNum === prob.num);
+                const userDen = parseInt(document.getElementById('ans-den').textContent, 10);
+                const userNum = parseInt(document.getElementById('ans-num').textContent, 10);
+
+                if (isNaN(userDen) || isNaN(userNum)) return;
+
+                const isCorrect = (userDen === prob.den) && (userNum === prob.num);
 
                 if (isCorrect) {
                     resultDisplay.textContent = '正解！';
-                    
-                    denMinus.disabled = true; denPlus.disabled = true;
-                    numMinus.disabled = true; numPlus.disabled = true;
                     checkBtn.disabled = true;
-                    
                     setTimeout(() => {
                         currentIndex++;
                         renderProblem();
@@ -416,6 +415,68 @@
         }
 
         renderProblem();
+
+        // --- ドラッグ＆ドロップのグローバル処理 ---
+        let draggingPiece = null;
+
+        function handleStart(e) {
+            if (e.target.classList.contains('piece') && !e.target.classList.contains('dragging')) {
+                const val = e.target.dataset.val;
+                draggingPiece = document.createElement('div');
+                draggingPiece.className = 'piece dragging';
+                draggingPiece.textContent = val;
+                draggingPiece.dataset.val = val;
+                document.body.appendChild(draggingPiece);
+                movePiece(e);
+            }
+        }
+
+        function movePiece(e) {
+            if (!draggingPiece) return;
+            e.preventDefault(); 
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            draggingPiece.style.left = (clientX - 27) + 'px';
+            draggingPiece.style.top = (clientY - 27) + 'px';
+        }
+
+        function handleEnd(e) {
+            if (!draggingPiece) return;
+            draggingPiece.style.display = 'none';
+            let clientX, clientY;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            let elem = document.elementFromPoint(clientX, clientY);
+            draggingPiece.style.display = 'flex';
+            
+            if (elem && elem.classList.contains('drop-zone')) {
+                let currentVal = elem.textContent;
+                let newVal = currentVal + draggingPiece.dataset.val;
+                if (newVal.length <= 2) {
+                    elem.textContent = newVal;
+                }
+            }
+            draggingPiece.remove();
+            draggingPiece = null;
+        }
+
+        document.addEventListener('touchstart', handleStart, {passive: false});
+        document.addEventListener('touchmove', movePiece, {passive: false});
+        document.addEventListener('touchend', handleEnd);
+        document.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', movePiece);
+        document.addEventListener('mouseup', handleEnd);
     </script>
 </body>
 </html>
