@@ -5,28 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>分数の色塗り</title>
 <style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
     body {
         font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         margin: 0;
         padding: 20px;
         background-color: #ffffff;
         color: #333;
-        touch-action: manipulation;
+        touch-action: none;
+        box-sizing: border-box;
     }
     h1 {
         font-size: 1.2rem;
         font-weight: normal;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     .status-bar {
         font-size: 1.1rem;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         color: #555;
     }
     .problem-container {
         display: flex;
         flex-direction: column;
-        margin-bottom: 40px;
+        margin-bottom: 20px;
         width: 100%;
         max-width: 800px;
     }
@@ -156,13 +163,13 @@
     }
     
     .result-display {
-        font-size: 8rem;
+        font-size: 6rem;
         color: red;
         font-weight: bold;
         text-align: center;
         width: 100%;
-        margin-top: 30px;
-        min-height: 150px; 
+        margin-top: 15px;
+        min-height: 100px; 
         display: flex;
         justify-content: center;
         align-items: center;
@@ -171,27 +178,27 @@
     /* 最終結果表示用のスタイル */
     .clear-message {
         text-align: center;
-        margin-top: 40px;
-        padding: 30px;
+        margin-top: 20px;
+        padding: 25px;
         background-color: #f8f9fa;
         border-radius: 12px;
         border: 2px solid #a0c4ff;
     }
     .clear-message h2 {
-        font-size: 2rem;
+        font-size: 1.8rem;
         color: #d9534f;
         margin-top: 0;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
     }
     .final-result-details {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         color: #333;
         line-height: 1.8;
     }
     .retry-btn {
-        margin-top: 30px;
+        margin-top: 20px;
         padding: 12px 30px;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         cursor: pointer;
         border: none;
         background-color: #a0c4ff;
