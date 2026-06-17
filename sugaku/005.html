@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>分数の色塗りと読み取り</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+    }
+    h1 {
+        font-size: 1.2rem;
+        font-weight: normal;
+        margin-bottom: 10px;
+    }
+    .status-bar {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+        color: #555;
+    }
+    .problem-container {
+        display: flex;
+        flex-direction: row;
+        margin-bottom: 10px;
+        width: 100%;
+        max-width: 800px;
+        align-items: flex-start;
+    }
+    
+    /* ビーカー描画エリア */
+    .beaker-area {
+        width: 200px;
+        height: 250px;
+        margin-right: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        position: relative;
+    }
+    .svg-container {
+        width: 100%;
+        height: 100%;
+    }
+    .water-segment {
+        fill: #ffffff;
+        cursor: pointer;
+        transition: fill 0.2s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .water-segment.filled {
+        fill: #a0c4ff;
+    }
+    
+    /* 質問エリア */
+    .question-area {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        padding-top: 10px;
+    }
+    .question-block {
+        margin-bottom: 30px;
+    }
+    .question-text {
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* 文中インライン分数 */
+    .inline-frac {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        vertical-align: middle;
+        font-size: 1.2rem;
+        margin: 0 8px;
+        line-height: 1.2;
+    }
+    .inline-frac .num {
+        border-bottom: 1px solid #000;
+        padding: 0 4px;
+    }
+    .inline-frac .den {
+        padding: 0 4px;
+    }
+    
+    /* 入力コントロール */
+    .input-row {
+        display: flex;
+        align-items: center;
+        margin-left: 20px;
+    }
+    .ctrl-group {
+        display: flex;
+        align-items: center;
+    }
+    .ctrl-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 1.5rem;
+        border: 1px solid #999;
+        background-color: #fff;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        touch-action: manipulation;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .ctrl-btn:active {
+        background-color: #e0e0e0;
+    }
+    .ctrl-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .val-display {
+        width: 60px;
+        text-align: center;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .unit {
+        font-size: 1.2rem;
+        margin-left: 15px;
+    }
+    
+    /* 分数用入力スタイル */
+    .fraction-input {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-right: 10px;
+    }
+    .fraction-line {
+        width: 100%;
+        height: 3px;
+        background-color: #000;
+        margin: 5px 0;
+    }
+    
+    .check-btn-container {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+        max-width: 800px;
+        margin-top: -20px;
+    }
+    .check-btn {
+        padding: 15px 40px;
+        font-size: 1.3rem;
+        cursor: pointer;
+        border: 1px solid #999;
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        font-family: inherit;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    .check-btn:active {
+        background-color: #dcdcdc;
+    }
+    .check-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .result-display {
+        font-size: 6rem;
+        color: red;
+        font-weight: bold;
+        text-align: center;
+        width: 100%;
+        margin-top: 5px;
+        min-height: 100px; 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        white-space: nowrap;
+    }
+    
+    /* 最終結果表示用のスタイル */
+    .clear-message {
+        text-align: center;
+        margin-top: 20px;
+        padding: 25px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        border: 2px solid #a0c4ff;
+    }
+    .clear-message h2 {
+        font-size: 1.8rem;
+        color: #d9534f;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+    .final-result-details {
+        font-size: 1.3rem;
+        color: #333;
+        line-height: 1.8;
+    }
+    .menu-btn, .retry-btn {
+        margin-top: 20px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        outline: none;
+        touch-action: manipulation;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .retry-btn {
+        background-color: #a0c4ff;
+        color: #fff;
+        margin-right: 15px;
+    }
+    .retry-btn:active {
+        background-color: #8bb4f5;
+    }
+    .menu-btn {
+        background-color: #95a5a6;
+        color: #fff;
+    }
+    .menu-btn:active {
+        background-color: #7f8c8d;
+    }
+    
+    /* 上部に戻るボタン用 */
+    .top-nav {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: -10px;
+    }
+    .back-btn {
+        padding: 8px 15px;
+        background-color: #ecf0f1;
+        border: 1px solid #bdc3c7;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #2c3e50;
+        font-size: 0.9rem;
+        touch-action: manipulation;
+    }
+</style>
+</head>
+<body>
+
+    <div class="top-nav">
+        <a href="index.html" class="back-btn">メニューへ戻る</a>
+    </div>
+    <h1>・ 指示された分だけ色をぬり、かさを答えましょう。</h1>
+    <div id="app"></div>
+
+    <script>
+        // ランダムな真分数を10問生成します
+        const problems = [];
+        const seen = new Set();
+        while (problems.length < 10) {
+            const den = Math.floor(Math.random() * 7) + 2; // 分母は2から8
+            const num = Math.floor(Math.random() * (den - 1)) + 1; // 分子は1から分母-1の真分数
+            const fracKey = `${num}/${den}`;
+            if (!seen.has(fracKey)) {
+                seen.add(fracKey);
+                problems.push({ num: num, den: den });
+            }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        shuffleArray(problems);
+        let currentIndex = 0;
+        let mistakeCount = 0;
+        const appContainer = document.getElementById('app');
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+
+            if (currentIndex >= problems.length) {
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全10問クリアしました！</h2>`;
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>正解した問題： <strong>10</strong> 問</div>`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                return;
+            }
+
+            const prob = problems[currentIndex];
+            
+            // ユーザー入力用の初期値
+            let ansNum = 1;
+            let ansDen = 2;
+
+            const statusBar = document.createElement('div');
+            statusBar.className = 'status-bar';
+            statusBar.textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
+            appContainer.appendChild(statusBar);
+
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+
+            // --- ビーカー描画エリア ---
+            const beakerArea = document.createElement('div');
+            beakerArea.className = 'beaker-area';
+            
+            const svgContainer = document.createElement('div');
+            svgContainer.className = 'svg-container';
+            
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.setAttribute('viewBox', '0 0 150 250');
+            
+            // タップ可能な水セグメントの描画
+            const segmentHeight = 200 / prob.den;
+            for (let i = 0; i < prob.den; i++) {
+                // 下から順に積み上げる
+                const yPos = 220 - (i + 1) * segmentHeight;
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', '40');
+                rect.setAttribute('y', yPos.toString());
+                rect.setAttribute('width', '90');
+                rect.setAttribute('height', segmentHeight.toString());
+                rect.setAttribute('class', 'water-segment');
+                
+                // タップで色を切り替え
+                rect.addEventListener('click', function() {
+                    this.classList.toggle('filled');
+                });
+                svg.appendChild(rect);
+            }
+
+            // ビーカーの枠描画（クリックを貫通させるため pointer-events: none）
+            const beakerOutline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            beakerOutline.setAttribute('points', '40,20 40,220 130,220 130,20');
+            beakerOutline.setAttribute('fill', 'none');
+            beakerOutline.setAttribute('stroke', '#000');
+            beakerOutline.setAttribute('stroke-width', '4');
+            beakerOutline.setAttribute('style', 'pointer-events: none;');
+            svg.appendChild(beakerOutline);
+
+            // メモリの描画（クリック貫通）
+            for (let i = 0; i <= prob.den; i++) {
+                const yPos = 220 - segmentHeight * i;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', '25');
+                line.setAttribute('y1', yPos.toString());
+                line.setAttribute('x2', '40');
+                line.setAttribute('y2', yPos.toString());
+                line.setAttribute('stroke', '#000');
+                line.setAttribute('stroke-width', '2');
+                line.setAttribute('style', 'pointer-events: none;');
+                svg.appendChild(line);
+                
+                // 1Lのラベル
+                if (i === prob.den) {
+                    const label1L = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    label1L.setAttribute('x', '65');
+                    label1L.setAttribute('y', '35');
+                    label1L.setAttribute('font-size', '24');
+                    label1L.setAttribute('font-weight', 'bold');
+                    label1L.setAttribute('style', 'pointer-events: none;');
+                    label1L.textContent = '1L';
+                    svg.appendChild(label1L);
+                    
+                    const topDecorL = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    topDecorL.setAttribute('x1', '25');
+                    topDecorL.setAttribute('y1', '20');
+                    topDecorL.setAttribute('x2', '55');
+                    topDecorL.setAttribute('y2', '20');
+                    topDecorL.setAttribute('stroke', '#000');
+                    topDecorL.setAttribute('stroke-width', '2');
+                    topDecorL.setAttribute('style', 'pointer-events: none;');
+                    svg.appendChild(topDecorL);
+                    
+                    const topDecorR = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    topDecorR.setAttribute('x1', '115');
+                    topDecorR.setAttribute('y1', '20');
+                    topDecorR.setAttribute('x2', '145');
+                    topDecorR.setAttribute('y2', '20');
+                    topDecorR.setAttribute('stroke', '#000');
+                    topDecorR.setAttribute('stroke-width', '2');
+                    topDecorR.setAttribute('style', 'pointer-events: none;');
+                    svg.appendChild(topDecorR);
+                }
+            }
+
+            svgContainer.appendChild(svg);
+            beakerArea.appendChild(svgContainer);
+            container.appendChild(beakerArea);
+
+            // --- 質問・入力エリア ---
+            const questionArea = document.createElement('div');
+            questionArea.className = 'question-area';
+
+            // 質問1: 色塗り指示
+            const q1Block = document.createElement('div');
+            q1Block.className = 'question-block';
+            
+            const q1Text = document.createElement('div');
+            q1Text.className = 'question-text';
+            q1Text.innerHTML = `① <div class="inline-frac"><div class="num">1</div><div class="den">${prob.den}</div></div> L の &nbsp;<strong>${prob.num}</strong>&nbsp; こ分だけ色をぬりましょう。`;
+            q1Block.appendChild(q1Text);
+            
+            // 質問2: 分数入力
+            const q2Block = document.createElement('div');
+            q2Block.className = 'question-block';
+            
+            const q2Text = document.createElement('div');
+            q2Text.className = 'question-text';
+            q2Text.textContent = '② 色をぬったところのかさは何Lですか。';
+            
+            const q2InputRow = document.createElement('div');
+            q2InputRow.className = 'input-row';
+            
+            const fractionInput = document.createElement('div');
+            fractionInput.className = 'fraction-input';
+
+            // 分子コントロール
+            const numControls = document.createElement('div');
+            numControls.className = 'ctrl-group';
+            const numMinus = document.createElement('button');
+            numMinus.className = 'ctrl-btn';
+            numMinus.textContent = 'ー';
+            const numVal = document.createElement('div');
+            numVal.className = 'val-display';
+            numVal.textContent = ansNum;
+            const numPlus = document.createElement('button');
+            numPlus.className = 'ctrl-btn';
+            numPlus.textContent = '＋';
+            numControls.appendChild(numMinus);
+            numControls.appendChild(numVal);
+            numControls.appendChild(numPlus);
+
+            const fractionLine = document.createElement('div');
+            fractionLine.className = 'fraction-line';
+
+            // 分母コントロール
+            const denControls = document.createElement('div');
+            denControls.className = 'ctrl-group';
+            const denMinus = document.createElement('button');
+            denMinus.className = 'ctrl-btn';
+            denMinus.textContent = 'ー';
+            const denVal = document.createElement('div');
+            denVal.className = 'val-display';
+            denVal.textContent = ansDen;
+            const denPlus = document.createElement('button');
+            denPlus.className = 'ctrl-btn';
+            denPlus.textContent = '＋';
+            denControls.appendChild(denMinus);
+            denControls.appendChild(denVal);
+            denControls.appendChild(denPlus);
+
+            fractionInput.appendChild(numControls);
+            fractionInput.appendChild(fractionLine);
+            fractionInput.appendChild(denControls);
+            
+            const q2Unit = document.createElement('div');
+            q2Unit.className = 'unit';
+            q2Unit.textContent = 'L';
+
+            numMinus.addEventListener('click', () => { if (ansNum > 0) { ansNum--; numVal.textContent = ansNum; }});
+            numPlus.addEventListener('click', () => { if (ansNum < 20) { ansNum++; numVal.textContent = ansNum; }});
+            denMinus.addEventListener('click', () => { if (ansDen > 1) { ansDen--; denVal.textContent = ansDen; }});
+            denPlus.addEventListener('click', () => { if (ansDen < 20) { ansDen++; denVal.textContent = ansDen; }});
+
+            q2InputRow.appendChild(fractionInput);
+            q2InputRow.appendChild(q2Unit);
+            
+            q2Block.appendChild(q2Text);
+            q2Block.appendChild(q2InputRow);
+
+            questionArea.appendChild(q1Block);
+            questionArea.appendChild(q2Block);
+            
+            container.appendChild(questionArea);
+            appContainer.appendChild(container);
+
+            // 判定ボタン
+            const checkBtnContainer = document.createElement('div');
+            checkBtnContainer.className = 'check-btn-container';
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた';
+            checkBtnContainer.appendChild(checkBtn);
+            
+            appContainer.appendChild(checkBtnContainer);
+
+            const resultDisplay = document.createElement('div');
+            resultDisplay.className = 'result-display';
+            appContainer.appendChild(resultDisplay);
+
+            checkBtn.addEventListener('click', () => {
+                // 塗られているセグメントの数をカウント
+                const filledCount = svgContainer.querySelectorAll('.water-segment.filled').length;
+                
+                // 色塗りの数が合っているか、かつ入力された分数が合っているか
+                const isCorrect1 = (filledCount === prob.num);
+                const isCorrect2 = (ansNum === prob.num) && (ansDen === prob.den);
+
+                if (isCorrect1 && isCorrect2) {
+                    resultDisplay.textContent = '正解！';
+                    
+                    numMinus.disabled = true; numPlus.disabled = true;
+                    denMinus.disabled = true; denPlus.disabled = true;
+                    checkBtn.disabled = true;
+                    
+                    // 塗った色を固定
+                    const segments = svgContainer.querySelectorAll('.water-segment');
+                    segments.forEach(s => s.style.pointerEvents = 'none');
+                    
+                    setTimeout(() => {
+                        currentIndex++;
+                        renderProblem();
+                    }, 1500);
+                } else {
+                    resultDisplay.textContent = 'おしい！';
+                    mistakeCount++;
+                }
+            });
+        }
+
+        renderProblem();
+    </script>
+</body>
+</html>

@@ -196,41 +196,73 @@
         color: #333;
         line-height: 1.8;
     }
-    .retry-btn {
+    .retry-btn, .menu-btn {
         margin-top: 20px;
         padding: 12px 30px;
         font-size: 1.1rem;
         cursor: pointer;
         border: none;
-        background-color: #a0c4ff;
-        color: #fff;
         border-radius: 8px;
         outline: none;
         touch-action: manipulation;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .retry-btn {
+        background-color: #a0c4ff;
+        color: #fff;
+        margin-right: 15px;
     }
     .retry-btn:active {
         background-color: #8bb4f5;
+    }
+    .menu-btn {
+        background-color: #95a5a6;
+        color: #fff;
+    }
+    .menu-btn:active {
+        background-color: #7f8c8d;
+    }
+    
+    /* 上部に戻るボタン用 */
+    .top-nav {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: -10px;
+    }
+    .back-btn {
+        padding: 8px 15px;
+        background-color: #ecf0f1;
+        border: 1px solid #bdc3c7;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #2c3e50;
+        font-size: 0.9rem;
+        touch-action: manipulation;
     }
 </style>
 </head>
 <body>
 
+    <div class="top-nav">
+        <a href="index.html" class="back-btn">メニューへ戻る</a>
+    </div>
     <h1>・ 次の長さの分だけ色をぬりましょう。</h1>
     <div id="app"></div>
 
     <script>
-        const problems = [
-            { num: 1, den: 3 },
-            { num: 3, den: 5 },
-            { num: 1, den: 2 },
-            { num: 7, den: 8 },
-            { num: 5, den: 7 },
-            { num: 3, den: 4 },
-            { num: 2, den: 9 },
-            { num: 2, den: 3 },
-            { num: 4, den: 5 },
-            { num: 5, den: 6 }
-        ];
+        // ランダムな真分数を10問生成します
+        const problems = [];
+        const seen = new Set();
+        while (problems.length < 10) {
+            const den = Math.floor(Math.random() * 9) + 2; // 分母は2から10
+            const num = Math.floor(Math.random() * (den - 1)) + 1; // 分子は1から分母-1の真分数
+            const fracKey = `${num}/${den}`;
+            if (!seen.has(fracKey)) {
+                seen.add(fracKey);
+                problems.push({ num: num, den: den });
+            }
+        }
 
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -242,7 +274,7 @@
         // 初期状態のセットアップ
         shuffleArray(problems);
         let currentIndex = 0;
-        let mistakeCount = 0; // 間違えた回数を記録する変数を追加しました
+        let mistakeCount = 0; 
         const appContainer = document.getElementById('app');
 
         function renderProblem() {
@@ -265,8 +297,9 @@
                 
                 htmlContent += `</div>`;
                 
-                // 最初からやり直すボタンも追加しました
+                // やり直すボタンとメニューへ戻るボタン
                 htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
                 
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
@@ -400,7 +433,7 @@
                     }, 1500);
                 } else {
                     resultDisplay.textContent = 'おしい！';
-                    mistakeCount++; // 不正解時に間違えた回数をカウントします
+                    mistakeCount++; 
                 }
             });
 

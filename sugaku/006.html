@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>分数の色塗り（円）</title>
+<title>分母と分子</title>
 <style>
     html, body {
         height: 100%;
@@ -23,106 +23,108 @@
     h1 {
         font-size: 1.2rem;
         font-weight: normal;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
     }
     .status-bar {
         font-size: 1.1rem;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
         color: #555;
     }
     .problem-container {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         margin-bottom: 20px;
         width: 100%;
         max-width: 800px;
-    }
-    .problem-main {
-        display: flex;
         align-items: center;
         justify-content: center;
-        width: 100%;
+        padding: 20px 0;
     }
+    
+    /* 問題の分数表示エリア */
     .fraction-display {
         display: flex;
         align-items: center;
-        margin-right: 50px;
-        width: 80px;
-        justify-content: center;
+        margin-right: 60px;
     }
     .fraction {
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        font-size: 2.2rem;
+        font-size: 4rem;
         line-height: 1.2;
     }
     .numerator {
-        border-bottom: 2px solid #000;
-        padding: 0 10px;
+        border-bottom: 3px solid #000;
+        padding: 0 15px;
     }
     .denominator {
-        padding: 0 10px;
-    }
-    .circle-area {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .svg-container {
-        width: 200px;
-        height: 200px;
-    }
-    .segment {
-        fill: #ffffff;
-        stroke: #000000;
-        stroke-width: 2px;
-        cursor: pointer;
-        transition: fill 0.2s ease;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .segment.filled {
-        fill: #a0c4ff;
+        padding: 0 15px;
     }
     
-    .controls-area {
+    /* 回答入力エリア */
+    .answer-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+    .input-row {
         display: flex;
         align-items: center;
-        margin-top: 30px;
-        padding-left: 130px;
     }
-    .div-btn {
-        width: 45px;
-        height: 45px;
+    .answer-label {
         font-size: 1.5rem;
-        cursor: pointer;
+        width: 80px;
+        text-align: right;
+        margin-right: 20px;
+    }
+    
+    .ctrl-group {
+        display: flex;
+        align-items: center;
+    }
+    .ctrl-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.8rem;
         border: 1px solid #999;
         background-color: #fff;
         border-radius: 8px;
-        margin-right: 10px;
-        outline: none;
-        -webkit-tap-highlight-color: transparent;
         display: flex;
         justify-content: center;
         align-items: center;
+        cursor: pointer;
         touch-action: manipulation;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
     }
-    .div-btn:active {
+    .ctrl-btn:active {
         background-color: #e0e0e0;
     }
-    .div-btn:disabled {
+    .ctrl-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
-    .division-label {
-        font-size: 1.1rem;
-        margin: 0 20px 0 10px;
-        color: #555;
+    .val-display {
+        width: 80px;
+        text-align: center;
+        font-size: 2.2rem;
+        font-weight: bold;
+        border-bottom: 2px solid #000;
+        margin: 0 10px;
+        padding-bottom: 5px;
+    }
+    
+    .check-btn-container {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+        max-width: 800px;
+        margin-top: 10px;
     }
     .check-btn {
-        padding: 12px 25px;
-        font-size: 1.1rem;
+        padding: 15px 40px;
+        font-size: 1.3rem;
         cursor: pointer;
         border: 1px solid #999;
         background-color: #f0f0f0;
@@ -130,7 +132,6 @@
         font-family: inherit;
         outline: none;
         -webkit-tap-highlight-color: transparent;
-        margin-left: auto;
         touch-action: manipulation;
     }
     .check-btn:active {
@@ -147,7 +148,7 @@
         font-weight: bold;
         text-align: center;
         width: 100%;
-        margin-top: 15px;
+        margin-top: 10px;
         min-height: 120px; 
         display: flex;
         justify-content: center;
@@ -175,7 +176,7 @@
         color: #333;
         line-height: 1.8;
     }
-    .retry-btn, .menu-btn {
+    .menu-btn, .retry-btn {
         margin-top: 20px;
         padding: 12px 30px;
         font-size: 1.1rem;
@@ -226,7 +227,7 @@
     <div class="top-nav">
         <a href="index.html" class="back-btn">メニューへ戻る</a>
     </div>
-    <h1>・ 次の分数の分だけ色をぬりましょう。</h1>
+    <h1>・ 次の分数の分母、分子はそれぞれいくつでしょう。</h1>
     <div id="app"></div>
 
     <script>
@@ -234,7 +235,7 @@
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 9) + 2; // 分母は2から10
+            const den = Math.floor(Math.random() * 8) + 2; // 分母は2から9
             const num = Math.floor(Math.random() * (den - 1)) + 1; // 分子は1から分母-1の真分数
             const fracKey = `${num}/${den}`;
             if (!seen.has(fracKey)) {
@@ -250,21 +251,18 @@
             }
         }
 
-        // 初期状態のセットアップ
         shuffleArray(problems);
         let currentIndex = 0;
-        let mistakeCount = 0; 
+        let mistakeCount = 0;
         const appContainer = document.getElementById('app');
 
         function renderProblem() {
             appContainer.innerHTML = '';
 
-            // 全問終了時の結果表示処理
             if (currentIndex >= problems.length) {
                 const clearMsg = document.createElement('div');
                 clearMsg.className = 'clear-message';
                 
-                // 最終結果をHTMLで構築
                 let htmlContent = `<h2>全10問クリアしました！</h2>`;
                 htmlContent += `<div class="final-result-details">`;
                 htmlContent += `<div>正解した問題： <strong>10</strong> 問</div>`;
@@ -273,10 +271,7 @@
                 if (mistakeCount === 0) {
                     htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
                 }
-                
                 htmlContent += `</div>`;
-                
-                // やり直すボタンとメニューへ戻るボタン
                 htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
                 htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
                 
@@ -286,7 +281,10 @@
             }
 
             const prob = problems[currentIndex];
-            let currentDivisions = 1;
+            
+            // ユーザー入力用の初期値（ヒントにならないよう固定）
+            let ansDen = 1;
+            let ansNum = 1;
 
             const statusBar = document.createElement('div');
             statusBar.className = 'status-bar';
@@ -296,9 +294,7 @@
             const container = document.createElement('div');
             container.className = 'problem-container';
 
-            const mainArea = document.createElement('div');
-            mainArea.className = 'problem-main';
-
+            // --- 問題の分数表示エリア ---
             const fracDisplay = document.createElement('div');
             fracDisplay.className = 'fraction-display';
 
@@ -316,117 +312,96 @@
             fraction.appendChild(numEl);
             fraction.appendChild(denEl);
             fracDisplay.appendChild(fraction);
-            mainArea.appendChild(fracDisplay);
+            container.appendChild(fracDisplay);
 
-            const circleArea = document.createElement('div');
-            circleArea.className = 'circle-area';
+            // --- 回答入力エリア ---
+            const answerPanel = document.createElement('div');
+            answerPanel.className = 'answer-panel';
 
-            const svgContainer = document.createElement('div');
-            svgContainer.className = 'svg-container';
+            // 分母入力行
+            const denRow = document.createElement('div');
+            denRow.className = 'input-row';
+            const denLabel = document.createElement('div');
+            denLabel.className = 'answer-label';
+            denLabel.textContent = '分母：';
             
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('width', '100%');
-            svg.setAttribute('height', '100%');
-            svg.setAttribute('viewBox', '0 0 200 200');
-
-            function updateCircle() {
-                svg.innerHTML = '';
-                for (let i = 0; i < currentDivisions; i++) {
-                    let segment;
-                    if (currentDivisions === 1) {
-                        segment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                        segment.setAttribute('cx', '100');
-                        segment.setAttribute('cy', '100');
-                        segment.setAttribute('r', '90');
-                        segment.setAttribute('class', 'segment');
-                    } else {
-                        const startAngle = (i / currentDivisions) * Math.PI * 2 - Math.PI / 2;
-                        const endAngle = ((i + 1) / currentDivisions) * Math.PI * 2 - Math.PI / 2;
-
-                        const x1 = 100 + 90 * Math.cos(startAngle);
-                        const y1 = 100 + 90 * Math.sin(startAngle);
-                        const x2 = 100 + 90 * Math.cos(endAngle);
-                        const y2 = 100 + 90 * Math.sin(endAngle);
-
-                        const largeArcFlag = (1 / currentDivisions) > 0.5 ? 0 : 1;
-                        const arcFlag = (currentDivisions === 2) ? 0 : ((1 / currentDivisions) < 0.5 ? 0 : 1);
-
-                        const d = [
-                            'M', 100, 100,
-                            'L', x1, y1,
-                            'A', 90, 90, 0, arcFlag, 1, x2, y2,
-                            'Z'
-                        ].join(' ');
-
-                        segment = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        segment.setAttribute('d', d);
-                        segment.setAttribute('class', 'segment');
-                    }
-                    
-                    segment.addEventListener('click', function() {
-                        this.classList.toggle('filled');
-                    });
-                    
-                    svg.appendChild(segment);
-                }
-            }
+            const denControls = document.createElement('div');
+            denControls.className = 'ctrl-group';
+            const denMinus = document.createElement('button');
+            denMinus.className = 'ctrl-btn';
+            denMinus.textContent = 'ー';
+            const denVal = document.createElement('div');
+            denVal.className = 'val-display';
+            denVal.textContent = ansDen;
+            const denPlus = document.createElement('button');
+            denPlus.className = 'ctrl-btn';
+            denPlus.textContent = '＋';
             
-            updateCircle();
+            denControls.appendChild(denMinus);
+            denControls.appendChild(denVal);
+            denControls.appendChild(denPlus);
+            denRow.appendChild(denLabel);
+            denRow.appendChild(denControls);
 
-            svgContainer.appendChild(svg);
-            circleArea.appendChild(svgContainer);
-            mainArea.appendChild(circleArea);
-            container.appendChild(mainArea);
+            // 分子入力行
+            const numRow = document.createElement('div');
+            numRow.className = 'input-row';
+            const numLabel = document.createElement('div');
+            numLabel.className = 'answer-label';
+            numLabel.textContent = '分子：';
+            
+            const numControls = document.createElement('div');
+            numControls.className = 'ctrl-group';
+            const numMinus = document.createElement('button');
+            numMinus.className = 'ctrl-btn';
+            numMinus.textContent = 'ー';
+            const numVal = document.createElement('div');
+            numVal.className = 'val-display';
+            numVal.textContent = ansNum;
+            const numPlus = document.createElement('button');
+            numPlus.className = 'ctrl-btn';
+            numPlus.textContent = '＋';
+            
+            numControls.appendChild(numMinus);
+            numControls.appendChild(numVal);
+            numControls.appendChild(numPlus);
+            numRow.appendChild(numLabel);
+            numRow.appendChild(numControls);
 
-            const controlsArea = document.createElement('div');
-            controlsArea.className = 'controls-area';
+            answerPanel.appendChild(denRow);
+            answerPanel.appendChild(numRow);
+            container.appendChild(answerPanel);
 
-            const minusBtn = document.createElement('button');
-            minusBtn.className = 'div-btn';
-            minusBtn.textContent = 'ー';
+            appContainer.appendChild(container);
 
-            const plusBtn = document.createElement('button');
-            plusBtn.className = 'div-btn';
-            plusBtn.textContent = '＋';
+            // ボタンのイベントリスナー
+            denMinus.addEventListener('click', () => { if (ansDen > 1) { ansDen--; denVal.textContent = ansDen; }});
+            denPlus.addEventListener('click', () => { if (ansDen < 20) { ansDen++; denVal.textContent = ansDen; }});
+            numMinus.addEventListener('click', () => { if (ansNum > 1) { ansNum--; numVal.textContent = ansNum; }});
+            numPlus.addEventListener('click', () => { if (ansNum < 20) { ansNum++; numVal.textContent = ansNum; }});
 
-            const divLabel = document.createElement('div');
-            divLabel.className = 'division-label';
-            divLabel.textContent = `（${currentDivisions} 分割）`;
-
-            minusBtn.addEventListener('click', () => {
-                if (currentDivisions > 1) {
-                    currentDivisions--;
-                    divLabel.textContent = `（${currentDivisions} 分割）`;
-                    updateCircle(); 
-                }
-            });
-
-            plusBtn.addEventListener('click', () => {
-                if (currentDivisions < 20) { 
-                    currentDivisions++;
-                    divLabel.textContent = `（${currentDivisions} 分割）`;
-                    updateCircle(); 
-                }
-            });
-
+            // 判定ボタン
+            const checkBtnContainer = document.createElement('div');
+            checkBtnContainer.className = 'check-btn-container';
             const checkBtn = document.createElement('button');
             checkBtn.className = 'check-btn';
             checkBtn.textContent = 'できた';
+            checkBtnContainer.appendChild(checkBtn);
+            
+            appContainer.appendChild(checkBtnContainer);
 
             const resultDisplay = document.createElement('div');
             resultDisplay.className = 'result-display';
+            appContainer.appendChild(resultDisplay);
 
             checkBtn.addEventListener('click', () => {
-                const filledCount = svg.querySelectorAll('.segment.filled').length;
-                
-                const isCorrect = filledCount > 0 && 
-                                  Math.abs((filledCount / currentDivisions) - (prob.num / prob.den)) < 0.0001;
+                const isCorrect = (ansDen === prob.den) && (ansNum === prob.num);
 
                 if (isCorrect) {
                     resultDisplay.textContent = '正解！';
                     
-                    minusBtn.disabled = true;
-                    plusBtn.disabled = true;
+                    denMinus.disabled = true; denPlus.disabled = true;
+                    numMinus.disabled = true; numPlus.disabled = true;
                     checkBtn.disabled = true;
                     
                     setTimeout(() => {
@@ -435,19 +410,9 @@
                     }, 1500);
                 } else {
                     resultDisplay.textContent = 'おしい！';
-                    mistakeCount++; 
+                    mistakeCount++;
                 }
             });
-
-            controlsArea.appendChild(minusBtn);
-            controlsArea.appendChild(plusBtn);
-            controlsArea.appendChild(divLabel);
-            controlsArea.appendChild(checkBtn);
-            
-            container.appendChild(controlsArea);
-            container.appendChild(resultDisplay);
-            
-            appContainer.appendChild(container);
         }
 
         renderProblem();
