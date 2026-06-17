@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>分数の色塗り</title>
 <style>
     body {
@@ -11,6 +11,7 @@
         padding: 20px;
         background-color: #ffffff;
         color: #333;
+        touch-action: manipulation;
     }
     h1 {
         font-size: 1.2rem;
@@ -90,6 +91,7 @@
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         transition: background-color 0.2s ease;
+        touch-action: manipulation;
     }
     .segment:last-child {
         border-right: none;
@@ -118,6 +120,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        touch-action: manipulation;
     }
     .div-btn:active {
         background-color: #e0e0e0;
@@ -142,6 +145,7 @@
         outline: none;
         -webkit-tap-highlight-color: transparent;
         margin-left: auto;
+        touch-action: manipulation;
     }
     .check-btn:active {
         background-color: #dcdcdc;
@@ -194,6 +198,7 @@
         color: #fff;
         border-radius: 8px;
         outline: none;
+        touch-action: manipulation;
     }
     .retry-btn:active {
         background-color: #8bb4f5;
