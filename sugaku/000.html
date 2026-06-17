@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分数の色塗り</title>
+<style>
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        color: #333;
+    }
+    h1 {
+        font-size: 1.2rem;
+        font-weight: normal;
+        margin-bottom: 40px;
+    }
+    .problem-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 40px;
+        width: 100%;
+        max-width: 900px; /* ボタンと判定結果が収まるように少し広げています */
+    }
+    .problem-number {
+        font-size: 1.2rem;
+        margin-right: 20px;
+        width: 30px;
+        text-align: right;
+    }
+    .fraction-display {
+        display: flex;
+        align-items: center;
+        margin-right: 30px;
+        width: 80px;
+    }
+    .fraction {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 1.5rem;
+        line-height: 1.2;
+    }
+    .numerator {
+        border-bottom: 1px solid #000;
+        padding: 0 8px;
+    }
+    .denominator {
+        padding: 0 8px;
+    }
+    .unit {
+        font-size: 1.2rem;
+        margin-left: 10px;
+    }
+    .bar-area {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .label-1m {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 1rem;
+        color: #333;
+    }
+    .label-1m::before, .label-1m::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid #333;
+        margin: 0 15px;
+    }
+    .bar {
+        display: flex;
+        width: 100%;
+        height: 45px;
+        border: 1px solid #000;
+        box-sizing: border-box;
+    }
+    .segment {
+        flex: 1;
+        border-right: 1px dotted #000;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 0.2s ease;
+    }
+    .segment:last-child {
+        border-right: none;
+    }
+    .segment.filled {
+        background-color: #a0c4ff;
+    }
+    
+    /* ボタンと判定結果のスタイル追加 */
+    .check-area {
+        display: flex;
+        align-items: center;
+        margin-left: 30px;
+        width: 140px;
+    }
+    .check-btn {
+        padding: 10px 15px;
+        font-size: 1rem;
+        cursor: pointer;
+        border: 1px solid #999;
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        font-family: inherit;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .check-btn:active {
+        background-color: #dcdcdc;
+    }
+    .result-display {
+        font-size: 2rem;
+        color: red;
+        margin-left: 15px;
+        font-weight: bold;
+        width: 40px;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+    <h1>・ 次の長さの分だけ色をぬりましょう。</h1>
+    <div id="app"></div>
+
+    <script>
+        // 問題のデータ定義
+        const problems = [
+            { id: '①', num: 1, den: 3 },
+            { id: '②', num: 3, den: 5 },
+            { id: '③', num: 1, den: 2 },
+            { id: '④', num: 7, den: 8 },
+            { id: '⑤', num: 5, den: 7 },
+            { id: '⑥', num: 3, den: 4 },
+            { id: '⑦', num: 2, den: 9 }
+        ];
+
+        // 配列をランダムに並び替える関数（フィッシャー–イェーツのアルゴリズム）
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // 問題をランダムに並び替え
+        shuffleArray(problems);
+
+        const appContainer = document.getElementById('app');
+
+        problems.forEach((prob, index) => {
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+
+            // 問題番号（元の番号idを保持するか、表示順に振り直すかですが、ここでは元の番号を表示します）
+            const numberEl = document.createElement('div');
+            numberEl.className = 'problem-number';
+            numberEl.textContent = prob.id; 
+            container.appendChild(numberEl);
+
+            const fracDisplay = document.createElement('div');
+            fracDisplay.className = 'fraction-display';
+
+            const fraction = document.createElement('div');
+            fraction.className = 'fraction';
+            
+            const numEl = document.createElement('div');
+            numEl.className = 'numerator';
+            numEl.textContent = prob.num;
+            
+            const denEl = document.createElement('div');
+            denEl.className = 'denominator';
+            denEl.textContent = prob.den;
+
+            fraction.appendChild(numEl);
+            fraction.appendChild(denEl);
+
+            const unitEl = document.createElement('div');
+            unitEl.className = 'unit';
+            unitEl.textContent = 'm';
+
+            fracDisplay.appendChild(fraction);
+            fracDisplay.appendChild(unitEl);
+            container.appendChild(fracDisplay);
+
+            const barArea = document.createElement('div');
+            barArea.className = 'bar-area';
+
+            const label1m = document.createElement('div');
+            label1m.className = 'label-1m';
+            label1m.textContent = '1 m';
+            barArea.appendChild(label1m);
+
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+
+            for (let i = 0; i < prob.den; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'segment';
+                
+                segment.addEventListener('click', function() {
+                    this.classList.toggle('filled');
+                });
+                
+                bar.appendChild(segment);
+            }
+
+            barArea.appendChild(bar);
+            container.appendChild(barArea);
+
+            // 「できた」ボタンと判定結果のエリアを追加
+            const checkArea = document.createElement('div');
+            checkArea.className = 'check-area';
+
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた';
+
+            const resultDisplay = document.createElement('div');
+            resultDisplay.className = 'result-display';
+
+            // ボタンが押されたときの正誤判定処理
+            checkBtn.addEventListener('click', function() {
+                // 塗られているセグメントの数をカウント
+                const filledCount = bar.querySelectorAll('.segment.filled').length;
+                
+                // 正解（分子の数）と一致しているか判定
+                if (filledCount === prob.num) {
+                    resultDisplay.textContent = '○';
+                } else {
+                    resultDisplay.textContent = '×';
+                }
+            });
+
+            checkArea.appendChild(checkBtn);
+            checkArea.appendChild(resultDisplay);
+            container.appendChild(checkArea);
+
+            appContainer.appendChild(container);
+        });
+    </script>
+</body>
+</html>
