@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>分母の違うたし算（通分）</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    h1 {
+        font-size: 1.2rem;
+        font-weight: normal;
+        margin-bottom: 10px;
+    }
+    .status-bar {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .problem-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 1050px;
+        margin: 0 auto;
+    }
+    
+    /* 視覚的通分エリア */
+    .visual-section {
+        background-color: #f9f9f9;
+        padding: 12px 20px;
+        border-radius: 12px;
+        border: 1px solid #ddd;
+        margin-bottom: 15px;
+    }
+    .fraction-row {
+        display: grid;
+        grid-template-columns: 1fr 100px 100px;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+    .fraction-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .bar-container {
+        height: 35px;
+    }
+    .bar {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        border: 2px solid #000;
+        box-sizing: border-box;
+    }
+    .segment {
+        flex: 1;
+        height: 100%;
+        box-sizing: border-box;
+    }
+    .f1-color { background-color: #a0c4ff; }
+    .f2-color { background-color: #ffb6b9; }
+
+    /* 連動型寸法線（矢印）のスタイル群 */
+    .arrow-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 6px; /* 緑と赤の矢印の隙間を少し広げました */
+        justify-content: center;
+    }
+    
+    /* 緑の寸法線（動的） */
+    .dimension-line-green {
+        position: relative;
+        height: 12px;
+        border-left: 2px solid #2ecc71;
+        border-right: 2px solid #2ecc71;
+        box-sizing: border-box;
+        transition: width 0.2s ease;
+    }
+    .dimension-line-green::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #2ecc71;
+        transform: translateY(-50%);
+    }
+    .arrow-left-green, .arrow-right-green {
+        position: absolute;
+        top: 50%;
+        width: 5px;
+        height: 5px;
+        border-top: 2px solid #2ecc71;
+        border-right: 2px solid #2ecc71;
+    }
+    .arrow-left-green { left: 2px; transform: translateY(-50%) rotate(225deg); }
+    .arrow-right-green { right: 2px; transform: translateY(-50%) rotate(45deg); }
+
+    /* 赤の寸法線（固定） */
+    .dimension-line-red {
+        position: relative;
+        height: 12px;
+        border-left: 2px solid #e74c3c;
+        border-right: 2px solid #e74c3c;
+        box-sizing: border-box;
+    }
+    .dimension-line-red::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #e74c3c;
+        transform: translateY(-50%);
+    }
+    .arrow-left-red, .arrow-right-red {
+        position: absolute;
+        top: 50%;
+        width: 5px;
+        height: 5px;
+        border-top: 2px solid #e74c3c;
+        border-right: 2px solid #e74c3c;
+    }
+    .arrow-left-red { left: 2px; transform: translateY(-50%) rotate(225deg); }
+    .arrow-right-red { right: 2px; transform: translateY(-50%) rotate(45deg); }
+
+    .fraction {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 1.8rem;
+        font-weight: bold;
+        line-height: 1.2;
+    }
+    .numerator {
+        border-bottom: 2px solid #000;
+        padding: 0 5px;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+    }
+    .denominator {
+        padding: 0 5px;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+    }
+
+    .control-box {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+    .ctrl-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 1.6rem;
+        border: 1px solid #999;
+        background-color: #fff;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        touch-action: manipulation;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .ctrl-btn:active {
+        background-color: #e0e0e0;
+    }
+    .ctrl-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .match-msg {
+        text-align: right;
+        font-weight: bold;
+        font-size: 1.1rem;
+        height: 1.2rem;
+        margin-top: 2px;
+    }
+
+    .equation-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        flex-wrap: wrap; 
+        width: 100%;
+        background-color: #fff;
+        padding: 15px 5px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .step-container {
+        display: flex;
+        align-items: center;
+    }
+
+    .operator {
+        margin: 0 8px;
+        color: #555;
+        flex-shrink: 0;
+        font-size: 1.8rem;
+    }
+    .operator-eq {
+        margin: 0 15px; 
+        color: #555;
+        flex-shrink: 0;
+        font-size: 1.8rem;
+    }
+    .eq-btn {
+        margin: 0 15px;
+        color: #fff;
+        background-color: #3498db;
+        border-radius: 8px;
+        padding: 0 15px;
+        height: 40px;
+        font-size: 1.8rem;
+        font-weight: bold;
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 0 #2980b9;
+        transition: all 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .eq-btn:active {
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+    .eq-fraction {
+        font-size: 1.8rem;
+        margin: 0 6px;
+    }
+    
+    .drop-zone {
+        width: 45px;
+        height: 45px;
+        border: 2px dashed #3498db;
+        background-color: #f0f8ff;
+        border-radius: 6px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.8rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: #333;
+        flex-shrink: 0;
+    }
+    .fraction-line {
+        width: 100%;
+        height: 3px;
+        background-color: #000;
+        margin: 5px 0;
+    }
+    
+    .numerator-sum {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        padding: 0 3px;
+    }
+    .numerator-sum .drop-zone {
+        width: 40px;
+        height: 40px;
+        font-size: 1.6rem;
+    }
+    .numerator-sum span {
+        font-size: 1.4rem;
+        margin: 0 3px;
+    }
+
+    .pieces-container {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 5px;
+        padding: 15px;
+        background-color: #ecf0f1;
+        border-radius: 12px;
+    }
+    .piece {
+        width: 55px;
+        height: 55px;
+        border: 2px solid #2c3e50;
+        background-color: #f1c40f;
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2.2rem;
+        font-weight: bold;
+        cursor: grab;
+        color: #2c3e50;
+        box-shadow: 0 4px 0 #d4ac0d;
+        touch-action: none;
+    }
+    .piece:active {
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+    .piece.dragging {
+        position: fixed;
+        z-index: 1000;
+        pointer-events: none;
+        opacity: 0.9;
+        box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+        transform: scale(1.1);
+    }
+    
+    .check-btn-container {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+        margin-top: 5px;
+    }
+    .check-btn {
+        padding: 12px 35px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        border: 1px solid #999;
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        font-family: inherit;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    .check-btn:active {
+        background-color: #dcdcdc;
+    }
+    .check-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .result-display {
+        font-size: 4.5rem;
+        color: red;
+        font-weight: bold;
+        text-align: center;
+        width: 100%;
+        margin-top: -10px;
+        min-height: 70px; 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        white-space: nowrap;
+        pointer-events: none;
+    }
+    
+    .clear-message {
+        text-align: center;
+        margin-top: 20px;
+        padding: 25px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        border: 2px solid #a0c4ff;
+    }
+    .clear-message h2 {
+        font-size: 1.8rem;
+        color: #d9534f;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+    .final-result-details {
+        font-size: 1.3rem;
+        color: #333;
+        line-height: 1.8;
+    }
+    .menu-btn, .retry-btn {
+        margin-top: 20px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        outline: none;
+        touch-action: manipulation;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .retry-btn {
+        background-color: #a0c4ff;
+        color: #fff;
+        margin-right: 15px;
+    }
+    .menu-btn {
+        background-color: #95a5a6;
+        color: #fff;
+    }
+    
+    .top-nav {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: -5px;
+    }
+    .back-btn {
+        padding: 8px 15px;
+        background-color: #ecf0f1;
+        border: 1px solid #bdc3c7;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #2c3e50;
+        font-size: 0.9rem;
+        touch-action: manipulation;
+    }
+</style>
+</head>
+<body>
+
+    <div class="top-nav">
+        <a href="index.html" class="back-btn">メニューへ戻る</a>
+    </div>
+    <h1>・ ＋ーボタンで分母をそろえてから、たし算をしましょう。</h1>
+    <div id="app"></div>
+
+    <script>
+        const validPairs = [
+            { d1: 2, d2: 4 }, { d1: 2, d2: 6 }, { d1: 3, d2: 6 },
+            { d1: 2, d2: 8 }, { d1: 4, d2: 8 }, { d1: 3, d2: 9 },
+            { d1: 2, d2: 10 }, { d1: 5, d2: 10 }
+        ];
+
+        const problems = [];
+        while (problems.length < 10) {
+            const pair = validPairs[Math.floor(Math.random() * validPairs.length)];
+            const M_target = pair.d2 / pair.d1;
+            const n1 = Math.floor(Math.random() * (pair.d1 - 1)) + 1;
+            const n2 = Math.floor(Math.random() * (pair.d2 - 1)) + 1;
+            problems.push({ d1: pair.d1, d2: pair.d2, n1: n1, n2: n2, M_target: M_target });
+        }
+
+        let currentIndex = 0;
+        let mistakeCount = 0;
+        let currentM = 1; 
+
+        const appContainer = document.getElementById('app');
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+            currentM = 1; 
+
+            if (currentIndex >= problems.length) {
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全10問クリアしました！</h2>`;
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>正解した問題： <strong>10</strong> 問</div>`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                return;
+            }
+
+            const prob = problems[currentIndex];
+
+            const statusBar = document.createElement('div');
+            statusBar.className = 'status-bar';
+            statusBar.textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
+            appContainer.appendChild(statusBar);
+
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+
+            // --- 視覚的通分エリア ---
+            const visualSection = document.createElement('div');
+            visualSection.className = 'visual-section';
+
+            // 1行目：上のバーとコントロール
+            const row1 = document.createElement('div');
+            row1.className = 'fraction-row';
+            row1.style.marginBottom = '5px'; // 行間を調整
+            
+            const bar1Container = document.createElement('div');
+            bar1Container.className = 'bar-container';
+            const bar1 = document.createElement('div');
+            bar1.className = 'bar';
+            bar1Container.appendChild(bar1);
+
+            const frac1 = document.createElement('div');
+            frac1.className = 'fraction';
+            const frac1Num = document.createElement('div'); frac1Num.className = 'numerator';
+            const frac1Den = document.createElement('div'); frac1Den.className = 'denominator';
+            frac1.appendChild(frac1Num); frac1.appendChild(frac1Den);
+
+            const controlBox = document.createElement('div');
+            controlBox.className = 'control-box';
+            
+            const btnMinus = document.createElement('button');
+            btnMinus.className = 'ctrl-btn'; btnMinus.textContent = 'ー';
+            const btnPlus = document.createElement('button');
+            btnPlus.className = 'ctrl-btn'; btnPlus.textContent = '＋';
+            
+            controlBox.appendChild(btnMinus);
+            controlBox.appendChild(btnPlus);
+
+            row1.appendChild(bar1Container);
+            row1.appendChild(frac1);
+            row1.appendChild(controlBox);
+
+            // 矢印行：上下のバーの中間に独立して配置
+            const arrowRow = document.createElement('div');
+            arrowRow.className = 'fraction-row';
+            arrowRow.style.marginBottom = '5px'; // 行間を調整
+
+            const arrowContainer = document.createElement('div');
+            arrowContainer.className = 'arrow-container';
+            
+            const dimensionLineGreen = document.createElement('div');
+            dimensionLineGreen.className = 'dimension-line-green';
+            dimensionLineGreen.id = 'dynamic-arrow-green';
+            dimensionLineGreen.innerHTML = '<div class="arrow-left-green"></div><div class="arrow-right-green"></div>';
+            
+            const dimensionLineRed = document.createElement('div');
+            dimensionLineRed.className = 'dimension-line-red';
+            dimensionLineRed.id = 'static-arrow-red';
+            dimensionLineRed.innerHTML = '<div class="arrow-left-red"></div><div class="arrow-right-red"></div>';
+            
+            dimensionLineRed.style.width = `calc(100% / ${prob.d2})`;
+
+            arrowContainer.appendChild(dimensionLineGreen);
+            arrowContainer.appendChild(dimensionLineRed);
+            
+            arrowRow.appendChild(arrowContainer);
+            arrowRow.appendChild(document.createElement('div')); // レイアウト維持用の空要素
+            arrowRow.appendChild(document.createElement('div')); // レイアウト維持用の空要素
+
+            // 2行目：下のバーと分数
+            const row2 = document.createElement('div');
+            row2.className = 'fraction-row';
+            
+            const bar2Container = document.createElement('div');
+            bar2Container.className = 'bar-container';
+            const bar2 = document.createElement('div');
+            bar2.className = 'bar';
+            
+            for(let i=0; i<prob.d2; i++) {
+                const seg = document.createElement('div');
+                seg.className = 'segment';
+                if(i < prob.n2) seg.classList.add('f2-color');
+                if(i !== prob.d2 - 1) seg.style.borderRight = '2px solid #000';
+                bar2.appendChild(seg);
+            }
+            bar2Container.appendChild(bar2);
+
+            const frac2 = document.createElement('div');
+            frac2.className = 'fraction';
+            frac2.innerHTML = `<div class="numerator">${prob.n2}</div><div class="denominator">${prob.d2}</div>`;
+
+            const emptyControlBox = document.createElement('div');
+            emptyControlBox.className = 'control-box';
+
+            row2.appendChild(bar2Container);
+            row2.appendChild(frac2);
+            row2.appendChild(emptyControlBox);
+
+            const matchMessage = document.createElement('div');
+            matchMessage.className = 'match-msg';
+
+            visualSection.appendChild(row1);
+            visualSection.appendChild(arrowRow);
+            visualSection.appendChild(row2);
+            visualSection.appendChild(matchMessage);
+            container.appendChild(visualSection);
+
+            // --- 計算式エリア ---
+            const equationSection = document.createElement('div');
+            equationSection.className = 'equation-section';
+
+            const step0 = document.createElement('div');
+            step0.className = 'step-container';
+            const eqFrac1 = document.createElement('div');
+            eqFrac1.className = 'fraction eq-fraction';
+            eqFrac1.innerHTML = `<div class="numerator">${prob.n1}</div><div class="denominator">${prob.d1}</div>`;
+            const opPlus1 = document.createElement('div');
+            opPlus1.className = 'operator'; opPlus1.textContent = '＋';
+            const eqFrac2_1 = document.createElement('div');
+            eqFrac2_1.className = 'fraction eq-fraction';
+            eqFrac2_1.innerHTML = `<div class="numerator">${prob.n2}</div><div class="denominator">${prob.d2}</div>`;
+            step0.appendChild(eqFrac1);
+            step0.appendChild(opPlus1);
+            step0.appendChild(eqFrac2_1);
+
+            const opEq1 = document.createElement('div');
+            opEq1.className = 'eq-btn';
+            opEq1.textContent = '＝';
+
+            const step1 = document.createElement('div');
+            step1.className = 'step-container';
+            step1.style.display = 'none';
+            const eqMulFrac = document.createElement('div');
+            eqMulFrac.className = 'fraction eq-fraction';
+            const eqMulNum = document.createElement('div'); eqMulNum.className = 'numerator';
+            const eqMulDen = document.createElement('div'); eqMulDen.className = 'denominator';
+            eqMulFrac.appendChild(eqMulNum); eqMulFrac.appendChild(eqMulDen);
+            const opPlus2 = document.createElement('div');
+            opPlus2.className = 'operator'; opPlus2.textContent = '＋';
+            const eqFrac2_2 = document.createElement('div');
+            eqFrac2_2.className = 'fraction eq-fraction';
+            eqFrac2_2.innerHTML = `<div class="numerator">${prob.n2}</div><div class="denominator">${prob.d2}</div>`;
+            step1.appendChild(eqMulFrac);
+            step1.appendChild(opPlus2);
+            step1.appendChild(eqFrac2_2);
+
+            const opEq2 = document.createElement('div');
+            opEq2.className = 'eq-btn';
+            opEq2.textContent = '＝';
+            opEq2.style.display = 'none';
+
+            const step2 = document.createElement('div');
+            step2.className = 'step-container';
+            step2.style.display = 'none';
+            const dropFrac1 = document.createElement('div');
+            dropFrac1.className = 'fraction eq-fraction';
+            const zoneNum1 = document.createElement('div'); zoneNum1.className = 'drop-zone'; zoneNum1.id = 'ans-num-1';
+            const line1 = document.createElement('div'); line1.className = 'fraction-line';
+            const zoneDen1 = document.createElement('div'); zoneDen1.className = 'drop-zone'; zoneDen1.id = 'ans-den-1';
+            dropFrac1.appendChild(zoneNum1); dropFrac1.appendChild(line1); dropFrac1.appendChild(zoneDen1);
+            const opPlus3 = document.createElement('div');
+            opPlus3.className = 'operator'; opPlus3.textContent = '＋';
+            const eqFrac2_3 = document.createElement('div');
+            eqFrac2_3.className = 'fraction eq-fraction';
+            eqFrac2_3.innerHTML = `<div class="numerator">${prob.n2}</div><div class="denominator">${prob.d2}</div>`;
+            step2.appendChild(dropFrac1);
+            step2.appendChild(opPlus3);
+            step2.appendChild(eqFrac2_3);
+
+            const opEq3 = document.createElement('div');
+            opEq3.className = 'eq-btn';
+            opEq3.textContent = '＝';
+            opEq3.style.display = 'none';
+
+            const step3 = document.createElement('div');
+            step3.className = 'step-container';
+            step3.style.display = 'none';
+            const dropSumFrac = document.createElement('div');
+            dropSumFrac.className = 'fraction eq-fraction';
+            const numSumBox = document.createElement('div');
+            numSumBox.className = 'numerator-sum';
+            const zoneSumN1 = document.createElement('div'); zoneSumN1.className = 'drop-zone'; zoneSumN1.id = 'ans-sum-num-1';
+            const plusSign = document.createElement('span'); plusSign.textContent = '＋';
+            const zoneSumN2 = document.createElement('div'); zoneSumN2.className = 'drop-zone'; zoneSumN2.id = 'ans-sum-num-2';
+            numSumBox.appendChild(zoneSumN1); numSumBox.appendChild(plusSign); numSumBox.appendChild(zoneSumN2);
+            const line2 = document.createElement('div'); line2.className = 'fraction-line';
+            const zoneSumD = document.createElement('div'); zoneSumD.className = 'drop-zone'; zoneSumD.id = 'ans-sum-den';
+            dropSumFrac.appendChild(numSumBox); dropSumFrac.appendChild(line2); dropSumFrac.appendChild(zoneSumD);
+            step3.appendChild(dropSumFrac);
+
+            const opEq4 = document.createElement('div');
+            opEq4.className = 'eq-btn';
+            opEq4.textContent = '＝';
+            opEq4.style.display = 'none';
+
+            const step4 = document.createElement('div');
+            step4.className = 'step-container';
+            step4.style.display = 'none';
+            const finalFrac = document.createElement('div');
+            finalFrac.className = 'fraction eq-fraction';
+            const zoneFinalN = document.createElement('div'); zoneFinalN.className = 'drop-zone'; zoneFinalN.id = 'ans-final-num';
+            const line3 = document.createElement('div'); line3.className = 'fraction-line';
+            const zoneFinalD = document.createElement('div'); zoneFinalD.className = 'drop-zone'; zoneFinalD.id = 'ans-final-den';
+            finalFrac.appendChild(zoneFinalN); finalFrac.appendChild(line3); finalFrac.appendChild(zoneFinalD);
+            step4.appendChild(finalFrac);
+
+            opEq1.addEventListener('click', () => {
+                if(opEq1.classList.contains('eq-btn')) {
+                    opEq1.className = 'operator-eq';
+                    step1.style.display = 'flex';
+                    opEq2.style.display = 'flex';
+                }
+            });
+            opEq2.addEventListener('click', () => {
+                if(opEq2.classList.contains('eq-btn')) {
+                    opEq2.className = 'operator-eq';
+                    step2.style.display = 'flex';
+                    opEq3.style.display = 'flex';
+                }
+            });
+            opEq3.addEventListener('click', () => {
+                if(opEq3.classList.contains('eq-btn')) {
+                    opEq3.className = 'operator-eq';
+                    step3.style.display = 'flex';
+                    opEq4.style.display = 'flex';
+                }
+            });
+            opEq4.addEventListener('click', () => {
+                if(opEq4.classList.contains('eq-btn')) {
+                    opEq4.className = 'operator-eq';
+                    step4.style.display = 'flex';
+                }
+            });
+
+            [zoneNum1, zoneDen1, zoneSumN1, zoneSumN2, zoneSumD, zoneFinalN, zoneFinalD].forEach(zone => {
+                zone.addEventListener('click', () => { 
+                    zone.textContent = ''; 
+                });
+            });
+
+            equationSection.appendChild(step0);
+            equationSection.appendChild(opEq1);
+            equationSection.appendChild(step1);
+            equationSection.appendChild(opEq2);
+            equationSection.appendChild(step2);
+            equationSection.appendChild(opEq3);
+            equationSection.appendChild(step3);
+            equationSection.appendChild(opEq4);
+            equationSection.appendChild(step4);
+
+            container.appendChild(equationSection);
+
+            // --- 0〜9の駒エリア ---
+            const piecesContainer = document.createElement('div');
+            piecesContainer.className = 'pieces-container';
+            for (let i = 0; i <= 9; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.dataset.val = i;
+                piece.textContent = i;
+                piecesContainer.appendChild(piece);
+            }
+            container.appendChild(piecesContainer);
+
+            // 判定ボタン
+            const checkBtnContainer = document.createElement('div');
+            checkBtnContainer.className = 'check-btn-container';
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた';
+            checkBtnContainer.appendChild(checkBtn);
+            container.appendChild(checkBtnContainer);
+
+            const resultDisplay = document.createElement('div');
+            resultDisplay.className = 'result-display';
+            container.appendChild(resultDisplay);
+
+            appContainer.appendChild(container);
+
+            // バーおよび緑の矢印の更新関数
+            function updateFraction1() {
+                bar1.innerHTML = '';
+                const totalSegments = prob.d1 * currentM;
+                const filledSegments = prob.n1 * currentM;
+                
+                for(let i=0; i<totalSegments; i++) {
+                    const seg = document.createElement('div');
+                    seg.className = 'segment';
+                    if (i < filledSegments) seg.classList.add('f1-color');
+                    
+                    if ((i + 1) % currentM === 0) {
+                        seg.style.borderRight = '2px solid #000';
+                    } else {
+                        seg.style.borderRight = '1px dotted #555';
+                    }
+                    if (i === totalSegments - 1) seg.style.borderRight = 'none';
+                    
+                    bar1.appendChild(seg);
+                }
+
+                // 緑の寸法線の幅を更新
+                const dynamicArrow = document.getElementById('dynamic-arrow-green');
+                if (dynamicArrow) {
+                    dynamicArrow.style.width = `calc(100% / ${totalSegments})`;
+                }
+
+                frac1Num.innerHTML = `<span style="color: #aaa;">${prob.n1}</span><span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
+                frac1Den.innerHTML = `${prob.d1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
+                
+                eqMulNum.innerHTML = `${prob.n1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
+                eqMulDen.innerHTML = `${prob.d1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
+
+                if (currentM === prob.M_target) {
+                    matchMessage.textContent = '分母がそろいました！';
+                    matchMessage.style.color = '#2ecc71';
+                } else {
+                    matchMessage.textContent = '分母をそろえよう';
+                    matchMessage.style.color = '#e74c3c';
+                }
+            }
+
+            updateFraction1();
+
+            // ー、＋ボタンのイベント
+            btnMinus.addEventListener('click', () => {
+                if (currentM > 1) { currentM--; updateFraction1(); }
+            });
+            btnPlus.addEventListener('click', () => {
+                if (currentM < 10) { currentM++; updateFraction1(); }
+            });
+
+            // 判定処理
+            checkBtn.addEventListener('click', () => {
+                if (currentM !== prob.M_target) {
+                    resultDisplay.textContent = '分母をそろえてね！';
+                    resultDisplay.style.color = '#e74c3c';
+                    resultDisplay.style.fontSize = '2.5rem';
+                    setTimeout(() => { resultDisplay.textContent = ''; resultDisplay.style.fontSize = '4.5rem'; }, 1500);
+                    return;
+                }
+
+                const uFinalN = parseInt(document.getElementById('ans-final-num').textContent, 10);
+                const uFinalD = parseInt(document.getElementById('ans-final-den').textContent, 10);
+
+                if (isNaN(uFinalN) || isNaN(uFinalD)) return; 
+
+                const correctFinalN = (prob.n1 * prob.M_target) + prob.n2;
+                const correctFinalD = prob.d2;
+                
+                const lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
+                
+                if (!lastCorrect) {
+                    resultDisplay.textContent = 'おしい！';
+                    resultDisplay.style.color = 'red';
+                    resultDisplay.style.fontSize = '4.5rem';
+                    mistakeCount++;
+                    return;
+                }
+
+                const uNum1 = parseInt(document.getElementById('ans-num-1').textContent, 10);
+                const uDen1 = parseInt(document.getElementById('ans-den-1').textContent, 10);
+                const uSumN1 = parseInt(document.getElementById('ans-sum-num-1').textContent, 10);
+                const uSumN2 = parseInt(document.getElementById('ans-sum-num-2').textContent, 10);
+                const uSumD = parseInt(document.getElementById('ans-sum-den').textContent, 10);
+
+                const correctNum1 = prob.n1 * prob.M_target;
+                const correctDen1 = prob.d2;
+                const correctSumN1 = prob.n1 * prob.M_target;
+                const correctSumN2 = prob.n2;
+                const correctSumD = prob.d2;
+
+                const allCorrect = (uNum1 === correctNum1) && (uDen1 === correctDen1) &&
+                                   (uSumN1 === correctSumN1) && (uSumN2 === correctSumN2) && (uSumD === correctSumD);
+
+                if (allCorrect) {
+                    resultDisplay.textContent = '大正解！！';
+                } else {
+                    resultDisplay.textContent = '正解！';
+                }
+                
+                resultDisplay.style.color = 'red';
+                resultDisplay.style.fontSize = '4.5rem';
+                checkBtn.disabled = true;
+                btnMinus.disabled = true;
+                btnPlus.disabled = true;
+                
+                setTimeout(() => {
+                    currentIndex++;
+                    renderProblem();
+                }, 1500);
+            });
+        }
+
+        renderProblem();
+
+        // --- ドラッグ＆ドロップのグローバル処理 ---
+        let draggingPiece = null;
+
+        function handleStart(e) {
+            if (e.target.classList.contains('piece') && !e.target.classList.contains('dragging')) {
+                const val = e.target.dataset.val;
+                draggingPiece = document.createElement('div');
+                draggingPiece.className = 'piece dragging';
+                draggingPiece.textContent = val;
+                draggingPiece.dataset.val = val;
+                document.body.appendChild(draggingPiece);
+                movePiece(e);
+            }
+        }
+
+        function movePiece(e) {
+            if (!draggingPiece) return;
+            e.preventDefault(); 
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            draggingPiece.style.left = (clientX - 27) + 'px';
+            draggingPiece.style.top = (clientY - 27) + 'px';
+        }
+
+        function handleEnd(e) {
+            if (!draggingPiece) return;
+            
+            draggingPiece.style.display = 'none';
+            let clientX, clientY;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            let elem = document.elementFromPoint(clientX, clientY);
+            draggingPiece.style.display = 'flex';
+            
+            if (elem && elem.classList.contains('drop-zone')) {
+                let currentVal = elem.textContent;
+                let newVal = currentVal + draggingPiece.dataset.val;
+                if (newVal.length <= 2) { 
+                    elem.textContent = newVal;
+                }
+            }
+            
+            draggingPiece.remove();
+            draggingPiece = null;
+        }
+
+        document.addEventListener('touchstart', handleStart, {passive: false});
+        document.addEventListener('touchmove', movePiece, {passive: false});
+        document.addEventListener('touchend', handleEnd);
+        document.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', movePiece);
+        document.addEventListener('mouseup', handleEnd);
+
+    </script>
+</body>
+</html>
