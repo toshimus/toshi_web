@@ -41,63 +41,66 @@
         margin-bottom: 20px;
         width: 100%;
         max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
     }
     .problem-main {
         display: flex;
-        align-items: center;
+        flex-direction: column; 
+        align-items: center;    
         width: 100%;
     }
     .fraction-display {
         display: flex;
+        justify-content: center;
         align-items: center;
-        margin-right: 30px;
-        width: 100px;
+        margin-bottom: 30px;    
     }
     .fraction {
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        font-size: 1.8rem;
+        font-size: 3.6rem;
         line-height: 1.2;
     }
     .numerator {
-        border-bottom: 2px solid #000;
+        border-bottom: 4px solid #000;
         padding: 0 10px;
     }
     .denominator {
         padding: 0 10px;
     }
-    .unit {
-        font-size: 1.4rem;
-        margin-left: 10px;
-    }
-    .bar-area {
-        flex-grow: 1;
+    
+    /* 円のスタイル */
+    .circle-area {
         display: flex;
-        flex-direction: column;
+        justify-content: center;
         align-items: center;
-    }
-    .label-1m {
-        display: flex;
-        align-items: center;
-        text-align: center;
-        margin-bottom: 10px;
-        font-size: 1.1rem;
-        color: blue; 
         width: 100%;
     }
-    .label-1m::before, .label-1m::after {
-        content: "";
-        flex: 1;
-        border-bottom: 1px solid blue; 
-        margin: 0 15px;
+    .svg-container {
+        width: 250px;
+        height: 250px;
+    }
+    .segment {
+        fill: #ffffff;
+        stroke: #000000;
+        stroke-width: 2px;
+        cursor: pointer;
+        transition: fill 0.2s ease;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .segment.filled {
+        fill: #a0c4ff;
     }
     
     .controls-area {
         display: flex;
         align-items: center;
-        margin-top: 20px;
-        padding-left: 130px;
+        justify-content: center; 
+        margin-top: 30px;
+        width: 100%;
     }
     .div-btn {
         width: 45px;
@@ -123,7 +126,7 @@
         cursor: not-allowed;
     }
     .division-label {
-        font-size: 1.1rem;
+        font-size: 1.5rem;      
         margin: 0 20px 0 10px;
         color: #555;
     }
@@ -137,7 +140,6 @@
         font-family: inherit;
         outline: none;
         -webkit-tap-highlight-color: transparent;
-        margin-left: auto;
         touch-action: manipulation;
     }
     .check-btn:active {
@@ -148,7 +150,6 @@
         cursor: not-allowed;
     }
     
-    /* オーバーレイのスタイルを背景なし・黒縁取りのテキストへ調整 */
     .judge-overlay {
         position: fixed;
         top: 50%;
@@ -157,7 +158,7 @@
         opacity: 0;
         visibility: hidden;
         background-color: transparent;
-        color: #ff3333; /* 正解は赤色 */
+        color: #ff3333;
         font-size: 6rem;
         font-weight: bold;
         padding: 30px 60px;
@@ -174,7 +175,7 @@
         transform: translate(-50%, -50%) scale(1.0);
     }
     .judge-overlay.incorrect {
-        color: #3366ff; /* 不正解（おしい！）は青色 */
+        color: #3366ff;
     }
     
     .clear-message {
@@ -226,8 +227,26 @@
     
     .top-nav {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between; 
+        align-items: center;            
         margin-bottom: 10px;
+    }
+    .toggle-group {
+        display: flex;
+        gap: 15px;
+    }
+    .settings-toggle {
+        font-size: 1.1rem;
+        color: #555;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .settings-toggle input {
+        transform: scale(1.3);
+        margin-right: 8px;
+        cursor: pointer;
     }
     .back-btn {
         padding: 8px 15px;
@@ -239,41 +258,58 @@
         font-size: 0.9rem;
         touch-action: manipulation;
     }
-    
-    /* 円形ピザカット用のスタイル */
-    .segment {
-        fill: #ffffff;
-        stroke: #000000;
-        stroke-width: 1.5;
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-        transition: fill 0.2s ease;
-    }
-    .segment.filled {
-        fill: #a0c4ff;
-    }
-    .center-circle {
-        fill: none;
-        stroke: #000000;
-        stroke-width: 1.5;
-    }
 </style>
 </head>
 <body>
 
     <div class="top-nav">
+        <div class="toggle-group">
+            <label class="settings-toggle">
+                <input type="checkbox" id="speech-checkbox" checked>
+                スピーチON
+            </label>
+            <label class="settings-toggle">
+                <input type="checkbox" id="sound-checkbox" checked>
+                効果音ON
+            </label>
+        </div>
         <a href="index.html" class="back-btn">メニューへ戻る</a>
     </div>
     
     <div id="status-bar" class="status-bar"></div>
-    <h1 class="question-title">・ 次の分数の大きさだけ色をぬりましょう。</h1>
+    <h1 class="question-title">・ 次の分数の分だけ色をぬりましょう。</h1>
     
     <div id="app"></div>
-
+    
     <div id="judge-overlay" class="judge-overlay"></div>
 
     <script>
-        // ランダムな真分数を10問生成します
+        // 音声ファイル（mp3）のセットアップ
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        // 音声読み上げ用の関数（Web Speech API）
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) {
+                return; 
+            }
+            
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 読み上げ用の数字辞書（0〜20）
+        const numberReadings = [
+            "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
+            "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
+        ];
+
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
@@ -333,7 +369,16 @@
                 
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
+                
+                speak("ぜんもんくりあです。おつかれさまでした。");
                 return;
+            }
+            
+            // 問題提示音（q.mp3）の再生
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0;
+                qSound.play().catch(e => console.log("ブラウザの自動再生制限により保留されました:", e));
             }
             
             document.getElementById('status-bar').style.display = 'block';
@@ -366,83 +411,72 @@
             fraction.appendChild(numEl);
             fraction.appendChild(denEl);
 
-            const unitEl = document.createElement('div');
-            unitEl.className = 'unit';
-            unitEl.textContent = ''; 
-
             fracDisplay.appendChild(fraction);
-            fracDisplay.appendChild(unitEl);
             mainArea.appendChild(fracDisplay);
 
-            const barArea = document.createElement('div');
-            barArea.className = 'bar-area';
+            const circleArea = document.createElement('div');
+            circleArea.className = 'circle-area';
 
-            const svgNS = "http://www.w3.org/2000/svg";
-            const svg = document.createElementNS(svgNS, "svg");
-            svg.setAttribute("width", "200");
-            svg.setAttribute("height", "200");
-            svg.setAttribute("viewBox", "0 0 200 200");
+            const svgContainer = document.createElement('div');
+            svgContainer.className = 'svg-container';
             
-            function updateBar() {
-                while (svg.firstChild) {
-                    svg.removeChild(svg.firstChild);
-                }
-                
-                const centerX = 100;
-                const centerY = 100;
-                const radius = 90;
-                
-                if (currentDivisions === 1) {
-                    const circle = document.createElementNS(svgNS, "circle");
-                    circle.setAttribute("cx", centerX);
-                    circle.setAttribute("cy", centerY);
-                    circle.setAttribute("r", radius);
-                    circle.className.baseVal = "segment";
-                    circle.addEventListener('click', function() {
-                        this.classList.toggle('filled');
-                    });
-                    svg.appendChild(circle);
-                } else {
-                    for (let i = 0; i < currentDivisions; i++) {
-                        const startAngle = (i * 360 / currentDivisions) - 90;
-                        const endAngle = ((i + 1) * 360 / currentDivisions) - 90;
-                        
-                        const radStart = startAngle * Math.PI / 180;
-                        const radEnd = endAngle * Math.PI / 180;
-                        
-                        const x1 = centerX + radius * Math.cos(radStart);
-                        const y1 = centerY + radius * Math.sin(radStart);
-                        const x2 = centerX + radius * Math.cos(radEnd);
-                        const y2 = centerY + radius * Math.sin(radEnd);
-                        
-                        const largeArcFlag = (360 / currentDivisions) > 180 ? 1 : 0;
-                        
-                        const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
-                        
-                        const path = document.createElementNS(svgNS, "path");
-                        path.setAttribute("d", pathData);
-                        path.className.baseVal = "segment";
-                        
-                        path.addEventListener('click', function() {
-                            this.classList.toggle('filled');
-                        });
-                        
-                        svg.appendChild(path);
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.setAttribute('viewBox', '0 0 200 200');
+
+            function updateCircle() {
+                svg.innerHTML = '';
+                for (let i = 0; i < currentDivisions; i++) {
+                    let segment;
+                    if (currentDivisions === 1) {
+                        segment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        segment.setAttribute('cx', '100');
+                        segment.setAttribute('cy', '100');
+                        segment.setAttribute('r', '90');
+                        segment.setAttribute('class', 'segment');
+                    } else {
+                        const startAngle = (i / currentDivisions) * Math.PI * 2 - Math.PI / 2;
+                        const endAngle = ((i + 1) / currentDivisions) * Math.PI * 2 - Math.PI / 2;
+
+                        const x1 = 100 + 90 * Math.cos(startAngle);
+                        const y1 = 100 + 90 * Math.sin(startAngle);
+                        const x2 = 100 + 90 * Math.cos(endAngle);
+                        const y2 = 100 + 90 * Math.sin(endAngle);
+
+                        const largeArcFlag = (1 / currentDivisions) > 0.5 ? 0 : 1;
+                        const arcFlag = (currentDivisions === 2) ? 0 : ((1 / currentDivisions) < 0.5 ? 0 : 1);
+
+                        const d = [
+                            'M', 100, 100,
+                            'L', x1, y1,
+                            'A', 90, 90, 0, arcFlag, 1, x2, y2,
+                            'Z'
+                        ].join(' ');
+
+                        segment = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        segment.setAttribute('d', d);
+                        segment.setAttribute('class', 'segment');
                     }
+                    
+                    segment.addEventListener('click', function() {
+                        this.classList.toggle('filled');
+                        // 塗られている枠の数をカウントして読み上げる
+                        const filledCount = svg.querySelectorAll('.segment.filled').length;
+                        if (filledCount >= 0 && filledCount <= 20) {
+                            speak(numberReadings[filledCount]);
+                        }
+                    });
+                    
+                    svg.appendChild(segment);
                 }
-                
-                const borderCircle = document.createElementNS(svgNS, "circle");
-                borderCircle.setAttribute("cx", centerX);
-                borderCircle.setAttribute("cy", centerY);
-                borderCircle.setAttribute("r", radius);
-                borderCircle.className.baseVal = "center-circle";
-                svg.appendChild(borderCircle);
             }
             
-            updateBar();
+            updateCircle();
 
-            barArea.appendChild(svg);
-            mainArea.appendChild(barArea);
+            svgContainer.appendChild(svg);
+            circleArea.appendChild(svgContainer);
+            mainArea.appendChild(circleArea);
             container.appendChild(mainArea);
 
             const controlsArea = document.createElement('div');
@@ -464,7 +498,8 @@
                 if (currentDivisions > 1) {
                     currentDivisions--;
                     divLabel.textContent = `（${currentDivisions} 分割）`;
-                    updateBar(); 
+                    updateCircle(); 
+                    speak(currentDivisions + "ぶんかつ");
                 }
             });
 
@@ -472,7 +507,8 @@
                 if (currentDivisions < 20) { 
                     currentDivisions++;
                     divLabel.textContent = `（${currentDivisions} 分割）`;
-                    updateBar(); 
+                    updateCircle(); 
+                    speak(currentDivisions + "ぶんかつ");
                 }
             });
 
@@ -482,10 +518,8 @@
 
             checkBtn.addEventListener('click', () => {
                 const filledCount = svg.querySelectorAll('.segment.filled').length;
+                const isCorrect = filledCount > 0 && Math.abs((filledCount / currentDivisions) - (prob.num / prob.den)) < 0.0001;
                 
-                const isCorrect = filledCount > 0 && 
-                                  Math.abs((filledCount / currentDivisions) - (prob.num / prob.den)) < 0.0001;
-
                 const endTime = new Date();
                 const problemType = "分数の色塗り（円）";
                 const problemContent = `${prob.num}/${prob.den}`;
@@ -508,6 +542,11 @@
                     overlay.textContent = '正解！';
                     overlay.className = 'judge-overlay show';
                     
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0;
+                        okSound.play();
+                    }
+                    
                     minusBtn.disabled = true;
                     plusBtn.disabled = true;
                     checkBtn.disabled = true;
@@ -524,6 +563,11 @@
                     overlay.textContent = 'おしい！';
                     overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++; 
+                    
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0;
+                        ngSound.play();
+                    }
                     
                     setTimeout(() => {
                         overlay.classList.remove('show');
