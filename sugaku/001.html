@@ -21,6 +21,43 @@
         box-sizing: border-box;
     }
     
+    /* 💡 追加：スタート画面のスタイル */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
     /* 上部ステータスバーと問題文のスタイル */
     .status-bar {
         font-size: 1.2rem;
@@ -253,7 +290,7 @@
     }
     .toggle-group {
         display: flex;
-        gap: 15px; /* チェックボックス間の余白 */
+        gap: 15px; 
     }
     .settings-toggle {
         font-size: 1.1rem;
@@ -282,26 +319,33 @@
 </head>
 <body>
 
-    <div class="top-nav">
-        <div class="toggle-group">
-            <label class="settings-toggle">
-                <input type="checkbox" id="speech-checkbox" checked>
-                スピーチON
-            </label>
-            <label class="settings-toggle">
-                <input type="checkbox" id="sound-checkbox" checked>
-                効果音ON
-            </label>
-        </div>
-        <a href="index.html" class="back-btn">メニューへ戻る</a>
+    <div id="start-screen" class="start-screen">
+        <h1>分数の色塗り</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
     </div>
-    
-    <div id="status-bar" class="status-bar"></div>
-    <h1 class="question-title">・ 次の長さの分だけ色をぬりましょう。</h1>
-    
-    <div id="app"></div>
-    
-    <div id="judge-overlay" class="judge-overlay"></div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle">
+                    <input type="checkbox" id="speech-checkbox" checked>
+                    スピーチON
+                </label>
+                <label class="settings-toggle">
+                    <input type="checkbox" id="sound-checkbox" checked>
+                    効果音ON
+                </label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title">・ 次の長さの分だけ色をぬりましょう。</h1>
+        
+        <div id="app"></div>
+        
+        <div id="judge-overlay" class="judge-overlay"></div>
+    </div>
 
     <script>
         // 音声ファイル（mp3）のセットアップ
@@ -311,13 +355,12 @@
 
         // 音声読み上げ用の関数（Web Speech API）
         function speak(text) {
-            // スピーチチェックボックスの状態を確認し、OFFの場合は処理を中断します
             const speechCheckbox = document.getElementById('speech-checkbox');
             if (speechCheckbox && !speechCheckbox.checked) {
                 return; 
             }
             
-            window.speechSynthesis.cancel(); // 連続再生を防ぐため、前の音声をキャンセルします
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ja-JP';
             utterance.rate = 1.0;
@@ -325,7 +368,6 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        // 読み上げ用の数字辞書（0〜20）
         const numberReadings = [
             "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
             "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
@@ -355,7 +397,7 @@
         let mistakeCount = 0; 
         const appContainer = document.getElementById('app');
         
-        let problemStartTime = new Date();
+        let problemStartTime;
 
         function formatTime(date) {
             return date.getHours().toString().padStart(2, '0') + ':' + 
@@ -399,7 +441,7 @@
             const soundCheckbox = document.getElementById('sound-checkbox');
             if (soundCheckbox && soundCheckbox.checked) {
                 qSound.currentTime = 0;
-                qSound.play().catch(e => console.log("ブラウザの自動再生制限により保留されました:", e));
+                qSound.play().catch(e => console.log("再生エラー:", e));
             }
             
             document.getElementById('status-bar').style.display = 'block';
@@ -459,7 +501,6 @@
                     
                     segment.addEventListener('click', function() {
                         this.classList.toggle('filled');
-                        // 塗られている枠の数をカウントして読み上げる
                         const filledCount = bar.querySelectorAll('.segment.filled').length;
                         if (filledCount >= 0 && filledCount <= 20) {
                             speak(numberReadings[filledCount]);
@@ -496,7 +537,7 @@
                     currentDivisions--;
                     divLabel.textContent = `（${currentDivisions} 分割）`;
                     updateBar(); 
-                    speak(currentDivisions + "ぶんかつ"); // 音声フィードバック
+                    speak(currentDivisions + "ぶんかつ");
                 }
             });
 
@@ -505,7 +546,7 @@
                     currentDivisions++;
                     divLabel.textContent = `（${currentDivisions} 分割）`;
                     updateBar(); 
-                    speak(currentDivisions + "ぶんかつ"); // 音声フィードバック
+                    speak(currentDivisions + "ぶんかつ");
                 }
             });
 
@@ -540,7 +581,6 @@
                     overlay.textContent = '正解！';
                     overlay.className = 'judge-overlay show';
                     
-                    // 正解音（ok.mp3）の再生 (効果音チェックボックス確認)
                     if (soundCheckbox && soundCheckbox.checked) {
                         okSound.currentTime = 0;
                         okSound.play();
@@ -563,7 +603,6 @@
                     overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++; 
                     
-                    // おしい音（ng.mp3）の再生 (効果音チェックボックス確認)
                     if (soundCheckbox && soundCheckbox.checked) {
                         ngSound.currentTime = 0;
                         ngSound.play();
@@ -585,7 +624,16 @@
             appContainer.appendChild(container);
         }
 
-        renderProblem();
+        // 💡 変更：ページ読み込み時は renderProblem(); を実行せず、スタートボタンのクリックを待つ
+        document.getElementById('start-btn').addEventListener('click', () => {
+            // スタート画面を非表示にして、メインコンテンツを表示
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            
+            // ユーザーのタップを検知してから1問目を生成する（これで音声ブロックが解除されます）
+            renderProblem();
+        });
+
     </script>
 </body>
 </html>
