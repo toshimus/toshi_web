@@ -20,16 +20,21 @@
         touch-action: none;
         box-sizing: border-box;
     }
-    h1 {
-        font-size: 1.2rem;
-        font-weight: normal;
-        margin-bottom: 15px;
-    }
+    
+    /* 上部ステータスバーと問題文のスタイル */
     .status-bar {
-        font-size: 1.1rem;
-        margin-bottom: 20px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
         color: #555;
     }
+    .question-title {
+        font-size: 1.6rem;
+        font-weight: normal;
+        margin-bottom: 25px;
+        margin-top: 0;
+    }
+
     .problem-container {
         display: flex;
         flex-direction: column;
@@ -40,21 +45,19 @@
     .problem-main {
         display: flex;
         align-items: center;
-        justify-content: center;
         width: 100%;
     }
     .fraction-display {
         display: flex;
         align-items: center;
-        margin-right: 50px;
-        width: 80px;
-        justify-content: center;
+        margin-right: 30px;
+        width: 100px;
     }
     .fraction {
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        font-size: 2.2rem;
+        font-size: 1.8rem;
         line-height: 1.2;
     }
     .numerator {
@@ -64,32 +67,36 @@
     .denominator {
         padding: 0 10px;
     }
-    .circle-area {
+    .unit {
+        font-size: 1.4rem;
+        margin-left: 10px;
+    }
+    .bar-area {
+        flex-grow: 1;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
     }
-    .svg-container {
-        width: 200px;
-        height: 200px;
+    .label-1m {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+        color: blue; 
+        width: 100%;
     }
-    .segment {
-        fill: #ffffff;
-        stroke: #000000;
-        stroke-width: 2px;
-        cursor: pointer;
-        transition: fill 0.2s ease;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .segment.filled {
-        fill: #a0c4ff;
+    .label-1m::before, .label-1m::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid blue; 
+        margin: 0 15px;
     }
     
     .controls-area {
         display: flex;
         align-items: center;
-        margin-top: 30px;
+        margin-top: 20px;
         padding-left: 130px;
     }
     .div-btn {
@@ -141,21 +148,35 @@
         cursor: not-allowed;
     }
     
-    .result-display {
-        font-size: 8rem;
-        color: red;
+    /* オーバーレイのスタイルを背景なし・黒縁取りのテキストへ調整 */
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent;
+        color: #ff3333; /* 正解は赤色 */
+        font-size: 6rem;
         font-weight: bold;
-        text-align: center;
-        width: 100%;
-        margin-top: 15px;
-        min-height: 120px; 
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        padding: 30px 60px;
+        -webkit-text-stroke: 3px #000;
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
         white-space: nowrap;
     }
+    .judge-overlay.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1.0);
+    }
+    .judge-overlay.incorrect {
+        color: #3366ff; /* 不正解（おしい！）は青色 */
+    }
     
-    /* 最終結果表示用のスタイル */
     .clear-message {
         text-align: center;
         margin-top: 20px;
@@ -203,11 +224,10 @@
         background-color: #7f8c8d;
     }
     
-    /* 上部に戻るボタン用 */
     .top-nav {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: -10px;
+        margin-bottom: 10px;
     }
     .back-btn {
         padding: 8px 15px;
@@ -219,6 +239,24 @@
         font-size: 0.9rem;
         touch-action: manipulation;
     }
+    
+    /* 円形ピザカット用のスタイル */
+    .segment {
+        fill: #ffffff;
+        stroke: #000000;
+        stroke-width: 1.5;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: fill 0.2s ease;
+    }
+    .segment.filled {
+        fill: #a0c4ff;
+    }
+    .center-circle {
+        fill: none;
+        stroke: #000000;
+        stroke-width: 1.5;
+    }
 </style>
 </head>
 <body>
@@ -226,16 +264,21 @@
     <div class="top-nav">
         <a href="index.html" class="back-btn">メニューへ戻る</a>
     </div>
-    <h1>・ 次の分数の分だけ色をぬりましょう。</h1>
+    
+    <div id="status-bar" class="status-bar"></div>
+    <h1 class="question-title">・ 次の分数の大きさだけ色をぬりましょう。</h1>
+    
     <div id="app"></div>
+
+    <div id="judge-overlay" class="judge-overlay"></div>
 
     <script>
         // ランダムな真分数を10問生成します
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 9) + 2; // 分母は2から10
-            const num = Math.floor(Math.random() * (den - 1)) + 1; // 分子は1から分母-1の真分数
+            const den = Math.floor(Math.random() * 9) + 2; 
+            const num = Math.floor(Math.random() * (den - 1)) + 1; 
             const fracKey = `${num}/${den}`;
             if (!seen.has(fracKey)) {
                 seen.add(fracKey);
@@ -250,21 +293,31 @@
             }
         }
 
-        // 初期状態のセットアップ
         shuffleArray(problems);
         let currentIndex = 0;
         let mistakeCount = 0; 
         const appContainer = document.getElementById('app');
+        
+        let problemStartTime = new Date();
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
 
         function renderProblem() {
             appContainer.innerHTML = '';
+            
+            problemStartTime = new Date();
 
-            // 全問終了時の結果表示処理
             if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.querySelector('.question-title').style.display = 'none';
+                
                 const clearMsg = document.createElement('div');
                 clearMsg.className = 'clear-message';
                 
-                // 最終結果をHTMLで構築
                 let htmlContent = `<h2>全10問クリアしました！</h2>`;
                 htmlContent += `<div class="final-result-details">`;
                 htmlContent += `<div>正解した問題： <strong>10</strong> 問</div>`;
@@ -275,8 +328,6 @@
                 }
                 
                 htmlContent += `</div>`;
-                
-                // やり直すボタンとメニューへ戻るボタン
                 htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
                 htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
                 
@@ -284,14 +335,13 @@
                 appContainer.appendChild(clearMsg);
                 return;
             }
+            
+            document.getElementById('status-bar').style.display = 'block';
+            document.querySelector('.question-title').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
             const prob = problems[currentIndex];
             let currentDivisions = 1;
-
-            const statusBar = document.createElement('div');
-            statusBar.className = 'status-bar';
-            statusBar.textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
-            appContainer.appendChild(statusBar);
 
             const container = document.createElement('div');
             container.className = 'problem-container';
@@ -315,67 +365,84 @@
 
             fraction.appendChild(numEl);
             fraction.appendChild(denEl);
+
+            const unitEl = document.createElement('div');
+            unitEl.className = 'unit';
+            unitEl.textContent = ''; 
+
             fracDisplay.appendChild(fraction);
+            fracDisplay.appendChild(unitEl);
             mainArea.appendChild(fracDisplay);
 
-            const circleArea = document.createElement('div');
-            circleArea.className = 'circle-area';
+            const barArea = document.createElement('div');
+            barArea.className = 'bar-area';
 
-            const svgContainer = document.createElement('div');
-            svgContainer.className = 'svg-container';
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "200");
+            svg.setAttribute("height", "200");
+            svg.setAttribute("viewBox", "0 0 200 200");
             
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('width', '100%');
-            svg.setAttribute('height', '100%');
-            svg.setAttribute('viewBox', '0 0 200 200');
-
-            function updateCircle() {
-                svg.innerHTML = '';
-                for (let i = 0; i < currentDivisions; i++) {
-                    let segment;
-                    if (currentDivisions === 1) {
-                        segment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                        segment.setAttribute('cx', '100');
-                        segment.setAttribute('cy', '100');
-                        segment.setAttribute('r', '90');
-                        segment.setAttribute('class', 'segment');
-                    } else {
-                        const startAngle = (i / currentDivisions) * Math.PI * 2 - Math.PI / 2;
-                        const endAngle = ((i + 1) / currentDivisions) * Math.PI * 2 - Math.PI / 2;
-
-                        const x1 = 100 + 90 * Math.cos(startAngle);
-                        const y1 = 100 + 90 * Math.sin(startAngle);
-                        const x2 = 100 + 90 * Math.cos(endAngle);
-                        const y2 = 100 + 90 * Math.sin(endAngle);
-
-                        const largeArcFlag = (1 / currentDivisions) > 0.5 ? 0 : 1;
-                        const arcFlag = (currentDivisions === 2) ? 0 : ((1 / currentDivisions) < 0.5 ? 0 : 1);
-
-                        const d = [
-                            'M', 100, 100,
-                            'L', x1, y1,
-                            'A', 90, 90, 0, arcFlag, 1, x2, y2,
-                            'Z'
-                        ].join(' ');
-
-                        segment = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        segment.setAttribute('d', d);
-                        segment.setAttribute('class', 'segment');
-                    }
-                    
-                    segment.addEventListener('click', function() {
+            function updateBar() {
+                while (svg.firstChild) {
+                    svg.removeChild(svg.firstChild);
+                }
+                
+                const centerX = 100;
+                const centerY = 100;
+                const radius = 90;
+                
+                if (currentDivisions === 1) {
+                    const circle = document.createElementNS(svgNS, "circle");
+                    circle.setAttribute("cx", centerX);
+                    circle.setAttribute("cy", centerY);
+                    circle.setAttribute("r", radius);
+                    circle.className.baseVal = "segment";
+                    circle.addEventListener('click', function() {
                         this.classList.toggle('filled');
                     });
-                    
-                    svg.appendChild(segment);
+                    svg.appendChild(circle);
+                } else {
+                    for (let i = 0; i < currentDivisions; i++) {
+                        const startAngle = (i * 360 / currentDivisions) - 90;
+                        const endAngle = ((i + 1) * 360 / currentDivisions) - 90;
+                        
+                        const radStart = startAngle * Math.PI / 180;
+                        const radEnd = endAngle * Math.PI / 180;
+                        
+                        const x1 = centerX + radius * Math.cos(radStart);
+                        const y1 = centerY + radius * Math.sin(radStart);
+                        const x2 = centerX + radius * Math.cos(radEnd);
+                        const y2 = centerY + radius * Math.sin(radEnd);
+                        
+                        const largeArcFlag = (360 / currentDivisions) > 180 ? 1 : 0;
+                        
+                        const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                        
+                        const path = document.createElementNS(svgNS, "path");
+                        path.setAttribute("d", pathData);
+                        path.className.baseVal = "segment";
+                        
+                        path.addEventListener('click', function() {
+                            this.classList.toggle('filled');
+                        });
+                        
+                        svg.appendChild(path);
+                    }
                 }
+                
+                const borderCircle = document.createElementNS(svgNS, "circle");
+                borderCircle.setAttribute("cx", centerX);
+                borderCircle.setAttribute("cy", centerY);
+                borderCircle.setAttribute("r", radius);
+                borderCircle.className.baseVal = "center-circle";
+                svg.appendChild(borderCircle);
             }
             
-            updateCircle();
+            updateBar();
 
-            svgContainer.appendChild(svg);
-            circleArea.appendChild(svgContainer);
-            mainArea.appendChild(circleArea);
+            barArea.appendChild(svg);
+            mainArea.appendChild(barArea);
             container.appendChild(mainArea);
 
             const controlsArea = document.createElement('div');
@@ -397,7 +464,7 @@
                 if (currentDivisions > 1) {
                     currentDivisions--;
                     divLabel.textContent = `（${currentDivisions} 分割）`;
-                    updateCircle(); 
+                    updateBar(); 
                 }
             });
 
@@ -405,7 +472,7 @@
                 if (currentDivisions < 20) { 
                     currentDivisions++;
                     divLabel.textContent = `（${currentDivisions} 分割）`;
-                    updateCircle(); 
+                    updateBar(); 
                 }
             });
 
@@ -413,29 +480,54 @@
             checkBtn.className = 'check-btn';
             checkBtn.textContent = 'できた';
 
-            const resultDisplay = document.createElement('div');
-            resultDisplay.className = 'result-display';
-
             checkBtn.addEventListener('click', () => {
                 const filledCount = svg.querySelectorAll('.segment.filled').length;
                 
                 const isCorrect = filledCount > 0 && 
                                   Math.abs((filledCount / currentDivisions) - (prob.num / prob.den)) < 0.0001;
 
+                const endTime = new Date();
+                const problemType = "分数の色塗り（円）";
+                const problemContent = `${prob.num}/${prob.den}`;
+                const userAnswer = `${currentDivisions}分割で${filledCount}つ塗り`;
+                const inputMethod = "タップ";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
+                const overlay = document.getElementById('judge-overlay');
+
                 if (isCorrect) {
-                    resultDisplay.textContent = '正解！';
+                    overlay.textContent = '正解！';
+                    overlay.className = 'judge-overlay show';
                     
                     minusBtn.disabled = true;
                     plusBtn.disabled = true;
                     checkBtn.disabled = true;
                     
                     setTimeout(() => {
+                        overlay.classList.remove('show');
+                    }, 1200);
+                    
+                    setTimeout(() => {
                         currentIndex++;
                         renderProblem();
                     }, 1500);
                 } else {
-                    resultDisplay.textContent = 'おしい！';
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++; 
+                    
+                    setTimeout(() => {
+                        overlay.classList.remove('show');
+                    }, 1200);
                 }
             });
 
@@ -445,7 +537,6 @@
             controlsArea.appendChild(checkBtn);
             
             container.appendChild(controlsArea);
-            container.appendChild(resultDisplay);
             
             appContainer.appendChild(container);
         }

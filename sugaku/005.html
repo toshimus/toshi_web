@@ -315,8 +315,21 @@
         let mistakeCount = 0;
         const appContainer = document.getElementById('app');
 
+        // 💡時間の計測用変数を追加
+        let problemStartTime = new Date();
+
+        // 💡時刻を hh:mm:ss 形式に変換する補助関数
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
         function renderProblem() {
             appContainer.innerHTML = '';
+
+            // 💡問題が表示された瞬間の時間を記録
+            problemStartTime = new Date();
 
             if (currentIndex >= problems.length) {
                 const clearMsg = document.createElement('div');
@@ -529,6 +542,26 @@
 
                 const isCorrect1 = (filledCount === prob.num);
                 const isCorrect2 = (userNum === prob.num) && (userDen === prob.den);
+                const isTotalCorrect = isCorrect1 && isCorrect2;
+
+                // 💡CSVへ記録するデータの生成処理
+                const endTime = new Date();
+                const problemType = "分数の色塗りと読み取り";
+                const problemContent = `${prob.num}/${prob.den}L`;
+                const userAnswer = `色塗り${filledCount}箇所, ${userNum}/${userDen}L`;
+                const inputMethod = "複合（タップ＆ドラッグ）";
+                const resultStr = isTotalCorrect ? "正解" : "不正解";
+                
+                // アプリ側のCSVと同じ並び順の1行の文字列を作成します
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                // Swift側へ完成したCSVの文字列を送信します
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
 
                 if (isCorrect1 && isCorrect2) {
                     resultDisplay.textContent = '正解！';

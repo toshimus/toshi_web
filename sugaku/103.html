@@ -83,7 +83,7 @@
         width: 100%;
         display: flex;
         flex-direction: column;
-        gap: 6px; /* 緑と赤の矢印の隙間を少し広げました */
+        gap: 6px; 
         justify-content: center;
     }
     
@@ -469,9 +469,22 @@
 
         const appContainer = document.getElementById('app');
 
+        // 💡時間の計測用変数を追加
+        let problemStartTime = new Date();
+
+        // 💡時刻を hh:mm:ss 形式に変換する補助関数
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
         function renderProblem() {
             appContainer.innerHTML = '';
             currentM = 1; 
+            
+            // 💡問題が表示された瞬間の時間を記録
+            problemStartTime = new Date();
 
             if (currentIndex >= problems.length) {
                 const clearMsg = document.createElement('div');
@@ -849,6 +862,36 @@
                 
                 const lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
                 
+                // 💡CSVへ記録するデータの生成処理
+                const uNum1 = parseInt(document.getElementById('ans-num-1').textContent, 10);
+                const uDen1 = parseInt(document.getElementById('ans-den-1').textContent, 10);
+                const uSumN1 = parseInt(document.getElementById('ans-sum-num-1').textContent, 10);
+                const uSumN2 = parseInt(document.getElementById('ans-sum-num-2').textContent, 10);
+                const uSumD = parseInt(document.getElementById('ans-sum-den').textContent, 10);
+
+                const endTime = new Date();
+                const problemType = "分母の違うたし算（通分）";
+                const problemContent = `${prob.n1}/${prob.d1} + ${prob.n2}/${prob.d2}`;
+                
+                // 入力内容をまとめる
+                const ans1 = isNaN(uNum1) ? '?' : uNum1;
+                const ans2 = isNaN(uDen1) ? '?' : uDen1;
+                const userAnswer = `通分:${currentM}倍, 途中:${ans1}/${ans2}, 最終:${uFinalN}/${uFinalD}`;
+                
+                const inputMethod = "複合（タップ＆ドラッグ）";
+                const resultStr = lastCorrect ? "正解" : "不正解";
+                
+                // アプリ側のCSVと同じ並び順の1行の文字列を作成します
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                // Swift側へ完成したCSVの文字列を送信します
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
                 if (!lastCorrect) {
                     resultDisplay.textContent = 'おしい！';
                     resultDisplay.style.color = 'red';
@@ -856,12 +899,6 @@
                     mistakeCount++;
                     return;
                 }
-
-                const uNum1 = parseInt(document.getElementById('ans-num-1').textContent, 10);
-                const uDen1 = parseInt(document.getElementById('ans-den-1').textContent, 10);
-                const uSumN1 = parseInt(document.getElementById('ans-sum-num-1').textContent, 10);
-                const uSumN2 = parseInt(document.getElementById('ans-sum-num-2').textContent, 10);
-                const uSumD = parseInt(document.getElementById('ans-sum-den').textContent, 10);
 
                 const correctNum1 = prob.n1 * prob.M_target;
                 const correctDen1 = prob.d2;

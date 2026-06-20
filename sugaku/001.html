@@ -20,16 +20,21 @@
         touch-action: none;
         box-sizing: border-box;
     }
-    h1 {
-        font-size: 1.2rem;
-        font-weight: normal;
-        margin-bottom: 15px;
-    }
+    
+    /* 上部ステータスバーと問題文のスタイル */
     .status-bar {
-        font-size: 1.1rem;
-        margin-bottom: 20px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
         color: #555;
     }
+    .question-title {
+        font-size: 1.6rem;
+        font-weight: normal;
+        margin-bottom: 25px;
+        margin-top: 0;
+    }
+
     .problem-container {
         display: flex;
         flex-direction: column;
@@ -162,21 +167,37 @@
         cursor: not-allowed;
     }
     
-    .result-display {
-        font-size: 8rem;
-        color: red;
+    /* 💡変更：オーバーレイのスタイルを背景なし・黒縁取りのテキストへ調整 */
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent; /* 背景色なし */
+        color: #ff3333; /* デフォルト（正解）は赤色 */
+        font-size: 6rem;
         font-weight: bold;
-        text-align: center;
-        width: 100%;
-        margin-top: 15px;
-        min-height: 120px; 
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        padding: 30px 60px;
+        /* 文字に黒い縁取りをつける */
+        -webkit-text-stroke: 3px #000;
+        /* 縁取りだけでは弱い場合の補強としてドロップシャドウを付与 */
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
         white-space: nowrap;
     }
+    .judge-overlay.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1.0);
+    }
+    .judge-overlay.incorrect {
+        color: #3366ff; /* 不正解（おしい！）は青色 */
+    }
     
-    /* 最終結果表示用のスタイル */
     .clear-message {
         text-align: center;
         margin-top: 20px;
@@ -224,11 +245,10 @@
         background-color: #7f8c8d;
     }
     
-    /* 上部に戻るボタン用 */
     .top-nav {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: -10px;
+        margin-bottom: 10px;
     }
     .back-btn {
         padding: 8px 15px;
@@ -247,16 +267,20 @@
     <div class="top-nav">
         <a href="index.html" class="back-btn">メニューへ戻る</a>
     </div>
-    <h1>・ 次の長さの分だけ色をぬりましょう。</h1>
+    
+    <div id="status-bar" class="status-bar"></div>
+    <h1 class="question-title">・ 次の長さの分だけ色をぬりましょう。</h1>
+    
     <div id="app"></div>
+    
+    <div id="judge-overlay" class="judge-overlay"></div>
 
     <script>
-        // ランダムな真分数を10問生成します
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 9) + 2; // 分母は2から10
-            const num = Math.floor(Math.random() * (den - 1)) + 1; // 分子は1から分母-1の真分数
+            const den = Math.floor(Math.random() * 9) + 2; 
+            const num = Math.floor(Math.random() * (den - 1)) + 1; 
             const fracKey = `${num}/${den}`;
             if (!seen.has(fracKey)) {
                 seen.add(fracKey);
@@ -271,21 +295,34 @@
             }
         }
 
-        // 初期状態のセットアップ
         shuffleArray(problems);
         let currentIndex = 0;
         let mistakeCount = 0; 
         const appContainer = document.getElementById('app');
+        
+        // 💡時間の計測用変数を追加
+        let problemStartTime = new Date();
+
+        // 💡時刻を hh:mm:ss 形式に変換する補助関数
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
 
         function renderProblem() {
             appContainer.innerHTML = '';
+            
+            problemStartTime = new Date();
 
-            // 全問終了時の結果表示処理
             if (currentIndex >= problems.length) {
+                // 全問終了時は、上の問題文などを隠してスッキリさせます
+                document.getElementById('status-bar').style.display = 'none';
+                document.querySelector('.question-title').style.display = 'none';
+                
                 const clearMsg = document.createElement('div');
                 clearMsg.className = 'clear-message';
                 
-                // 最終結果をHTMLで構築します
                 let htmlContent = `<h2>全10問クリアしました！</h2>`;
                 htmlContent += `<div class="final-result-details">`;
                 htmlContent += `<div>正解した問題： <strong>10</strong> 問</div>`;
@@ -296,8 +333,6 @@
                 }
                 
                 htmlContent += `</div>`;
-                
-                // やり直すボタンとメニューへ戻るボタン
                 htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
                 htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
                 
@@ -305,14 +340,14 @@
                 appContainer.appendChild(clearMsg);
                 return;
             }
+            
+            // ステータスバーのテキストを更新
+            document.getElementById('status-bar').style.display = 'block';
+            document.querySelector('.question-title').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
             const prob = problems[currentIndex];
             let currentDivisions = 1;
-
-            const statusBar = document.createElement('div');
-            statusBar.className = 'status-bar';
-            statusBar.textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
-            appContainer.appendChild(statusBar);
 
             const container = document.createElement('div');
             container.className = 'problem-container';
@@ -411,29 +446,54 @@
             checkBtn.className = 'check-btn';
             checkBtn.textContent = 'できた';
 
-            const resultDisplay = document.createElement('div');
-            resultDisplay.className = 'result-display';
-
             checkBtn.addEventListener('click', () => {
                 const filledCount = bar.querySelectorAll('.segment.filled').length;
+                const isCorrect = filledCount > 0 && Math.abs((filledCount / currentDivisions) - (prob.num / prob.den)) < 0.0001;
                 
-                const isCorrect = filledCount > 0 && 
-                                  Math.abs((filledCount / currentDivisions) - (prob.num / prob.den)) < 0.0001;
+                const endTime = new Date();
+                const problemType = "分数の色塗り";
+                const problemContent = `${prob.num}/${prob.den}m`;
+                const userAnswer = `${currentDivisions}分割で${filledCount}つ塗り`;
+                const inputMethod = "タップ";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
+                const overlay = document.getElementById('judge-overlay');
 
                 if (isCorrect) {
-                    resultDisplay.textContent = '正解！';
+                    overlay.textContent = '正解！';
+                    overlay.className = 'judge-overlay show';
                     
                     minusBtn.disabled = true;
                     plusBtn.disabled = true;
                     checkBtn.disabled = true;
+                    
+                    // 1.2秒後に消え始める
+                    setTimeout(() => {
+                        overlay.classList.remove('show');
+                    }, 1200);<a href="002.html" title="002"></a>
                     
                     setTimeout(() => {
                         currentIndex++;
                         renderProblem();
                     }, 1500);
                 } else {
-                    resultDisplay.textContent = 'おしい！';
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++; 
+                    
+                    // 1.2秒後に消え始める
+                    setTimeout(() => {
+                        overlay.classList.remove('show');
+                    }, 1200);
                 }
             });
 
@@ -443,7 +503,6 @@
             controlsArea.appendChild(checkBtn);
             
             container.appendChild(controlsArea);
-            container.appendChild(resultDisplay);
             
             appContainer.appendChild(container);
         }
