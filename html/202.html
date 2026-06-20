@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>分数教材</title>
+<style>
+    html, body { height: 100%; overflow: auto; width: 100%; }
+    body { font-family: sans-serif; margin: 0; padding: 20px; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    .problem-main { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 800px; margin: 0 auto;}
+    
+    /* テキストブロック用 */
+    .question-text { font-size: 1.6rem; font-weight: bold; margin: 15px 0; width: 100%; text-align: left; }
+    
+    /* できたボタン用 */
+    .check-btn-container { margin-top: 20px; width: 100%; display: flex; justify-content: flex-end; }
+    .check-btn { padding: 15px 40px; font-size: 1.3rem; cursor: pointer; border: 1px solid #999; background-color: #f0f0f0; border-radius: 8px; font-weight: bold;}
+    .check-btn:active { background-color: #dcdcdc; }
+    
+    /* 図形用 */
+    .shape-area { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 20px 0; }
+    .shape-container { display: flex; width: 100%; height: 50px; border: 2px solid #000; box-sizing: border-box; }
+    .segment { flex: 1; border-right: 1px dotted #000; cursor: pointer; }
+    .segment.filled { background-color: #a0c4ff; fill: #a0c4ff; }
+    
+    .top-nav { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .toggle-group { display: flex; gap: 15px; }
+</style>
+</head>
+<body>
+    <div class="top-nav">
+        <div class="toggle-group">
+            <label><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
+            <label><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
+        </div>
+    </div>
+    <div id="app" class="problem-main"></div>
+    <script>
+        const mainArea = document.getElementById('app');
+        let currentDivisions = 5;
+        
+        // 以下、ジェネレーターから動的に注入されたブロック生成ロジック
+        // テキストブロック
+const textBlock_0 = document.createElement('div');
+textBlock_0.className = 'question-text';
+textBlock_0.innerText = '・ 次の長さの分だけ色をぬりましょう。';
+mainArea.appendChild(textBlock_0);
+// 図形ブロック
+const circleArea = document.createElement('div');
+circleArea.className = 'shape-area';
+circleArea.innerHTML = '<div style="width:200px; height:200px; border-radius:50%; border:2px solid black; background:#f0f8ff; display:flex; align-items:center; justify-content:center; font-weight:bold;">円形（プロトタイプ）</div>';
+mainArea.appendChild(circleArea);
+
+// できたボタンブロック
+const btnContainer_2 = document.createElement('div');
+btnContainer_2.className = 'check-btn-container';
+const checkBtn_2 = document.createElement('button');
+checkBtn_2.className = 'check-btn';
+checkBtn_2.textContent = 'できた';
+checkBtn_2.addEventListener('click', () => {
+    alert('できたボタンが押されました。\n（この判定ロジックはアプリ側のCSV出力機能と連動します）');
+});
+btnContainer_2.appendChild(checkBtn_2);
+mainArea.appendChild(btnContainer_2);
+// テキストブロック
+const textBlock_3 = document.createElement('div');
+textBlock_3.className = 'question-text';
+textBlock_3.innerText = '新しいテキスト';
+mainArea.appendChild(textBlock_3);
+
+        
+    </script>
+</body>
+</html>
