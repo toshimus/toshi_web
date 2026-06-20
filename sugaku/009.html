@@ -22,16 +22,20 @@
         user-select: none;
         -webkit-user-select: none;
     }
-    h1 {
-        font-size: 1.2rem;
-        font-weight: normal;
-        margin-bottom: 20px;
-    }
+    
     .status-bar {
-        font-size: 1.1rem;
-        margin-bottom: 30px;
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 10px;
         color: #555;
     }
+    .question-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-top: 5px;
+        margin-bottom: 20px;
+    }
+
     .problem-container {
         display: flex;
         flex-direction: column;
@@ -46,7 +50,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 40px;
+        margin-bottom: 20px;
         background-color: #f9f9f9;
         padding: 30px 50px;
         border-radius: 12px;
@@ -141,7 +145,7 @@
         font-size: 1.1rem;
         font-weight: bold;
         margin-top: 10px;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     }
     
     .check-btn-container {
@@ -149,7 +153,7 @@
         justify-content: flex-end;
         width: 100%;
         max-width: 800px;
-        margin-top: 20px;
+        margin-top: 10px;
     }
     .check-btn {
         padding: 15px 40px;
@@ -171,22 +175,34 @@
         cursor: not-allowed;
     }
     
-    .result-display {
-        font-size: 7rem;
-        color: red;
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent;
+        color: #ff3333;
+        font-size: 6rem;
         font-weight: bold;
-        text-align: center;
-        width: 100%;
-        margin-top: 10px;
-        min-height: 100px; 
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        white-space: nowrap;
+        padding: 30px 60px;
+        -webkit-text-stroke: 3px #000;
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
         pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
+        white-space: nowrap;
+    }
+    .judge-overlay.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1.0);
+    }
+    .judge-overlay.incorrect {
+        color: #3366ff;
     }
     
-    /* 最終結果表示用 */
     .clear-message {
         text-align: center;
         margin-top: 20px;
@@ -223,22 +239,33 @@
         color: #fff;
         margin-right: 15px;
     }
-    .retry-btn:active {
-        background-color: #8bb4f5;
-    }
     .menu-btn {
         background-color: #95a5a6;
         color: #fff;
     }
-    .menu-btn:active {
-        background-color: #7f8c8d;
-    }
     
-    /* 上部に戻るボタン */
     .top-nav {
         display: flex;
-        justify-content: flex-end;
-        margin-bottom: 5px;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .toggle-group {
+        display: flex;
+        gap: 15px;
+    }
+    .settings-toggle {
+        font-size: 1.1rem;
+        color: #555;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .settings-toggle input {
+        transform: scale(1.3);
+        margin-right: 8px;
+        cursor: pointer;
     }
     .back-btn {
         padding: 8px 15px;
@@ -255,13 +282,41 @@
 <body>
 
     <div class="top-nav">
+        <div class="toggle-group">
+            <label class="settings-toggle">
+                <input type="checkbox" id="speech-checkbox" checked>
+                スピーチON
+            </label>
+            <label class="settings-toggle">
+                <input type="checkbox" id="sound-checkbox" checked>
+                効果音ON
+            </label>
+        </div>
         <a href="index.html" class="back-btn">メニューへ戻る</a>
     </div>
-    <h1>・ 次の分数は、真分数、仮分数、帯分数のどれですか。</h1>
+    
+    <div id="status-bar" class="status-bar"></div>
+    <h1 class="question-title" id="question-title">・ 次の分数は、真分数、仮分数、帯分数のどれですか。</h1>
+    
     <div id="app"></div>
+    <div id="judge-overlay" class="judge-overlay"></div>
 
     <script>
-        // ランダムな分数を10問生成します
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
         const problemTypes = ['真分数', '仮分数', '帯分数'];
         const problems = [];
         
@@ -269,18 +324,18 @@
             const typeIdx = Math.floor(Math.random() * 3);
             let num, den, whole;
             
-            if (typeIdx === 0) { // 真分数
-                den = Math.floor(Math.random() * 8) + 2; // 分母 2〜9
-                num = Math.floor(Math.random() * (den - 1)) + 1; // 分子 1〜分母-1
+            if (typeIdx === 0) { 
+                den = Math.floor(Math.random() * 8) + 2; 
+                num = Math.floor(Math.random() * (den - 1)) + 1; 
                 whole = 0;
-            } else if (typeIdx === 1) { // 仮分数
-                den = Math.floor(Math.random() * 8) + 2; // 分母 2〜9
-                num = den + Math.floor(Math.random() * 5); // 分子 分母〜分母+4
+            } else if (typeIdx === 1) { 
+                den = Math.floor(Math.random() * 8) + 2; 
+                num = den + Math.floor(Math.random() * 5); 
                 whole = 0;
-            } else { // 帯分数
-                den = Math.floor(Math.random() * 8) + 2; // 分母 2〜9
-                num = Math.floor(Math.random() * (den - 1)) + 1; // 分子 1〜分母-1
-                whole = Math.floor(Math.random() * 4) + 1; // 整数部分 1〜4
+            } else { 
+                den = Math.floor(Math.random() * 8) + 2; 
+                num = Math.floor(Math.random() * (den - 1)) + 1; 
+                whole = Math.floor(Math.random() * 4) + 1; 
             }
             
             problems.push({ 
@@ -294,11 +349,9 @@
         let currentIndex = 0;
         let mistakeCount = 0;
         const appContainer = document.getElementById('app');
-
-        // 💡時間の計測用変数を追加
+        
         let problemStartTime = new Date();
 
-        // 💡時刻を hh:mm:ss 形式に変換する補助関数
         function formatTime(date) {
             return date.getHours().toString().padStart(2, '0') + ':' + 
                    date.getMinutes().toString().padStart(2, '0') + ':' + 
@@ -307,11 +360,12 @@
 
         function renderProblem() {
             appContainer.innerHTML = '';
-
-            // 💡問題が表示された瞬間の時間を記録
             problemStartTime = new Date();
 
             if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.getElementById('question-title').style.display = 'none';
+                
                 const clearMsg = document.createElement('div');
                 clearMsg.className = 'clear-message';
                 
@@ -329,16 +383,21 @@
                 
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
+                speak("ぜんもんくりあです。おつかれさまでした。");
                 return;
             }
 
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('question-title').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
+
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0;
+                qSound.play().catch(e => console.log("Auto-play blocked:", e));
+            }
+
             const prob = problems[currentIndex];
-
-            const statusBar = document.createElement('div');
-            statusBar.className = 'status-bar';
-            statusBar.textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
-            appContainer.appendChild(statusBar);
-
             const container = document.createElement('div');
             container.className = 'problem-container';
 
@@ -376,7 +435,10 @@
             const dropZone = document.createElement('div');
             dropZone.className = 'drop-zone';
             dropZone.id = 'ans-zone';
-            dropZone.addEventListener('click', () => { dropZone.textContent = ''; });
+            dropZone.addEventListener('click', () => { 
+                dropZone.textContent = ''; 
+                speak("くりあ");
+            });
             
             questionArea.appendChild(dropZone);
             container.appendChild(questionArea);
@@ -401,47 +463,32 @@
             
             container.appendChild(piecesContainer);
 
-            // 判定ボタンと結果表示
+            // 判定ボタン
             const checkBtnContainer = document.createElement('div');
             checkBtnContainer.className = 'check-btn-container';
             const checkBtn = document.createElement('button');
             checkBtn.className = 'check-btn';
             checkBtn.textContent = 'できた';
             checkBtnContainer.appendChild(checkBtn);
-            
             container.appendChild(checkBtnContainer);
-
-            const resultDisplay = document.createElement('div');
-            resultDisplay.className = 'result-display';
-            container.appendChild(resultDisplay);
 
             appContainer.appendChild(container);
 
             checkBtn.addEventListener('click', () => {
                 const userAnswer = document.getElementById('ans-zone').textContent;
-
-                if (!userAnswer) {
-                    return; // 未入力の場合は何もしない
-                }
+                if (!userAnswer) return; 
 
                 const isCorrect = (userAnswer === prob.typeName);
-
-                // 💡CSVへ記録するデータの生成処理
+                
                 const endTime = new Date();
                 const problemType = "分数の分類";
-                let problemContent = "";
-                if (prob.whole > 0) {
-                    problemContent = `${prob.whole} ${prob.num}/${prob.den}`;
-                } else {
-                    problemContent = `${prob.num}/${prob.den}`;
-                }
+                let fractionStr = prob.whole > 0 ? `${prob.whole}と${prob.num}/${prob.den}` : `${prob.num}/${prob.den}`;
+                const problemContent = fractionStr;
                 const inputMethod = "ドラッグ＆ドロップ";
                 const resultStr = isCorrect ? "正解" : "不正解";
                 
-                // アプリ側のCSVと同じ並び順の1行の文字列を作成します
                 const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
                 
-                // Swift側へ完成したCSVの文字列を送信します
                 if (window.webkit && window.webkit.messageHandlers.appBridge) {
                     window.webkit.messageHandlers.appBridge.postMessage({
                         action: "saveCSV",
@@ -449,24 +496,34 @@
                     });
                 }
 
+                const overlay = document.getElementById('judge-overlay');
+
                 if (isCorrect) {
-                    resultDisplay.textContent = '正解！';
+                    overlay.textContent = '正解！';
+                    overlay.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0;
+                        okSound.play();
+                    }
                     checkBtn.disabled = true;
                     
-                    setTimeout(() => {
-                        currentIndex++;
-                        renderProblem();
-                    }, 1500);
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                    setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
                 } else {
-                    resultDisplay.textContent = 'おしい！';
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++;
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0;
+                        ngSound.play();
+                    }
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
                 }
             });
         }
 
         renderProblem();
 
-        // --- ドラッグ＆ドロップのグローバル処理 ---
         let draggingPiece = null;
 
         function handleStart(e) {
@@ -492,14 +549,12 @@
                 clientX = e.clientX;
                 clientY = e.clientY;
             }
-            // 駒の幅(140px)/高さ(60px)の半分ずらす
             draggingPiece.style.left = (clientX - 70) + 'px';
             draggingPiece.style.top = (clientY - 30) + 'px';
         }
 
         function handleEnd(e) {
             if (!draggingPiece) return;
-            
             draggingPiece.style.display = 'none';
             let clientX, clientY;
             if (e.changedTouches && e.changedTouches.length > 0) {
@@ -514,8 +569,8 @@
             draggingPiece.style.display = 'flex';
             
             if (elem && elem.classList.contains('drop-zone')) {
-                // 今回は文字の置き換えのみ（追記ではない）
                 elem.textContent = draggingPiece.dataset.val;
+                speak(draggingPiece.dataset.val);
             }
             
             draggingPiece.remove();

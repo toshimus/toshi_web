@@ -22,16 +22,20 @@
         user-select: none;
         -webkit-user-select: none;
     }
-    h1 {
-        font-size: 1.2rem;
-        font-weight: normal;
-        margin-bottom: 20px;
-    }
+    
     .status-bar {
-        font-size: 1.1rem;
-        margin-bottom: 20px;
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 10px;
         color: #555;
     }
+    .question-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-top: 5px;
+        margin-bottom: 20px;
+    }
+
     .problem-container {
         display: flex;
         flex-direction: row;
@@ -175,22 +179,34 @@
         cursor: not-allowed;
     }
     
-    .result-display {
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent;
+        color: #ff3333;
         font-size: 6rem;
-        color: red;
         font-weight: bold;
-        text-align: center;
-        width: 100%;
-        margin-top: -10px;
-        min-height: 90px; 
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        white-space: nowrap;
+        padding: 30px 60px;
+        -webkit-text-stroke: 3px #000;
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
         pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
+        white-space: nowrap;
+    }
+    .judge-overlay.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1.0);
+    }
+    .judge-overlay.incorrect {
+        color: #3366ff;
     }
     
-    /* 最終結果表示用 */
     .clear-message {
         text-align: center;
         margin-top: 20px;
@@ -227,21 +243,33 @@
         color: #fff;
         margin-right: 15px;
     }
-    .retry-btn:active {
-        background-color: #8bb4f5;
-    }
     .menu-btn {
         background-color: #95a5a6;
         color: #fff;
     }
-    .menu-btn:active {
-        background-color: #7f8c8d;
-    }
     
     .top-nav {
         display: flex;
-        justify-content: flex-end;
-        margin-bottom: 5px;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .toggle-group {
+        display: flex;
+        gap: 15px;
+    }
+    .settings-toggle {
+        font-size: 1.1rem;
+        color: #555;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .settings-toggle input {
+        transform: scale(1.3);
+        margin-right: 8px;
+        cursor: pointer;
     }
     .back-btn {
         padding: 8px 15px;
@@ -258,20 +286,48 @@
 <body>
 
     <div class="top-nav">
+        <div class="toggle-group">
+            <label class="settings-toggle">
+                <input type="checkbox" id="speech-checkbox" checked>
+                スピーチON
+            </label>
+            <label class="settings-toggle">
+                <input type="checkbox" id="sound-checkbox" checked>
+                効果音ON
+            </label>
+        </div>
         <a href="index.html" class="back-btn">メニューへ戻る</a>
     </div>
-    <h1>・ 図を見て、□にあてはまる不等号（＞、＜）を書きましょう。</h1>
+    
+    <div id="status-bar" class="status-bar"></div>
+    <h1 class="question-title" id="question-title">・ 図を見て、□にあてはまる不等号（＞、＜）を書きましょう。</h1>
+    
     <div id="app"></div>
+    <div id="judge-overlay" class="judge-overlay"></div>
 
     <script>
-        // ランダムな分数の比較問題を10問生成（分子は同じ、分母が異なる）
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
         const problems = [];
         const seen = new Set();
         
         while (problems.length < 10) {
-            const num = Math.floor(Math.random() * 4) + 1; // 分子は 1〜4
-            const d1 = Math.floor(Math.random() * 6) + num + 1; // 分母1 は 分子より大きい
-            const d2 = Math.floor(Math.random() * 6) + num + 1; // 分母2 は 分子より大きい
+            const num = Math.floor(Math.random() * 4) + 1; 
+            const d1 = Math.floor(Math.random() * 6) + num + 1; 
+            const d2 = Math.floor(Math.random() * 6) + num + 1; 
             
             if (d1 !== d2) {
                 const key = `${num}/${d1}_${num}/${d2}`;
@@ -286,11 +342,9 @@
         let currentIndex = 0;
         let mistakeCount = 0;
         const appContainer = document.getElementById('app');
-
-        // 💡時間の計測用変数を追加
+        
         let problemStartTime = new Date();
 
-        // 💡時刻を hh:mm:ss 形式に変換する補助関数
         function formatTime(date) {
             return date.getHours().toString().padStart(2, '0') + ':' + 
                    date.getMinutes().toString().padStart(2, '0') + ':' + 
@@ -299,11 +353,12 @@
 
         function renderProblem() {
             appContainer.innerHTML = '';
-
-            // 💡問題が表示された瞬間の時間を記録
             problemStartTime = new Date();
 
             if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.getElementById('question-title').style.display = 'none';
+                
                 const clearMsg = document.createElement('div');
                 clearMsg.className = 'clear-message';
                 
@@ -321,15 +376,21 @@
                 
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
+                speak("ぜんもんくりあです。おつかれさまでした。");
                 return;
             }
 
-            const prob = problems[currentIndex];
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('question-title').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
-            const statusBar = document.createElement('div');
-            statusBar.className = 'status-bar';
-            statusBar.textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
-            appContainer.appendChild(statusBar);
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0;
+                qSound.play().catch(e => console.log("Auto-play blocked:", e));
+            }
+
+            const prob = problems[currentIndex];
 
             const container = document.createElement('div');
             container.className = 'problem-container';
@@ -338,20 +399,20 @@
             const equationArea = document.createElement('div');
             equationArea.className = 'equation-area';
 
-            // 分数1
             const frac1 = document.createElement('div');
             frac1.className = 'fraction';
             frac1.innerHTML = `<div class="numerator">${prob.n}</div><div class="denominator">${prob.d1}</div>`;
             equationArea.appendChild(frac1);
 
-            // ドロップゾーン
             const dropZone = document.createElement('div');
             dropZone.className = 'drop-zone';
             dropZone.id = 'ans-zone';
-            dropZone.addEventListener('click', () => { dropZone.textContent = ''; });
+            dropZone.addEventListener('click', () => { 
+                dropZone.textContent = ''; 
+                speak("くりあ");
+            });
             equationArea.appendChild(dropZone);
 
-            // 分数2
             const frac2 = document.createElement('div');
             frac2.className = 'fraction';
             frac2.innerHTML = `<div class="numerator">${prob.n}</div><div class="denominator">${prob.d2}</div>`;
@@ -374,7 +435,6 @@
             const barWidth = 320;
             const startX = 40;
             
-            // バー1 (上段) の描画
             const bar1Y = 20;
             const bar1Height = 40;
             const fillWidth1 = barWidth * (prob.n / prob.d1);
@@ -391,7 +451,6 @@
             outline1.setAttribute('fill', 'none'); outline1.setAttribute('stroke', '#000'); outline1.setAttribute('stroke-width', '2');
             svg.appendChild(outline1);
             
-            // バー1の分割線
             for(let i=1; i<prob.d1; i++){
                 const lineX = startX + barWidth * (i / prob.d1);
                 const line = document.createElementNS(svgNS, 'line');
@@ -402,7 +461,6 @@
                 svg.appendChild(line);
             }
 
-            // バー2 (中段) の描画
             const bar2Y = 80;
             const bar2Height = 40;
             const fillWidth2 = barWidth * (prob.n / prob.d2);
@@ -419,7 +477,6 @@
             outline2.setAttribute('fill', 'none'); outline2.setAttribute('stroke', '#000'); outline2.setAttribute('stroke-width', '2');
             svg.appendChild(outline2);
             
-            // バー2の分割線
             for(let i=1; i<prob.d2; i++){
                 const lineX = startX + barWidth * (i / prob.d2);
                 const line = document.createElementNS(svgNS, 'line');
@@ -430,7 +487,6 @@
                 svg.appendChild(line);
             }
 
-            // 数直線 (下段) の描画
             const lineY = 160;
             const numLine = document.createElementNS(svgNS, 'line');
             numLine.setAttribute('x1', startX.toString()); numLine.setAttribute('y1', lineY.toString());
@@ -438,7 +494,6 @@
             numLine.setAttribute('stroke', '#000'); numLine.setAttribute('stroke-width', '3');
             svg.appendChild(numLine);
             
-            // 0 と 1 のメモリ
             const tick0 = document.createElementNS(svgNS, 'line');
             tick0.setAttribute('x1', startX.toString()); tick0.setAttribute('y1', (lineY - 10).toString());
             tick0.setAttribute('x2', startX.toString()); tick0.setAttribute('y2', (lineY + 10).toString());
@@ -463,7 +518,6 @@
             text1.textContent = '1';
             svg.appendChild(text1);
 
-            // 値の場所を示す点線と分数ラベルを描画する関数
             const drawPointer = (valX, num, den, isTopBar) => {
                 const pointer = document.createElementNS(svgNS, 'line');
                 pointer.setAttribute('x1', valX.toString()); pointer.setAttribute('y1', isTopBar ? (bar1Y + bar1Height).toString() : (bar2Y + bar2Height).toString());
@@ -473,7 +527,6 @@
                 pointer.setAttribute('stroke-dasharray', '5,5');
                 svg.appendChild(pointer);
 
-                // 分数ラベル（数直線下）
                 const lblNum = document.createElementNS(svgNS, 'text');
                 lblNum.setAttribute('x', valX.toString()); lblNum.setAttribute('y', (lineY + 28).toString());
                 lblNum.setAttribute('text-anchor', 'middle'); lblNum.setAttribute('font-size', '16');
@@ -520,7 +573,7 @@
             });
             appContainer.appendChild(piecesContainer);
 
-            // 判定ボタンと結果表示
+            // 判定ボタン
             const checkBtnContainer = document.createElement('div');
             checkBtnContainer.className = 'check-btn-container';
             const checkBtn = document.createElement('button');
@@ -530,28 +583,20 @@
             
             appContainer.appendChild(checkBtnContainer);
 
-            const resultDisplay = document.createElement('div');
-            resultDisplay.className = 'result-display';
-            appContainer.appendChild(resultDisplay);
-
             checkBtn.addEventListener('click', () => {
                 const userAnswer = document.getElementById('ans-zone').textContent;
-
                 if (!userAnswer) return;
 
                 const isCorrect = (userAnswer === prob.sign);
-
-                // 💡CSVへ記録するデータの生成処理
+                
                 const endTime = new Date();
                 const problemType = "分数の大きさくらべ";
-                const problemContent = `${prob.n}/${prob.d1} _ ${prob.n}/${prob.d2}`;
+                const problemContent = `${prob.n}/${prob.d1} と ${prob.n}/${prob.d2}`;
                 const inputMethod = "ドラッグ＆ドロップ";
                 const resultStr = isCorrect ? "正解" : "不正解";
                 
-                // アプリ側のCSVと同じ並び順の1行の文字列を作成します
                 const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
                 
-                // Swift側へ完成したCSVの文字列を送信します
                 if (window.webkit && window.webkit.messageHandlers.appBridge) {
                     window.webkit.messageHandlers.appBridge.postMessage({
                         action: "saveCSV",
@@ -559,24 +604,34 @@
                     });
                 }
 
+                const overlay = document.getElementById('judge-overlay');
+
                 if (isCorrect) {
-                    resultDisplay.textContent = '正解！';
+                    overlay.textContent = '正解！';
+                    overlay.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0;
+                        okSound.play();
+                    }
                     checkBtn.disabled = true;
                     
-                    setTimeout(() => {
-                        currentIndex++;
-                        renderProblem();
-                    }, 1500);
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                    setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
                 } else {
-                    resultDisplay.textContent = 'おしい！';
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++;
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0;
+                        ngSound.play();
+                    }
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
                 }
             });
         }
 
         renderProblem();
 
-        // --- ドラッグ＆ドロップのグローバル処理 ---
         let draggingPiece = null;
 
         function handleStart(e) {
@@ -608,7 +663,6 @@
 
         function handleEnd(e) {
             if (!draggingPiece) return;
-            
             draggingPiece.style.display = 'none';
             let clientX, clientY;
             if (e.changedTouches && e.changedTouches.length > 0) {
@@ -624,6 +678,8 @@
             
             if (elem && elem.classList.contains('drop-zone')) {
                 elem.textContent = draggingPiece.dataset.val;
+                const signSpeech = draggingPiece.dataset.val === '＞' ? 'だいなり' : 'しょうなり';
+                speak(signSpeech);
             }
             
             draggingPiece.remove();
