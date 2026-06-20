@@ -167,7 +167,6 @@
         cursor: not-allowed;
     }
     
-    /* 💡変更：オーバーレイのスタイルを背景なし・黒縁取りのテキストへ調整 */
     .judge-overlay {
         position: fixed;
         top: 50%;
@@ -175,14 +174,12 @@
         transform: translate(-50%, -50%) scale(0.7);
         opacity: 0;
         visibility: hidden;
-        background-color: transparent; /* 背景色なし */
-        color: #ff3333; /* デフォルト（正解）は赤色 */
+        background-color: transparent;
+        color: #ff3333;
         font-size: 6rem;
         font-weight: bold;
         padding: 30px 60px;
-        /* 文字に黒い縁取りをつける */
         -webkit-text-stroke: 3px #000;
-        /* 縁取りだけでは弱い場合の補強としてドロップシャドウを付与 */
         text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
         z-index: 9999;
         pointer-events: none;
@@ -195,7 +192,7 @@
         transform: translate(-50%, -50%) scale(1.0);
     }
     .judge-overlay.incorrect {
-        color: #3366ff; /* 不正解（おしい！）は青色 */
+        color: #3366ff;
     }
     
     .clear-message {
@@ -300,10 +297,8 @@
         let mistakeCount = 0; 
         const appContainer = document.getElementById('app');
         
-        // 💡時間の計測用変数を追加
         let problemStartTime = new Date();
 
-        // 💡時刻を hh:mm:ss 形式に変換する補助関数
         function formatTime(date) {
             return date.getHours().toString().padStart(2, '0') + ':' + 
                    date.getMinutes().toString().padStart(2, '0') + ':' + 
@@ -316,7 +311,6 @@
             problemStartTime = new Date();
 
             if (currentIndex >= problems.length) {
-                // 全問終了時は、上の問題文などを隠してスッキリさせます
                 document.getElementById('status-bar').style.display = 'none';
                 document.querySelector('.question-title').style.display = 'none';
                 
@@ -341,7 +335,6 @@
                 return;
             }
             
-            // ステータスバーのテキストを更新
             document.getElementById('status-bar').style.display = 'block';
             document.querySelector('.question-title').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
@@ -476,10 +469,9 @@
                     plusBtn.disabled = true;
                     checkBtn.disabled = true;
                     
-                    // 1.2秒後に消え始める
                     setTimeout(() => {
                         overlay.classList.remove('show');
-                    }, 1200);<a href="002.html" title="002"></a>
+                    }, 1200);
                     
                     setTimeout(() => {
                         currentIndex++;
@@ -490,7 +482,6 @@
                     overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++; 
                     
-                    // 1.2秒後に消え始める
                     setTimeout(() => {
                         overlay.classList.remove('show');
                     }, 1200);
