@@ -13,7 +13,7 @@
     body {
         font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         margin: 0;
-        padding: 30px 10px;
+        padding: 15px 10px; /* 上下の余白を削減 */
         background-color: #f8f9fa;
         color: #333;
         display: flex;
@@ -23,9 +23,10 @@
         box-sizing: border-box;
     }
     h1 {
-        font-size: 2.2rem;
+        font-size: 2rem;
         font-weight: bold;
-        margin-bottom: 30px;
+        margin-top: 0;
+        margin-bottom: 15px; /* タイトル下の余白を大幅に削減 */
         color: #2c3e50;
     }
     
@@ -33,7 +34,7 @@
     .menu-wrapper {
         display: flex;
         flex-direction: row;
-        gap: 20px;
+        gap: 15px; /* 左右の列の間隔 */
         width: 95%;
         max-width: 1000px;
     }
@@ -42,19 +43,19 @@
     .menu-column {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 4px; /* 行間をほぼ無し（4px）まで詰める */
         flex: 1;
     }
     
     .menu-button {
         display: block;
-        padding: 15px;
-        font-size: 1.2rem;
+        padding: 10px; /* ボタン内部の上下の余白を削り、高さを圧縮 */
+        font-size: 1.1rem;
         font-weight: bold;
         text-align: center;
         text-decoration: none;
         color: #ffffff;
-        border-radius: 12px;
+        border-radius: 8px; /* 丸みを少しシャープに */
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         transition: background-color 0.2s ease, transform 0.1s;
         touch-action: manipulation;
@@ -114,7 +115,7 @@
         color: #7f8c8d;
         cursor: not-allowed;
         box-shadow: none;
-        pointer-events: none; /* タップ無効化 */
+        pointer-events: none;
         border: 2px dashed #95a5a6;
     }
     
