@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>1より大きい分数の数直線</title>
+<style>
+    /* ==========================================
+       全体レイアウト・基本表示の設定
+       ========================================== */
+    html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; }
+    body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; margin: 0; padding: 20px; background-color: #ffffff; color: #333; touch-action: none; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    
+    /* スタート画面のスタイル (106.htmlと同一のレイアウトに復元) */
+    .start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f0f8ff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; }
+    .start-screen h1 { font-size: 3rem; color: #2c3e50; margin-bottom: 40px; }
+    .start-btn { padding: 20px 60px; font-size: 2.5rem; font-weight: bold; color: #fff; background-color: #00bfff; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 8px 0 #008ecc; transition: transform 0.1s, box-shadow 0.1s; -webkit-tap-highlight-color: transparent; }
+    .start-btn:active { transform: translateY(8px); box-shadow: none; }
+
+    /* 上部の問題進行状況バー */
+    .status-bar { font-size: 1.4rem; font-weight: bold; margin-bottom: 10px; color: #555; }
+    /* 問題のタイトルテキスト */
+    .question-title { font-size: 2rem; font-weight: bold; margin-top: 5px; margin-bottom: 20px; }
+
+    /* アプリ全体のコンテンツを中央に収めるコンテナ */
+    .problem-container { display: flex; flex-direction: column; width: 100%; max-width: 800px; margin: 0 auto; }
+    
+    /* 数直線（SVG）を表示するエリア */
+    .svg-container { width: 100%; max-height: 180px; margin-bottom: 20px; }
+    
+    /* ==========================================
+       回答入力エリア（答え：□/□ m）のスタイル
+       ========================================== */
+    .answer-panel { display: flex; justify-content: center; align-items: center; background-color: #f9f9f9; padding: 15px 30px; border-radius: 12px; border: 1px solid #ddd; width: fit-content; margin-left: auto; margin-right: auto; }
+    /* 「答え：」のラベル部分 */
+    .answer-label { font-size: 1.5rem; font-weight: bold; margin-right: 20px; }
+    
+    /* 分数入力（分子・線・分母）の縦並びコンテナ */
+    .fraction-input { display: flex; flex-direction: column; align-items: center; }
+    
+    /* 数字をはめ込むドロップゾーン（□の枠） */
+    .drop-zone { width: 60px; height: 60px; border: 2px dashed #3498db; background-color: #f0f8ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 2.2rem; font-weight: bold; cursor: pointer; color: #333; }
+    /* 分数の横線 */
+    .fraction-line { width: 100%; height: 3px; background-color: #000; margin: 8px 0; }
+    /* 単位（m）の表示部分 */
+    .unit { font-size: 1.5rem; margin-left: 20px; }
+
+    /* 操作を説明するヒントテキスト */
+    .hint-text { text-align: center; color: #e74c3c; font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
+    
+    /* ==========================================
+       数字の駒（0〜9）と「できた！」ボタンのエリア
+       ========================================== */
+    .pieces-container { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 6px; margin-top: 15px; padding: 10px; background-color: #ecf0f1; border-radius: 12px; width: 100%; box-sizing: border-box; }
+    /* 数字の駒単体のスタイル */
+    .piece { flex: 1 1 0; max-width: 55px; height: 55px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: clamp(1.2rem, 4vw, 2rem); font-weight: bold; cursor: grab; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: none; box-sizing: border-box; }
+    /* 駒を押した（触った）ときのアニメーション */
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    /* ドラッグ中の浮き上がった駒のスタイル */
+    .piece.dragging { position: fixed; z-index: 1000; pointer-events: none; opacity: 0.9; box-shadow: 0 10px 15px rgba(0,0,0,0.3); transform: scale(1.1); }
+    
+    /* できた！ボタンのスタイル（106.html基準の立体デザイン） */
+    .check-btn { flex: 2 1 0; max-width: 120px; height: 55px; margin-left: 5px; padding: 0 5px; font-size: clamp(1rem, 3.5vw, 1.4rem); font-weight: bold; color: #ffffff; cursor: pointer; border: none; background-color: #00bfff; border-radius: 10px; font-family: inherit; outline: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; white-space: nowrap; box-shadow: 0 4px 0 #008ecc; box-sizing: border-box; }
+    /* できた！ボタンを押したときのアニメーション */
+    .check-btn:active { transform: translateY(4px); box-shadow: none; background-color: #00bfff; }
+    /* 無効化された（ボタンが押せない）ときのスタイル */
+    .check-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 0 4px 0 #008ecc; }
+    
+    /* ==========================================
+       正解・不正解のオーバーレイ（丸やバツの文字表示）
+       ========================================== */
+    .judge-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.7); opacity: 0; visibility: hidden; background-color: transparent; color: #ff3333; font-size: 6rem; font-weight: bold; padding: 30px 60px; -webkit-text-stroke: 3px #000; text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5); z-index: 9999; pointer-events: none; transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s; white-space: nowrap; }
+    /* オーバーレイを表示するときのクラス */
+    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
+    /* 不正解（おしい！）のときのスタイル変更 */
+    .judge-overlay.incorrect { color: #3366ff; }
+    
+    /* ==========================================
+       全問クリア（結果発表）画面のスタイル
+       ========================================== */
+    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
+    .clear-message h2 { font-size: 1.8rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .final-result-details { font-size: 1.3rem; color: #333; line-height: 1.8; }
+    /* もう一度挑戦・メニューへ戻るボタン共通 */
+    .menu-btn, .retry-btn { margin-top: 20px; padding: 12px 30px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 8px; outline: none; touch-action: manipulation; text-decoration: none; display: inline-block; }
+    .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
+    .menu-btn { background-color: #95a5a6; color: #fff; }
+    
+    /* ==========================================
+       最上部ナビゲーション設定バー（音声設定・戻る）
+       ========================================== */
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .toggle-group { display: flex; gap: 15px; }
+    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
+    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
+    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; touch-action: manipulation; }
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>1より大きい分数の数直線</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle">
+                    <input type="checkbox" id="speech-checkbox" checked>
+                    スピーチON
+                </label>
+                <label class="settings-toggle">
+                    <input type="checkbox" id="sound-checkbox" checked>
+                    効果音ON
+                </label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title" id="question-title">・ 矢印のめもりが表す長さは、何mですか。</h1>
+        
+        <div id="app"></div>
+        <div id="judge-overlay" class="judge-overlay"></div>
+    </div>
+
+    <script>
+        /* ==========================================
+           オーディオ（効果音）ファイルの読み込み設定
+           ========================================== */
+        const okSound = new Audio('ok.mp3');    /* 正解時の音 */
+        const ngSound = new Audio('ng.mp3');    /* 不正解時の音 */
+        const qSound = new Audio('q.mp3');      /* 出題時の音 */
+
+        /**
+         * Web Speech APIを使用した日本語の音声読み上げ関数
+         * @param {string} text - 読み上げる文字列
+         */
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; /* スピーチOFFなら処理を中断 */
+            window.speechSynthesis.cancel(); /* 現在再生中の音声を即時停止してキューをクリア */
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP'; /* 言語を日本語に設定 */
+            utterance.rate = 1.0;     /* 読み上げ速度 */
+            utterance.pitch = 1.0;    /* 声の高さ */
+            window.speechSynthesis.speak(utterance);
+        }
+
+        /* 数字をドロップした際に日本語で数字を読み上げるためのマッピング配列 */
+        const numberReadings = [
+            "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
+            "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
+        ];
+
+        /* ==========================================
+           問題データの自動作成ロジック（全10問）
+           ========================================== */
+        const problems = [];
+        while (problems.length < 10) {
+            const den = Math.floor(Math.random() * 9) + 2;          /* 分母：2から10までのランダムな整数 */
+            const val = Math.floor(Math.random() * (den - 1)) + den + 1; /* 分子：1より大きい分数（den + 1 から 2*den - 1 までの間） */
+            problems.push({ den: den, val: val });
+        }
+
+        let currentIndex = 0;   /* 現在何問目かを表すインデックスカウンタ */
+        let mistakeCount = 0;   /* 合計の間違い回数スコア */
+        const appContainer = document.getElementById('app');
+        
+        let problemStartTime = new Date(); /* 各問題の開始タイムスタンプ */
+
+        /**
+         * CSV配信用にお知らせする時間を「hh:mm:ss」の形式に整形する関数
+         * @param {Date} date - 日時オブジェクト
+         * @return {string} 整形された時間文字列
+         */
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        /**
+         * 問題画面またはクリア画面を画面上に生成（レンダリング）するメイン関数
+         */
+        function renderProblem() {
+            appContainer.innerHTML = ''; /* 表示エリアを一旦完全に初期化 */
+            problemStartTime = new Date(); /* この問題の開始時間を記録 */
+
+            /* --- 全問解き終わった場合のクリア画面処理 --- */
+            if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.getElementById('question-title').style.display = 'none';
+                
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全10問合格！！</h2>`; /* 106.htmlに表記を統一 */
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                speak("ぜんもんごうかくです。おつかれさまでした。");
+                return;
+            }
+
+            /* --- 通常の問題画面作成処理 --- */
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('question-title').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
+
+            /* 効果音の再生 */
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0;
+                qSound.play().catch(e => console.log("Auto-play blocked:", e));
+            }
+
+            const prob = problems[currentIndex]; /* 現在の問題データを取得 */
+
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+
+            // --- 数直線（SVG画像）をプログラムで動的に描画エリア ---
+            const svgContainer = document.createElement('div');
+            svgContainer.className = 'svg-container';
+            const svgNS = 'http://www.w3.org/2000/svg'; /* SVG専用の名前空間URL */
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.setAttribute('viewBox', '0 0 800 200'); /* 比率を保ったまま拡大縮小させる基準サイズ */
+            
+            /* 数直線のメイン横軸線 */
+            const mainLine = document.createElementNS(svgNS, 'line');
+            mainLine.setAttribute('x1', '50'); mainLine.setAttribute('y1', '80');
+            mainLine.setAttribute('x2', '750'); mainLine.setAttribute('y2', '80');
+            mainLine.setAttribute('stroke', '#000'); mainLine.setAttribute('stroke-width', '4');
+            svg.appendChild(mainLine);
+
+            /* 数直線上の「0」の数値テキスト */
+            const text0 = document.createElementNS(svgNS, 'text');
+            text0.setAttribute('x', '50'); text0.setAttribute('y', '50');
+            text0.setAttribute('text-anchor', 'middle'); text0.setAttribute('font-size', '24');
+            text0.textContent = '0';
+            svg.appendChild(text0);
+
+            /* 数直線上の「1」の数値テキスト（中央：x=400） */
+            const text1 = document.createElementNS(svgNS, 'text');
+            text1.setAttribute('x', '400'); text1.setAttribute('y', '50');
+            text1.setAttribute('text-anchor', 'middle'); text1.setAttribute('font-size', '24');
+            text1.textContent = '1';
+            svg.appendChild(text1);
+
+            /* 数直線上の「2」の数値テキスト（右端：x=750） */
+            const text2 = document.createElementNS(svgNS, 'text');
+            text2.setAttribute('x', '750'); text2.setAttribute('y', '50');
+            text2.setAttribute('text-anchor', 'middle'); text2.setAttribute('font-size', '24');
+            text2.textContent = '2';
+            svg.appendChild(text2);
+
+            /* 単位「(m)」のテキスト */
+            const textM = document.createElementNS(svgNS, 'text');
+            textM.setAttribute('x', '780'); textM.setAttribute('y', '50');
+            textM.setAttribute('text-anchor', 'start'); textM.setAttribute('font-size', '24');
+            textM.textContent = '(m)';
+            svg.appendChild(textM);
+
+            /* 分母の数に合わせて目盛り（縦線）を計算してループ描画 */
+            const intervalWidth = 350 / prob.den; /* 0〜1(幅350px)の間を分母の数で割った1目盛りあたりのピクセル幅 */
+            for(let i = 0; i <= prob.den * 2; i++) {
+                const xPos = 50 + intervalWidth * i;
+                const isMajor = (i % prob.den === 0); /* 0, 1, 2 にあたる大きな目盛りかどうか */
+                
+                const tick = document.createElementNS(svgNS, 'line');
+                tick.setAttribute('x1', xPos.toString()); 
+                tick.setAttribute('y1', isMajor ? '60' : '65');  /* 大目盛りは少し長めに設定 */
+                tick.setAttribute('x2', xPos.toString()); 
+                tick.setAttribute('y2', isMajor ? '100' : '95');
+                tick.setAttribute('stroke', '#000'); 
+                tick.setAttribute('stroke-width', isMajor ? '4' : '3');
+                svg.appendChild(tick);
+            }
+
+            /* 赤い下向き矢印（問題のターゲット位置）の描画 */
+            const arrowX = 50 + intervalWidth * prob.val;
+            const arrow = document.createElementNS(svgNS, 'path');
+            const pathStr = `M ${arrowX} 135 L ${arrowX} 105 L ${arrowX - 8} 115 M ${arrowX} 105 L ${arrowX + 8} 115`;
+            arrow.setAttribute('d', pathStr);
+            arrow.setAttribute('stroke', '#e74c3c'); 
+            arrow.setAttribute('stroke-width', '5');
+            arrow.setAttribute('fill', 'none');
+            svg.appendChild(arrow);
+
+            svgContainer.appendChild(svg);
+            container.appendChild(svgContainer);
+
+            // --- 回答入力エリア（分数入力部分）の生成 ---
+            const answerPanel = document.createElement('div');
+            answerPanel.className = 'answer-panel';
+
+            const label = document.createElement('div');
+            label.className = 'answer-label';
+            label.textContent = '答え：';
+
+            const fractionInput = document.createElement('div');
+            fractionInput.className = 'fraction-input';
+
+            /* 分子のドロップゾーン枠作成 */
+            const numZone = document.createElement('div');
+            numZone.className = 'drop-zone';
+            numZone.id = 'ans-num';
+            numZone.addEventListener('click', () => { 
+                numZone.textContent = ''; /* タップされたら枠内の数字を消去 */
+                speak("くりあ");
+            });
+
+            const fractionLine = document.createElement('div');
+            fractionLine.className = 'fraction-line';
+
+            /* 分母のドロップゾーン枠作成 */
+            const denZone = document.createElement('div');
+            denZone.className = 'drop-zone';
+            denZone.id = 'ans-den';
+            denZone.addEventListener('click', () => { 
+                denZone.textContent = ''; /* タップされたら枠内の数字を消去 */
+                speak("くりあ");
+            });
+
+            fractionInput.appendChild(numZone);
+            fractionInput.appendChild(fractionLine);
+            fractionInput.appendChild(denZone);
+
+            const unit = document.createElement('div');
+            unit.className = 'unit';
+            unit.textContent = 'm';
+
+            answerPanel.appendChild(label);
+            answerPanel.appendChild(fractionInput);
+            answerPanel.appendChild(unit);
+            container.appendChild(answerPanel);
+
+            // --- 0〜9の駒、およびできた！ボタンエリアの生成 ---
+            const hintText = document.createElement('div');
+            hintText.className = 'hint-text';
+            hintText.innerHTML = '駒（こま）をドラッグして□にはめよう！<br>※枠をタップすると数字を消せます';
+            container.appendChild(hintText);
+
+            const piecesContainer = document.createElement('div');
+            piecesContainer.className = 'pieces-container';
+            
+            /* 0から9までの数字の駒をループでHTML生成 */
+            for (let i = 0; i <= 9; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.dataset.val = i;
+                piece.textContent = i;
+                piecesContainer.appendChild(piece);
+            }
+
+            /* 「できた！」判定ボタンを同じ並びの右端に追加 */
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+            piecesContainer.appendChild(checkBtn);
+
+            container.appendChild(piecesContainer);
+            appContainer.appendChild(container);
+
+            /* ==========================================
+               「できた！」ボタンが押された時の正誤判定・Swiftデータ送信処理
+               ========================================== */
+            checkBtn.addEventListener('click', () => {
+                const userNum = parseInt(document.getElementById('ans-num').textContent, 10);
+                const userDen = parseInt(document.getElementById('ans-den').textContent, 10);
+
+                /* 分子・分母のどちらかが空欄（NaN）の場合は判定を行わない */
+                if (isNaN(userNum) || isNaN(userDen)) return; 
+
+                /* 入力値が、問題作成時の分子・分母と完全に一致しているかチェック（正誤判定） */
+                const isCorrect = (userNum === prob.val) && (userDen === prob.den);
+                
+                const endTime = new Date();
+                const problemType = "1より大きい分数の数直線";
+                const problemContent = `分母:${prob.den}, 値:${prob.val}`;
+                const userAnswer = `${userNum}/${userDen}`;
+                const inputMethod = "ドラッグ＆ドロップ";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                /* Swiftアプリ側へ渡すCSVフォーマットのテキスト行を作成 */
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                /* =============================================================
+                   【CRITICAL】Swift（iOSネイティブ側）のWKWebViewブリッジ処理
+                   window.webkitが存在する場合、ネイティブアプリにCSV行をポスト通知する
+                   ============================================================= */
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
+                const overlay = document.getElementById('judge-overlay');
+
+                if (isCorrect) {
+                    /* --- 正解（せいかい！）時のアニメーションと次の問題への遷移 --- */
+                    overlay.textContent = 'せいかい！';
+                    overlay.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0;
+                        okSound.play();
+                    }
+                    checkBtn.disabled = true; /* ボタンの連打を防止 */
+                    
+                    /* 正解アニメーション中に他の駒が触れないように操作を無効化 */
+                    document.querySelectorAll('.piece').forEach(b => b.style.pointerEvents = 'none');
+
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200); /* 1.2秒後に文字を消す */
+                    setTimeout(() => { currentIndex++; renderProblem(); }, 1500);  /* 1.5秒後に次の問題へ進む */
+                } else {
+                    /* --- 不正解（おしい！）時の処理 --- */
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
+                    mistakeCount++; /* ミス回数をカウントアップ */
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0;
+                        ngSound.play();
+                    }
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200); /* 1.2秒後に文字を消して再挑戦させる */
+                }
+            });
+        }
+
+        /* ==========================================
+           JavaScriptによるドラッグ＆ドロップ（手動エミュレート）処理
+           Touch（タブレット）とMouse（PC）の双方に対応
+           ========================================== */
+        let draggingPiece = null; /* ドラッグ中の仮の駒エレメントを保持する変数 */
+
+        /**
+         * ドラッグが開始された時（画面に指が触れた / マウスが押された）の処理
+         */
+        function handleStart(e) {
+            /* ターゲットが数字の駒クラス（piece）であり、かつ現在ドラッグ中でなければ開始 */
+            if (e.target.classList.contains('piece') && !e.target.classList.contains('dragging')) {
+                const val = e.target.dataset.val;
+                
+                /* 指の動きに追従させるための「クローン（見た目だけのダミー駒）」を動的に生成 */
+                draggingPiece = document.createElement('div');
+                draggingPiece.className = 'piece dragging';
+                draggingPiece.textContent = val;
+                draggingPiece.dataset.val = val;
+                document.body.appendChild(draggingPiece); /* 最前面に描画するためにbodyへ直接追加 */
+                movePiece(e);
+            }
+        }
+
+        /**
+         * ドラッグ中（指が動いている / マウスが動いている）に追従させる処理
+         */
+        function movePiece(e) {
+            if (!draggingPiece) return;
+            e.preventDefault(); /* iOS等でのスクロールやバウンス挙動を完全に防止 */
+            
+            let clientX, clientY;
+            /* タッチイベントかマウスイベントかによって座標取得を切り替え */
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            /* 駒サイズ(60px)の中心（半径30px）が、指の真下に位置するように座標オフセットを引いて配置 */
+            draggingPiece.style.left = (clientX - 30) + 'px';
+            draggingPiece.style.top = (clientY - 30) + 'px';
+        }
+
+        /**
+         * ドラッグが終了した時（指が離れた / マウスボタンが離された）の判定・挿入処理
+         */
+        function handleEnd(e) {
+            if (!draggingPiece) return;
+            
+            draggingPiece.style.display = 'none'; /* 指の離れた地点にある「下の要素」を検知するため一時非表示にする */
+            let clientX, clientY;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            /* 指が離れたその座標の真下にあるHTML要素（ドロップゾーンなど）をピンポイントで検知 */
+            let elem = document.elementFromPoint(clientX, clientY);
+            draggingPiece.style.display = 'flex'; /* 駒の表示を戻す */
+            
+            /* 検知した要素が点線枠（drop-zone）だった場合の数字結合処理 */
+            if (elem && elem.classList.contains('drop-zone')) {
+                let currentVal = elem.textContent;
+                let newVal = currentVal + draggingPiece.dataset.val; /* 文字列として既存の数字の右側に結合 */
+                
+                if (newVal.length <= 2) { /* 最大2桁（20まで）までの入力を許可 */
+                    elem.textContent = newVal;
+                    const parsedVal = parseInt(newVal, 10);
+                    /* 入力された数値を音声で読み上げ */
+                    if (parsedVal >= 0 && parsedVal <= 20) {
+                        speak(numberReadings[parsedVal]);
+                    } else {
+                        speak(newVal);
+                    }
+                }
+            }
+            
+            /* 使用し終わったドラッグ用クローン駒を画面・メモリから削除 */
+            draggingPiece.remove();
+            draggingPiece = null;
+        }
+
+        /* 各種タッチ・マウスイベントをドキュメント全体に登録（追従性を高めるため） */
+        document.addEventListener('touchstart', handleStart, {passive: false});
+        document.addEventListener('touchmove', movePiece, {passive: false});
+        document.addEventListener('touchend', handleEnd);
+        document.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', movePiece);
+        document.addEventListener('mouseup', handleEnd);
+
+        /* スタート画面からメイン画面へ移行させるためのスタートボタン用イベント */
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none'; /* スタート画面を隠す */
+            document.getElementById('main-content').style.display = 'block';  /* メインコンテンツを表示 */
+            renderProblem(); /* 最初の一問目を組み立ててスタート */
+        });
+
+    </script>
+</body>
+</html>
