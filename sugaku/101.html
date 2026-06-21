@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>分数のしくみ（ステップアップ）</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+    }
+    
+    /* スタート画面 */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
+    /* 上部ステータスバーと問題文 */
+    .status-bar {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .question-title-container {
+        display: flex;
+        align-items: center;
+        font-size: 1.6rem;
+        font-weight: normal;
+        margin-bottom: 25px;
+        margin-top: 0;
+        flex-wrap: wrap; 
+    }
+    
+    /* 教科書のような分数表示スタイル（問題文の中用） */
+    .inline-fraction {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        margin: 0 5px;
+        line-height: 1.1;
+    }
+    .inline-num {
+        border-bottom: 2px solid #333;
+        padding: 0 2px;
+        font-size: 1.4rem;
+    }
+    .inline-den {
+        padding: 0 2px;
+        font-size: 1.4rem;
+    }
+
+    .problem-container {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 20px;
+        width: 100%;
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .problem-main {
+        display: flex;
+        flex-direction: column; 
+        align-items: center;    
+        width: 100%;
+    }
+
+    /* テープ図と上部インジケーターの構築エリア */
+    .bar-area {
+        width: 100%;            
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 30px;
+    }
+    
+    /* 赤い寸法線インジケーター（長さ「1」）のスタイル */
+    .length-indicator-container {
+        position: relative;
+        width: 100%;
+        height: 40px; 
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center; 
+        justify-content: center; 
+    }
+    
+    /* 寸法線の細い横バー */
+    .red-bar-indicator {
+        position: absolute;
+        width: 100%;
+        height: 2px; 
+        background-color: red;
+        border-radius: 1px;
+        box-sizing: border-box;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    /* バーの両端の赤い縦線（擬似要素で表現） */
+    .red-bar-indicator::before,
+    .red-bar-indicator::after {
+        content: '';
+        position: absolute;
+        top: -8px; 
+        height: 18px; 
+        width: 2px;
+        background-color: red;
+    }
+    .red-bar-indicator::before {
+        left: 0;
+    }
+    .red-bar-indicator::after {
+        right: 0;
+    }
+
+    /* 中央の「1」ラベル */
+    .indicator-label-center {
+        position: relative;
+        z-index: 2; 
+        background-color: #ffffff; 
+        padding: 0 10px; 
+        color: red;
+        font-size: 1.8rem; 
+        font-weight: bold;
+        line-height: 1.0;
+        top: -1px; 
+    }
+
+    /* テープ図のバー本体 */
+    .bar {
+        display: flex;
+        width: 100%;
+        height: 60px;
+        border: 2px solid #000;
+        box-sizing: border-box;
+    }
+    .segment {
+        flex: 1;
+        border-right: 1px dotted #000;
+        box-sizing: border-box;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 0.2s ease;
+    }
+    .segment:last-child {
+        border-right: none;
+    }
+    .segment.filled {
+        background-color: #00bfff; 
+    }
+    
+    /* バーの中の分数表示用 */
+    .inner-fraction {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        font-size: 1.4rem;
+        font-weight: bold;
+    }
+    .inner-num {
+        border-bottom: 2px solid #000;
+        padding: 0 4px;
+        line-height: 1.1;
+    }
+    .inner-den {
+        padding: 0 4px;
+        line-height: 1.1;
+    }
+
+    /* 各入力UIエリア */
+    .controls-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    /* Step 3: 分数入力 */
+    .frac-input-area {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+    
+    /* Step 4: 個数入力 */
+    .count-input-area {
+        display: flex;
+        align-items: center;
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+
+    /* Step 5: 式エリア */
+    .eq-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+        font-size: 2.5rem;
+    }
+    .eq-fraction {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 2rem;
+        margin: 0 10px;
+    }
+
+    /* 共通の青枠入力ボックス */
+    .input-box {
+        border: 4px solid #00bfff;
+        background-color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 3rem;
+        cursor: pointer;
+        color: #333;
+        font-weight: bold;
+    }
+    .active-input {
+        background-color: #e6f7ff;
+    }
+
+    /* テンキー（Number Pad） */
+    .num-pad {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+    .num-btn {
+        width: 55px;
+        height: 55px;
+        font-size: 2rem;
+        background-color: #ffcc00;
+        border: 2px solid #000;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        box-shadow: 0 3px 0 #b38f00;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .num-btn:active {
+        transform: translateY(3px);
+        box-shadow: none;
+    }
+    
+    .instruction-red {
+        color: red;
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    /* できた！ボタン（右寄せ） */
+    .btn-container {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+    }
+    .check-btn {
+        padding: 15px 50px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        border: 2px solid #00bfff;
+        background-color: #00bfff;
+        color: #fff;
+        font-weight: bold;
+        border-radius: 8px;
+        outline: none;
+        box-shadow: 0 4px 0 #0088cc;
+    }
+    .check-btn:active {
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+
+    /* その他共通UI */
+    .div-btn {
+        width: 50px; height: 50px; font-size: 1.8rem;
+        cursor: pointer; border: 1px solid #999;
+        background-color: #fff; border-radius: 8px;
+        margin: 0 15px;
+    }
+    .judge-overlay {
+        position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0; visibility: hidden; color: #ff3333;
+        font-size: 6rem; font-weight: bold; padding: 30px 60px;
+        -webkit-text-stroke: 3px #000; text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999; pointer-events: none; transition: all 0.3s;
+    }
+    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
+    .judge-overlay.incorrect { color: #3366ff; }
+    
+    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
+    .clear-message h2 { font-size: 1.8rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .retry-btn, .menu-btn { padding: 12px 30px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 8px; color:#fff; text-decoration: none; display: inline-block; margin: 10px;}
+    .retry-btn { background-color: #a0c4ff; }
+    .menu-btn { background-color: #95a5a6; }
+    
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .toggle-group { display: flex; gap: 15px; }
+    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; }
+    .settings-toggle input { transform: scale(1.3); margin-right: 8px; }
+    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>分数のしくみ</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
+                <label class="settings-toggle"><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <div id="question-title" class="question-title-container"></div>
+        
+        <div id="app"></div>
+        <div id="judge-overlay" class="judge-overlay"></div>
+    </div>
+
+    <script>
+        // 音声・効果音ファイル
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        // 音声読み上げ（Web Speech API）
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        // 分母2〜8から重複なしで3つの分母をランダムに選ぶ
+        const availableDens = [2, 3, 4, 5, 6, 7, 8];
+        for (let i = availableDens.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableDens[i], availableDens[j]] = [availableDens[j], availableDens[i]];
+        }
+        const patterns = availableDens.slice(0, 3); // 全3パターン
+        
+        let currentPatternIndex = 0; // 0, 1, 2
+        let currentStep = 1;         // 1 ~ 5
+        let currentDivisions = 1;    // Step1用の状態保持
+        let mistakeCount = 0;        // 間違えた回数
+        
+        let problemStartTime;
+        const appContainer = document.getElementById('app');
+
+        function renderStep() {
+            appContainer.innerHTML = '';
+            problemStartTime = new Date();
+
+            // 全3パターン終了時の合格画面
+            if (currentPatternIndex >= patterns.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.getElementById('question-title').style.display = 'none';
+                
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                clearMsg.innerHTML = `
+                    <h2>全３パターン合格！！</h2>
+                    <div class="final-result-details">
+                        <div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>
+                        ${mistakeCount === 0 ? '<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい！</div>' : ''}
+                    </div>
+                    <button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>
+                    <a href="index.html" class="menu-btn">メニューへ戻る</a>
+                `;
+                appContainer.appendChild(clearMsg);
+                speak("ぜんもんごうかくです。おつかれさまでした。");
+                return;
+            }
+            
+            const D = patterns[currentPatternIndex]; // 現在の分母
+            
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentPatternIndex + 1} 問 / 全 3 問`;
+            const titleEl = document.getElementById('question-title');
+            titleEl.innerHTML = ''; // クリア
+
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+            const mainArea = document.createElement('div');
+            mainArea.className = 'problem-main';
+            
+            const barArea = document.createElement('div');
+            barArea.className = 'bar-area';
+            
+            // 赤い寸法線インジケーター（長さ「1」）を生成する部分
+            const indicatorContainer = document.createElement('div');
+            indicatorContainer.className = 'length-indicator-container';
+            indicatorContainer.innerHTML = `
+                <div class="red-bar-indicator"></div>
+                <div class="indicator-label-center">1</div>
+            `;
+            barArea.appendChild(indicatorContainer);
+
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            barArea.appendChild(bar);
+            mainArea.appendChild(barArea);
+
+            const controlsArea = document.createElement('div');
+            controlsArea.className = 'controls-area';
+            
+            let activeInputId = null; // 現在の入力対象（青枠ID）
+            
+            // --- 各ステップのロジック構築 ---
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            
+            // 問題文に教科書形式の分数を埋め込むヘルパー関数
+            const createInlineFraction = (num, den) => {
+                return `<div class="inline-fraction"><div class="inline-num">${num}</div><div class="inline-den">${den}</div></div>`;
+            };
+
+            if (currentStep === 1) {
+                // 問題音を再生
+                if (soundCheckbox && soundCheckbox.checked) {
+                    qSound.currentTime = 0; qSound.play().catch(e => {});
+                }
+                
+                titleEl.innerHTML = `<span>(1) □ の長さは1です。${D}等分してください。</span>`;
+                speak(`このばーのながさは、いちです。${D}とうぶんしてください。`);
+                
+                currentDivisions = 1;
+                const updateBar1 = () => {
+                    bar.innerHTML = '';
+                    for(let i=0; i<currentDivisions; i++){
+                        const seg = document.createElement('div');
+                        seg.className = 'segment';
+                        bar.appendChild(seg);
+                    }
+                };
+                updateBar1();
+                
+                const btnArea = document.createElement('div');
+                btnArea.style.display = 'flex'; btnArea.style.margin = '20px 0';
+                
+                const minusBtn = document.createElement('button');
+                minusBtn.className = 'div-btn'; minusBtn.textContent = 'ー';
+                minusBtn.onclick = () => { if(currentDivisions>1) { currentDivisions--; updateBar1(); speak(currentDivisions+"ぶんかつ"); } };
+                
+                const plusBtn = document.createElement('button');
+                plusBtn.className = 'div-btn'; plusBtn.textContent = '＋';
+                plusBtn.onclick = () => { if(currentDivisions<20) { currentDivisions++; updateBar1(); speak(currentDivisions+"ぶんかつ"); } };
+                
+                btnArea.appendChild(minusBtn);
+                btnArea.appendChild(plusBtn);
+                controlsArea.appendChild(btnArea);
+
+            } else if (currentStep === 2) {
+                titleEl.innerHTML = `<span>(2) □ を1つ選んで（タップして）色をぬってください。</span>`;
+                speak(`ひとつえらんで、いろをぬってください。`);
+                
+                for(let i=0; i<D; i++){
+                    const seg = document.createElement('div');
+                    seg.className = 'segment';
+                    seg.onclick = function() { this.classList.toggle('filled'); };
+                    bar.appendChild(seg);
+                }
+                
+            } else if (currentStep === 3) {
+                titleEl.innerHTML = `<span>(3) □ 1つの長さは何分の1ですか？</span>`;
+                speak(`ひとつのながさは、なんぶんのいちですか？`);
+                
+                for(let i=0; i<D; i++){
+                    const seg = document.createElement('div');
+                    seg.className = 'segment';
+                    if(i===0) seg.classList.add('filled');
+                    bar.appendChild(seg);
+                }
+                
+                const fracInput = document.createElement('div');
+                fracInput.className = 'frac-input-area';
+                fracInput.innerHTML = `
+                    <div style="border-bottom: 3px solid #000; padding: 0 15px; margin-bottom: 5px; font-weight: bold;">1</div>
+                    <div class="input-box active-input" id="ans-box" style="width:65px; height:65px;"></div>
+                `;
+                controlsArea.appendChild(fracInput);
+                activeInputId = 'ans-box';
+                
+            } else if (currentStep === 4) {
+                titleEl.innerHTML = `<span>(4) </span> ${createInlineFraction(1, D)} <span> は、全部でいくつありますか？</span>`;
+                speak(`${D}ぶんの１は、ぜんぶでいくつありますか？`);
+                
+                for(let i=0; i<D; i++){
+                    const seg = document.createElement('div');
+                    seg.className = 'segment';
+                    if(i===0) seg.classList.add('filled');
+                    seg.innerHTML = `<div class="inner-fraction"><div class="inner-num">1</div><div class="inner-den">${D}</div></div>`;
+                    bar.appendChild(seg);
+                }
+                
+                const countInput = document.createElement('div');
+                countInput.className = 'count-input-area';
+                countInput.innerHTML = `<div class="input-box active-input" id="ans-box" style="width:65px; height:65px; margin-right:15px;"></div><div> 個</div>`;
+                controlsArea.appendChild(countInput);
+                activeInputId = 'ans-box';
+                
+            } else if (currentStep === 5) {
+                titleEl.innerHTML = `<span>(5) </span> ${createInlineFraction(1, D)} <span> が ${D}つ で、いくつになりますか？</span>`;
+                speak(`${D}ぶんの１が、${D}こで、いくつになりますか？`);
+                
+                for(let i=0; i<D; i++){
+                    const seg = document.createElement('div');
+                    seg.className = 'segment filled';
+                    seg.innerHTML = `<div class="inner-fraction"><div class="inner-num">1</div><div class="inner-den">${D}</div></div>`;
+                    bar.appendChild(seg);
+                }
+                
+                const eqContainer = document.createElement('div');
+                eqContainer.className = 'eq-container';
+                for(let i=0; i<D; i++) {
+                    eqContainer.innerHTML += `<div class="eq-fraction"><div class="inner-num">1</div><div class="inner-den">${D}</div></div>`;
+                    if (i < D - 1) eqContainer.innerHTML += `<div style="margin:0 10px;">＋</div>`;
+                }
+                eqContainer.innerHTML += `<div style="margin:0 15px;">＝</div><div class="input-box active-input" id="ans-box" style="width:75px; height:75px;"></div>`;
+                controlsArea.appendChild(eqContainer);
+                activeInputId = 'ans-box';
+            }
+
+            // --- テンキー（青枠入力用）の配置ロジック ---
+            if (activeInputId) {
+                const instruction = document.createElement('div');
+                instruction.className = 'instruction-red';
+                instruction.textContent = '※下の数字をタップして青い枠に入れて答える。\n（青枠をタップすると数字を消せます）';
+                instruction.style.whiteSpace = 'pre-line';
+                controlsArea.appendChild(instruction);
+
+                const numPad = document.createElement('div');
+                numPad.className = 'num-pad';
+                [1,2,3,4,5,6,7,8,9,0].forEach(n => {
+                    const btn = document.createElement('button');
+                    btn.className = 'num-btn';
+                    btn.textContent = n;
+                    btn.onclick = () => {
+                        const box = document.getElementById(activeInputId);
+                        if(box.textContent.length < 2) box.textContent += n;
+                    };
+                    numPad.appendChild(btn);
+                });
+                controlsArea.appendChild(numPad);
+                
+                setTimeout(() => {
+                    document.getElementById(activeInputId).onclick = function() { this.textContent = ''; };
+                }, 0);
+            }
+
+            container.appendChild(mainArea);
+
+            // --- 「できた！」判定ボタン（右寄せ） ---
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'btn-container';
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+            btnContainer.appendChild(checkBtn);
+            
+            checkBtn.onclick = () => {
+                let isCorrect = false;
+                let userAnswer = "";
+                
+                if (currentStep === 1) {
+                    userAnswer = `${currentDivisions}等分`;
+                    isCorrect = (currentDivisions === D);
+                } else if (currentStep === 2) {
+                    const filledCount = bar.querySelectorAll('.segment.filled').length;
+                    userAnswer = `${filledCount}個塗り`;
+                    isCorrect = (filledCount === 1);
+                } else if (currentStep === 3) {
+                    const val = document.getElementById('ans-box').textContent;
+                    if(val==="") return; // 空欄の場合は判定しない
+                    userAnswer = `1/${val}`;
+                    isCorrect = (val === D.toString());
+                } else if (currentStep === 4) {
+                    const val = document.getElementById('ans-box').textContent;
+                    if(val==="") return;
+                    userAnswer = `${val}個`;
+                    isCorrect = (val === D.toString());
+                } else if (currentStep === 5) {
+                    const val = document.getElementById('ans-box').textContent;
+                    if(val==="") return;
+                    userAnswer = val;
+                    isCorrect = (val === "1");
+                }
+                
+                // --- CSV連携ロジック（iPad側に出力） ---
+                const endTime = new Date();
+                const problemType = `分数のしくみ(第${currentPatternIndex+1}問-Step${currentStep})`;
+                const problemContent = `分母${D}の課題`;
+                const inputMethod = (activeInputId) ? "テンキー" : "タップ";
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},"${inputMethod}",${isCorrect ? "正解" : "不正解"}\n`;
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({ action: "saveCSV", csvLine: csvLine });
+                }
+
+                // --- 正解・不正解の判定演出 ---
+                const overlay = document.getElementById('judge-overlay');
+                if (isCorrect) {
+                    overlay.textContent = 'せいかい！';
+                    overlay.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0; okSound.play();
+                    }
+                    
+                    checkBtn.disabled = true; // ボタン無効化
+                    if(activeInputId) {
+                        document.querySelectorAll('.num-btn').forEach(b => b.disabled = true);
+                    }
+                    
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                    
+                    // 次のステップまたは次の問題へ移行
+                    setTimeout(() => {
+                        currentStep++;
+                        if (currentStep > 5) {
+                            currentStep = 1;
+                            currentPatternIndex++;
+                        }
+                        renderProblem();
+                    }, 1500);
+                } else {
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
+                    mistakeCount++; 
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0; ngSound.play();
+                    }
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                }
+            };
+            
+            controlsArea.appendChild(btnContainer);
+            container.appendChild(controlsArea);
+            appContainer.appendChild(container);
+        }
+
+        // --- スタート処理ロジック ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            
+            // iPadアプリ側でグローバル展開されているため再定義
+            renderProblem = renderStep;
+            renderProblem();
+        });
+
+    </script>
+</body>
+</html>

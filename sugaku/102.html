@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>分数のたし算（１＋分数）</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+    }
+    
+    /* スタート画面 */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
+    /* 上部ステータスバーと問題文 */
+    .status-bar {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .question-title-container {
+        display: flex;
+        align-items: center;
+        font-size: 1.6rem;
+        font-weight: normal;
+        margin-bottom: 20px;
+        margin-top: 0;
+        flex-wrap: wrap; 
+    }
+
+    .problem-container {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 10px;
+        width: 100%;
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .problem-main {
+        display: flex;
+        flex-direction: column; 
+        align-items: center;    
+        width: 100%;
+    }
+
+    /* テープ図と上部インジケーターの構築エリア */
+    .bar-wrapper {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 20px;
+    }
+    
+    /* 赤い寸法線インジケーター */
+    .length-indicator-container {
+        position: relative;
+        width: 100%;
+        height: 35px; 
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center; 
+        justify-content: center; 
+    }
+    .red-bar-indicator {
+        position: absolute;
+        width: 100%;
+        height: 2px; 
+        background-color: red;
+        border-radius: 1px;
+        box-sizing: border-box;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    .red-bar-indicator::before,
+    .red-bar-indicator::after {
+        content: '';
+        position: absolute;
+        top: -8px; 
+        height: 18px; 
+        width: 2px;
+        background-color: red;
+    }
+    .red-bar-indicator::before { left: 0; }
+    .red-bar-indicator::after { right: 0; }
+
+    .indicator-label-center {
+        position: relative;
+        z-index: 2; 
+        background-color: #ffffff; 
+        padding: 0 10px; 
+        color: red;
+        font-size: 1.6rem; 
+        font-weight: bold;
+        line-height: 1.0;
+        top: -1px; 
+    }
+
+    /* テープ図のバー本体 */
+    .bar {
+        display: flex;
+        width: 100%;
+        height: 60px;
+        border: 2px solid #000;
+        box-sizing: border-box;
+    }
+    .segment {
+        flex: 1;
+        border-right: 1px dotted #000;
+        box-sizing: border-box;
+        transition: background-color 0.2s ease;
+    }
+    .segment:last-child {
+        border-right: none;
+    }
+    .segment.filled {
+        background-color: #00bfff; /* 水色（1のバー用） */
+    }
+    .segment.pink-filled {
+        background-color: #ffb3ba; /* ピンク（足す分数用） */
+    }
+    
+    /* バーの中の分数表示用 */
+    .inner-fraction {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        font-size: 1.4rem;
+        font-weight: bold;
+    }
+    .inner-num {
+        border-bottom: 2px solid #000;
+        padding: 0 4px;
+        line-height: 1.1;
+    }
+    .inner-den {
+        padding: 0 4px;
+        line-height: 1.1;
+    }
+
+    /* 各入力UIエリア */
+    .controls-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    /* Step 5: 式エリア */
+    .eq-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 25px;
+        font-size: 3rem;
+        font-weight: bold;
+    }
+    .eq-fraction {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 2.5rem;
+        margin: 0 10px;
+    }
+
+    /* 共通の青枠入力ボックス */
+    .input-box {
+        border: 4px solid #00bfff;
+        background-color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 3.5rem;
+        cursor: pointer;
+        color: #333;
+        font-weight: bold;
+    }
+    .active-input {
+        background-color: #e6f7ff;
+    }
+
+    /* テンキー（Number Pad） */
+    .num-pad {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+    .num-btn {
+        width: 55px;
+        height: 55px;
+        font-size: 2rem;
+        background-color: #ffcc00;
+        border: 2px solid #000;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        box-shadow: 0 3px 0 #b38f00;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .num-btn:active {
+        transform: translateY(3px);
+        box-shadow: none;
+    }
+    
+    .instruction-red {
+        color: red;
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-align: center;
+        line-height: 1.4;
+    }
+
+    /* できた！ボタン */
+    .check-btn {
+        padding: 15px 40px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        border: 2px solid #00bfff;
+        background-color: #00bfff;
+        color: #fff;
+        font-weight: bold;
+        border-radius: 8px;
+        outline: none;
+        box-shadow: 0 4px 0 #0088cc;
+    }
+    .check-btn:active {
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+
+    /* その他共通UI */
+    .div-btn {
+        width: 45px; height: 45px; font-size: 1.6rem;
+        cursor: pointer; border: 1px solid #999;
+        background-color: #fff; border-radius: 8px;
+        margin: 0 10px;
+    }
+    .division-label {
+        font-size: 1.4rem;
+        color: #555;
+        margin-left: 10px;
+    }
+
+    .judge-overlay {
+        position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0; visibility: hidden; color: #ff3333;
+        font-size: 6rem; font-weight: bold; padding: 30px 60px;
+        -webkit-text-stroke: 3px #000; text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999; pointer-events: none; transition: all 0.3s;
+    }
+    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
+    .judge-overlay.incorrect { color: #3366ff; }
+    
+    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
+    .clear-message h2 { font-size: 1.8rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .retry-btn, .menu-btn { padding: 12px 30px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 8px; color:#fff; text-decoration: none; display: inline-block; margin: 10px;}
+    .retry-btn { background-color: #a0c4ff; }
+    .menu-btn { background-color: #95a5a6; }
+    
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .toggle-group { display: flex; gap: 15px; }
+    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; }
+    .settings-toggle input { transform: scale(1.3); margin-right: 8px; }
+    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>分数のたし算（１＋分数）</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
+                <label class="settings-toggle"><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <div id="question-title" class="question-title-container">
+            ・ 次の分数のたし算を求めなさい。
+        </div>
+        
+        <div id="app"></div>
+        <div id="judge-overlay" class="judge-overlay"></div>
+    </div>
+
+    <script>
+        // 音声・効果音ファイル
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        // 音声読み上げ（Web Speech API）
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        // 分母2〜8の全問題を生成してシャッフル
+        const allProblems = [];
+        for (let d = 2; d <= 8; d++) {
+            for (let n = 1; n < d; n++) {
+                allProblems.push({ den: d, num: n });
+            }
+        }
+        for (let i = allProblems.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allProblems[i], allProblems[j]] = [allProblems[j], allProblems[i]];
+        }
+        const problems = allProblems.slice(0, 10); // ランダムに10問選出
+        
+        let currentIndex = 0; 
+        let mistakeCount = 0; 
+        
+        let problemStartTime;
+        const appContainer = document.getElementById('app');
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+            problemStartTime = new Date();
+
+            // 全10問終了時の合格画面
+            if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.getElementById('question-title').style.display = 'none';
+                
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                clearMsg.innerHTML = `
+                    <h2>全10問合格！！</h2>
+                    <div class="final-result-details">
+                        <div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>
+                        ${mistakeCount === 0 ? '<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>' : ''}
+                    </div>
+                    <button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>
+                    <a href="index.html" class="menu-btn">メニューへ戻る</a>
+                `;
+                appContainer.appendChild(clearMsg);
+                speak("ぜんもんごうかくです。おつかれさまでした。");
+                return;
+            }
+            
+            const prob = problems[currentIndex]; 
+            
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 10 問`;
+
+            // 音声再生と問題文読み上げ
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0; qSound.play().catch(e => {});
+            }
+            speak(`つぎのぶんすうのたしざんをもとめなさい。いち、たす、${prob.den}ぶんの${prob.num}、は`);
+
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+            const mainArea = document.createElement('div');
+            mainArea.className = 'problem-main';
+            
+            // 💡 ヒントバー1（1を表すバー）
+            const bar1Wrapper = document.createElement('div');
+            bar1Wrapper.className = 'bar-wrapper';
+            bar1Wrapper.innerHTML = `
+                <div class="length-indicator-container">
+                    <div class="red-bar-indicator"></div>
+                    <div class="indicator-label-center">1</div>
+                </div>
+                <div class="bar" id="bar1"></div>
+                <div style="display:flex; align-items:center; justify-content:center; margin-top:8px;">
+                    <button class="div-btn" id="minus-btn">ー</button>
+                    <button class="div-btn" id="plus-btn">＋</button>
+                    <div class="division-label" id="div-label">（1 分割）</div>
+                </div>
+            `;
+            mainArea.appendChild(bar1Wrapper);
+
+            // 💡 ヒントバー2（足す分数を表すバー）
+            const bar2Wrapper = document.createElement('div');
+            bar2Wrapper.className = 'bar-wrapper';
+            bar2Wrapper.innerHTML = `
+                <div class="length-indicator-container">
+                    <div class="red-bar-indicator"></div>
+                    <div class="indicator-label-center">1</div>
+                </div>
+                <div class="bar" id="bar2"></div>
+            `;
+            mainArea.appendChild(bar2Wrapper);
+
+            const controlsArea = document.createElement('div');
+            controlsArea.className = 'controls-area';
+
+            // できた！ボタンを作成
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+
+            // 式エリアの構築（右端にできたボタンを配置）
+            const eqContainer = document.createElement('div');
+            eqContainer.className = 'eq-container';
+            eqContainer.innerHTML = `
+                <div>1</div>
+                <div style="margin: 0 15px;">＋</div>
+                <div class="eq-fraction">
+                    <div class="inner-num" style="border-bottom: 3px solid #000;">${prob.num}</div>
+                    <div class="inner-den">${prob.den}</div>
+                </div>
+                <div style="margin: 0 15px;">＝</div>
+                <div class="eq-fraction">
+                    <div class="input-box active-input" id="ans-num" style="width:70px; height:70px;"></div>
+                    <div style="width:100%; height:5px; background-color:#000; margin:8px 0;"></div>
+                    <div class="input-box" id="ans-den" style="width:70px; height:70px;"></div>
+                </div>
+            `;
+            
+            // できたボタンを解答欄のすぐ右隣に追加
+            const btnWrapper = document.createElement('div');
+            btnWrapper.style.marginLeft = '40px';
+            btnWrapper.appendChild(checkBtn);
+            eqContainer.appendChild(btnWrapper);
+
+            controlsArea.appendChild(eqContainer);
+
+            // テンキーと注意書きの構築
+            const instruction = document.createElement('div');
+            instruction.className = 'instruction-red';
+            instruction.innerHTML = '※下の数字を指で移動（またはタップ）して青い解答欄の中に入れて答える。<br>（青枠をタップすると数字を消せます）';
+            controlsArea.appendChild(instruction);
+
+            const numPad = document.createElement('div');
+            numPad.className = 'num-pad';
+            [1,2,3,4,5,6,7,8,9,0].forEach(n => {
+                const btn = document.createElement('button');
+                btn.className = 'num-btn';
+                btn.textContent = n;
+                btn.onclick = () => {
+                    const box = document.getElementById(activeInputId);
+                    if(box.textContent.length < 2) box.textContent += n;
+                };
+                numPad.appendChild(btn);
+            });
+            controlsArea.appendChild(numPad);
+
+            container.appendChild(mainArea);
+            container.appendChild(controlsArea);
+            appContainer.appendChild(container);
+
+            // === 動的なDOM操作とイベント付与（HTMLが描画された後） ===
+            
+            // 入力枠のフォーカス切り替え
+            let activeInputId = 'ans-num';
+            const boxNum = document.getElementById('ans-num');
+            const boxDen = document.getElementById('ans-den');
+            
+            boxNum.onclick = function() {
+                if (activeInputId === 'ans-num') {
+                    this.textContent = '';
+                } else {
+                    activeInputId = 'ans-num';
+                    boxNum.classList.add('active-input');
+                    boxDen.classList.remove('active-input');
+                }
+            };
+            
+            boxDen.onclick = function() {
+                if (activeInputId === 'ans-den') {
+                    this.textContent = '';
+                } else {
+                    activeInputId = 'ans-den';
+                    boxDen.classList.add('active-input');
+                    boxNum.classList.remove('active-input');
+                }
+            };
+
+            // バー1の分割ロジック
+            let currentDivisions = 1;
+            const bar1 = document.getElementById('bar1');
+            const updateBar1 = () => {
+                bar1.innerHTML = '';
+                for(let i=0; i<currentDivisions; i++){
+                    const seg = document.createElement('div');
+                    seg.className = 'segment filled'; // 全面水色
+                    if (currentDivisions === 1) {
+                        seg.innerHTML = `<div class="inner-fraction"><div style="font-size:2rem; font-weight:bold;">1</div></div>`;
+                    } else {
+                        seg.innerHTML = `<div class="inner-fraction"><div class="inner-num">1</div><div class="inner-den">${currentDivisions}</div></div>`;
+                    }
+                    bar1.appendChild(seg);
+                }
+            };
+            updateBar1();
+
+            document.getElementById('minus-btn').onclick = () => {
+                if(currentDivisions > 1) {
+                    currentDivisions--;
+                    document.getElementById('div-label').textContent = `（${currentDivisions} 分割）`;
+                    updateBar1();
+                    speak(currentDivisions + "ぶんかつ");
+                }
+            };
+            document.getElementById('plus-btn').onclick = () => {
+                if(currentDivisions < 20) {
+                    currentDivisions++;
+                    document.getElementById('div-label').textContent = `（${currentDivisions} 分割）`;
+                    updateBar1();
+                    speak(currentDivisions + "ぶんかつ");
+                }
+            };
+
+            // バー2（問題の分数）の描画ロジック
+            const bar2 = document.getElementById('bar2');
+            bar2.innerHTML = '';
+            for(let i=0; i<prob.den; i++){
+                const seg = document.createElement('div');
+                seg.className = 'segment';
+                if(i < prob.num) {
+                    seg.classList.add('pink-filled'); // ピンク色に塗る
+                    seg.innerHTML = `<div class="inner-fraction"><div class="inner-num">1</div><div class="inner-den">${prob.den}</div></div>`;
+                }
+                bar2.appendChild(seg);
+            }
+
+            // 正誤判定ロジック
+            checkBtn.onclick = () => {
+                const numVal = boxNum.textContent;
+                const denVal = boxDen.textContent;
+                if(numVal === "" || denVal === "") return;
+                
+                // 正解は、分母が同じで、分子が (分母 + 問題の分子)
+                const isCorrect = (parseInt(denVal) === prob.den && parseInt(numVal) === (prob.den + prob.num));
+                
+                // CSV連携
+                const endTime = new Date();
+                const problemType = `1＋分数のたし算(仮分数)`;
+                const problemContent = `1 + ${prob.num}/${prob.den}`;
+                const userAnswer = `${numVal}/${denVal}`;
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},"テンキー",${isCorrect ? "正解" : "不正解"}\n`;
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({ action: "saveCSV", csvLine: csvLine });
+                }
+
+                const overlay = document.getElementById('judge-overlay');
+                if (isCorrect) {
+                    overlay.textContent = 'せいかい！';
+                    overlay.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0; okSound.play();
+                    }
+                    
+                    checkBtn.disabled = true; 
+                    document.querySelectorAll('.num-btn').forEach(b => b.disabled = true);
+                    
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                    setTimeout(() => {
+                        currentIndex++;
+                        renderProblem();
+                    }, 1500);
+                } else {
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
+                    mistakeCount++; 
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0; ngSound.play();
+                    }
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                }
+            };
+        }
+
+        // --- スタート処理ロジック ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
+
+    </script>
+</body>
+</html>
