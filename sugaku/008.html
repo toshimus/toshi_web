@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>1より大きい分数の数直線</title>
+<title>数直線の分数</title>
 <style>
     html, body {
         height: 100%;
@@ -67,7 +67,7 @@
     .answer-label {
         font-size: 1.5rem;
         font-weight: bold;
-        margin-right: 30px;
+        margin-right: 20px;
     }
     
     .fraction-input {
@@ -102,32 +102,44 @@
         margin-left: 20px;
     }
 
-    /* 0〜9の駒エリア */
+    .hint-text {
+        text-align: center;
+        color: #e74c3c;
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    /* ドラッグ＆ドロップ用の駒（1行レイアウト - 106.htmlに統一） */
     .pieces-container {
         display: flex;
         justify-content: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 15px;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-top: 5px;
         padding: 15px;
         background-color: #ecf0f1;
         border-radius: 12px;
+        width: 100%;
+        box-sizing: border-box;
     }
     .piece {
-        width: 55px;
-        height: 55px;
+        width: 60px;
+        height: 60px;
         border: 2px solid #2c3e50;
         background-color: #f1c40f;
         border-radius: 10px;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 2rem;
+        font-size: 2.4rem;
         font-weight: bold;
         cursor: grab;
         color: #2c3e50;
         box-shadow: 0 4px 0 #d4ac0d;
         touch-action: none;
+        flex-shrink: 0;
     }
     .piece:active {
         transform: translateY(4px);
@@ -141,13 +153,6 @@
         box-shadow: 0 10px 15px rgba(0,0,0,0.3);
         transform: scale(1.1);
     }
-    .hint-text {
-        text-align: center;
-        color: #e74c3c;
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin-top: 10px;
-    }
     
     .check-btn-container {
         display: flex;
@@ -155,24 +160,34 @@
         width: 100%;
         margin-top: 15px;
     }
+    
+    /* できたボタン（106.htmlに統一） */
     .check-btn {
-        padding: 15px 40px;
-        font-size: 1.3rem;
+        padding: 0 25px;
+        height: 60px;
+        margin-left: 10px;
+        font-size: 1.4rem;
         cursor: pointer;
-        border: 1px solid #999;
-        background-color: #f0f0f0;
+        border: 2px solid #00bfff;
+        background-color: #00bfff;
+        color: #fff;
+        font-weight: bold;
         border-radius: 8px;
-        font-family: inherit;
         outline: none;
+        box-shadow: 0 4px 0 #0088cc;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
+        flex-shrink: 0;
     }
     .check-btn:active {
-        background-color: #dcdcdc;
+        transform: translateY(4px);
+        box-shadow: none;
     }
     .check-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: translateY(4px);
+        box-shadow: none;
     }
     
     .judge-overlay {
@@ -326,8 +341,8 @@
 
         const problems = [];
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 9) + 2; 
-            const val = Math.floor(Math.random() * (den - 1)) + den + 1; 
+            const den = Math.floor(Math.random() * 9) + 2; // 分母は2から10
+            const val = Math.floor(Math.random() * (den - 1)) + 1; // 1からden-1までの間
             problems.push({ den: den, val: val });
         }
 
@@ -409,16 +424,10 @@
             svg.appendChild(text0);
 
             const text1 = document.createElementNS(svgNS, 'text');
-            text1.setAttribute('x', '400'); text1.setAttribute('y', '50');
+            text1.setAttribute('x', '750'); text1.setAttribute('y', '50');
             text1.setAttribute('text-anchor', 'middle'); text1.setAttribute('font-size', '24');
             text1.textContent = '1';
             svg.appendChild(text1);
-
-            const text2 = document.createElementNS(svgNS, 'text');
-            text2.setAttribute('x', '750'); text2.setAttribute('y', '50');
-            text2.setAttribute('text-anchor', 'middle'); text2.setAttribute('font-size', '24');
-            text2.textContent = '2';
-            svg.appendChild(text2);
 
             const textM = document.createElementNS(svgNS, 'text');
             textM.setAttribute('x', '780'); textM.setAttribute('y', '50');
@@ -426,22 +435,16 @@
             textM.textContent = '(m)';
             svg.appendChild(textM);
 
-            const intervalWidth = 350 / prob.den; 
-            for(let i = 0; i <= prob.den * 2; i++) {
-                const xPos = 50 + intervalWidth * i;
-                const isMajor = (i % prob.den === 0);
-                
+            for(let i = 0; i <= prob.den; i++) {
+                const xPos = 50 + (700 / prob.den) * i;
                 const tick = document.createElementNS(svgNS, 'line');
-                tick.setAttribute('x1', xPos.toString()); 
-                tick.setAttribute('y1', isMajor ? '60' : '65');
-                tick.setAttribute('x2', xPos.toString()); 
-                tick.setAttribute('y2', isMajor ? '100' : '95');
-                tick.setAttribute('stroke', '#000'); 
-                tick.setAttribute('stroke-width', isMajor ? '4' : '3');
+                tick.setAttribute('x1', xPos.toString()); tick.setAttribute('y1', '65');
+                tick.setAttribute('x2', xPos.toString()); tick.setAttribute('y2', '95');
+                tick.setAttribute('stroke', '#000'); tick.setAttribute('stroke-width', '3');
                 svg.appendChild(tick);
             }
 
-            const arrowX = 50 + intervalWidth * prob.val;
+            const arrowX = 50 + (700 / prob.den) * prob.val;
             const arrow = document.createElementNS(svgNS, 'path');
             const pathStr = `M ${arrowX} 135 L ${arrowX} 105 L ${arrowX - 8} 115 M ${arrowX} 105 L ${arrowX + 8} 115`;
             arrow.setAttribute('d', pathStr);
@@ -514,16 +517,14 @@
                 piece.textContent = i;
                 piecesContainer.appendChild(piece);
             }
-            container.appendChild(piecesContainer);
 
-            // 判定ボタン
-            const checkBtnContainer = document.createElement('div');
-            checkBtnContainer.className = 'check-btn-container';
+            // 判定ボタンを駒の並びの最後に追加
             const checkBtn = document.createElement('button');
             checkBtn.className = 'check-btn';
-            checkBtn.textContent = 'できた';
-            checkBtnContainer.appendChild(checkBtn);
-            container.appendChild(checkBtnContainer);
+            checkBtn.textContent = 'できた！';
+            piecesContainer.appendChild(checkBtn);
+
+            container.appendChild(piecesContainer);
 
             appContainer.appendChild(container);
 
@@ -536,7 +537,7 @@
                 const isCorrect = (userNum === prob.val) && (userDen === prob.den);
                 
                 const endTime = new Date();
-                const problemType = "1より大きい分数の数直線";
+                const problemType = "数直線の分数";
                 const problemContent = `分母:${prob.den}, 値:${prob.val}`;
                 const userAnswer = `${userNum}/${userDen}`;
                 const inputMethod = "ドラッグ＆ドロップ";
@@ -604,8 +605,8 @@
                 clientX = e.clientX;
                 clientY = e.clientY;
             }
-            draggingPiece.style.left = (clientX - 27) + 'px';
-            draggingPiece.style.top = (clientY - 27) + 'px';
+            draggingPiece.style.left = (clientX - 30) + 'px';
+            draggingPiece.style.top = (clientY - 30) + 'px';
         }
 
         function handleEnd(e) {
