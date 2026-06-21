@@ -1,18 +1,164 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<HTML>
-<HEAD>
-<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<META name="GENERATOR" content="IBM WebSphere Studio Homepage Builder Version 8.0.0.0 for Windows">
-<META http-equiv="Content-Style-Type" content="text/css">
-<TITLE></TITLE>
-</HEAD>
-<FRAMESET cols="20%,80%">
-  <FRAME name="frame1" src="side.html">
-  <FRAME name="frame2" src="01.html">
-  <NOFRAMES>
-  <BODY>
-  <P>このページを表示するには、フレームをサポートしているブラウザが必要です。</P>
-  </BODY>
-  </NOFRAMES>
-</FRAMESET>
-</HTML>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>分数の学習メニュー</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: auto;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 15px 10px; /* 上下の余白を削減 */
+        background-color: #f8f9fa;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        touch-action: pan-y;
+        box-sizing: border-box;
+    }
+    h1 {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-top: 0;
+        margin-bottom: 15px; /* タイトル下の余白を大幅に削減 */
+        color: #2c3e50;
+    }
+    
+    /* 2列レイアウト用のラッパー */
+    .menu-wrapper {
+        display: flex;
+        flex-direction: row;
+        gap: 15px; /* 左右の列の間隔 */
+        width: 95%;
+        max-width: 1000px;
+    }
+    
+    /* 各列のコンテナ */
+    .menu-column {
+        display: flex;
+        flex-direction: column;
+        gap: 4px; /* 行間をほぼ無し（4px）まで詰める */
+        flex: 1;
+    }
+    
+    .menu-button {
+        display: block;
+        padding: 10px; /* ボタン内部の上下の余白を削り、高さを圧縮 */
+        font-size: 1.1rem;
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;
+        color: #ffffff;
+        border-radius: 8px; /* 丸みを少しシャープに */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: background-color 0.2s ease, transform 0.1s;
+        touch-action: manipulation;
+    }
+    .menu-button:active {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transform: translateY(2px);
+    }
+    
+    /* 左列：1〜10のボタンカラー */
+    .btn-001 { background-color: #3498db; }
+    .btn-001:active { background-color: #2980b9; }
+    
+    .btn-002 { background-color: #2ecc71; }
+    .btn-002:active { background-color: #27ae60; }
+    
+    .btn-003 { background-color: #e67e22; }
+    .btn-003:active { background-color: #d35400; }
+    
+    .btn-004 { background-color: #9b59b6; }
+    .btn-004:active { background-color: #8e44ad; }
+    
+    .btn-005 { background-color: #e74c3c; }
+    .btn-005:active { background-color: #c0392b; }
+    
+    .btn-006 { background-color: #1abc9c; }
+    .btn-006:active { background-color: #16a085; }
+    
+    .btn-007 { background-color: #f39c12; }
+    .btn-007:active { background-color: #d68910; }
+    
+    .btn-008 { background-color: #34495e; }
+    .btn-008:active { background-color: #2c3e50; }
+    
+    .btn-009 { background-color: #e84393; }
+    .btn-009:active { background-color: #b33939; }
+    
+    .btn-010 { background-color: #00cec9; }
+    .btn-010:active { background-color: #00b894; }
+
+    /* 右列：11〜14の新しいボタンカラー */
+    .btn-101 { background-color: #4834d4; }
+    .btn-101:active { background-color: #3867d6; }
+
+    .btn-102 { background-color: #eb4d4b; }
+    .btn-102:active { background-color: #ff7979; }
+
+    .btn-103 { background-color: #6ab04c; }
+    .btn-103:active { background-color: #badc58; }
+
+    .btn-104 { background-color: #f0932b; }
+    .btn-104:active { background-color: #ffbe76; }
+
+    /* 予備枠（無効状態）のスタイル */
+    .btn-disabled {
+        background-color: #bdc3c7;
+        color: #7f8c8d;
+        cursor: not-allowed;
+        box-shadow: none;
+        pointer-events: none;
+        border: 2px dashed #95a5a6;
+    }
+    
+    /* スマホ等の縦長画面では1列に折り返す設定 */
+    @media (max-width: 768px) {
+        .menu-wrapper {
+            flex-direction: column;
+            gap: 12px;
+        }
+    }
+</style>
+</head>
+<body>
+
+    <h1>分数の学習メニュー</h1>
+    
+    <div class="menu-wrapper">
+        <div class="menu-column">
+            <a href="001.html" class="menu-button btn-001">1. 分数の色塗り（直線）</a>
+            <a href="002.html" class="menu-button btn-002">2. 分数の色塗り（円）</a>
+            <a href="003.html" class="menu-button btn-003">3. 図を見て分数を答える</a>
+            <a href="004.html" class="menu-button btn-004">4. 水のかさ（分数）</a>
+            <a href="005.html" class="menu-button btn-005">5. 分数の色塗りと読み取り</a>
+            <a href="006.html" class="menu-button btn-006">6. 分母と分子</a>
+            <a href="007.html" class="menu-button btn-007">7. 数直線の分数</a>
+            <a href="008.html" class="menu-button btn-008">8. 1より大きい分数の数直線</a>
+            <a href="009.html" class="menu-button btn-009">9. 分数の分類</a>
+            <a href="010.html" class="menu-button btn-010">10. 分数の大きさくらべ</a>
+        </div>
+
+        <div class="menu-column">
+            <a href="101.html" class="menu-button btn-101">11. 分数のしくみ（ステップアップ）</a>
+            <a href="102.html" class="menu-button btn-102">12. 分数のたし算（１＋分数）</a>
+            <a href="103.html" class="menu-button btn-103">13. 分母が同じ分数のたし算</a>
+            <a href="104.html" class="menu-button btn-104">14. 分母の違うたし算（通分）</a>
+            <a href="#" class="menu-button btn-disabled">15. （準備中）</a>
+            <a href="#" class="menu-button btn-disabled">16. （準備中）</a>
+            <a href="#" class="menu-button btn-disabled">17. （準備中）</a>
+            <a href="#" class="menu-button btn-disabled">18. （準備中）</a>
+            <a href="#" class="menu-button btn-disabled">19. （準備中）</a>
+            <a href="#" class="menu-button btn-disabled">20. （準備中）</a>
+        </div>
+    </div>
+
+</body>
+</html>
