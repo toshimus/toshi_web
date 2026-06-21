@@ -19,6 +19,8 @@
         color: #333;
         touch-action: none;
         box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
     }
     
     /* スタート画面 */
@@ -58,7 +60,6 @@
         box-shadow: none;
     }
 
-    /* 上部ステータスバーと問題文 */
     .status-bar {
         font-size: 1.2rem;
         font-weight: bold;
@@ -91,7 +92,6 @@
         width: 100%;
     }
 
-    /* テープ図と上部インジケーターの構築エリア */
     .bar-wrapper {
         width: 100%;
         display: flex;
@@ -99,7 +99,6 @@
         margin-bottom: 20px;
     }
     
-    /* 赤い寸法線インジケーター */
     .length-indicator-container {
         position: relative;
         width: 100%;
@@ -143,7 +142,6 @@
         top: -1px; 
     }
 
-    /* テープ図のバー本体 */
     .bar {
         display: flex;
         width: 100%;
@@ -161,13 +159,12 @@
         border-right: none;
     }
     .segment.filled {
-        background-color: #00bfff; /* 水色（1のバー用） */
+        background-color: #00bfff; 
     }
     .segment.pink-filled {
-        background-color: #ffb3ba; /* ピンク（足す分数用） */
+        background-color: #ffb3ba; 
     }
     
-    /* バーの中の分数表示用 */
     .inner-fraction {
         display: flex;
         flex-direction: column;
@@ -187,7 +184,6 @@
         line-height: 1.1;
     }
 
-    /* 各入力UIエリア */
     .controls-area {
         display: flex;
         flex-direction: column;
@@ -195,7 +191,6 @@
         width: 100%;
     }
 
-    /* Step 5: 式エリア */
     .eq-container {
         display: flex;
         align-items: center;
@@ -213,61 +208,78 @@
         margin: 0 10px;
     }
 
-    /* 共通の青枠入力ボックス */
-    .input-box {
-        border: 4px solid #00bfff;
-        background-color: #fff;
+    /* 吸着型点線枠のスタイル */
+    .drop-zone {
+        width: 70px;
+        height: 70px;
+        border: 3px dashed #3498db;
+        background-color: #f0f8ff;
+        border-radius: 8px;
         display: flex;
         justify-content: center;
         align-items: center;
         font-size: 3.5rem;
+        font-weight: bold;
         cursor: pointer;
         color: #333;
-        font-weight: bold;
+        flex-shrink: 0;
     }
-    .active-input {
-        background-color: #e6f7ff;
+    .fraction-line {
+        width: 100%;
+        height: 5px;
+        background-color: #000;
+        margin: 8px 0;
     }
 
-    /* テンキー（Number Pad） */
-    .num-pad {
+    /* 1行レイアウトの駒コンテナ */
+    .pieces-container {
         display: flex;
-        gap: 10px;
         justify-content: center;
-        flex-wrap: wrap;
-        margin-bottom: 10px;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-top: 5px;
+        padding: 15px;
+        background-color: #ecf0f1;
+        border-radius: 12px;
         width: 100%;
+        box-sizing: border-box;
     }
-    .num-btn {
-        width: 55px;
-        height: 55px;
-        font-size: 2rem;
-        background-color: #ffcc00;
-        border: 2px solid #000;
-        border-radius: 4px;
-        cursor: pointer;
+    .piece {
+        width: 60px;
+        height: 60px;
+        border: 2px solid #2c3e50;
+        background-color: #f1c40f;
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2.4rem;
         font-weight: bold;
-        box-shadow: 0 3px 0 #b38f00;
-        -webkit-tap-highlight-color: transparent;
+        cursor: grab;
+        color: #2c3e50;
+        box-shadow: 0 4px 0 #d4ac0d;
+        touch-action: none;
+        flex-shrink: 0;
     }
-    .num-btn:active {
-        transform: translateY(3px);
+    .piece:active {
+        transform: translateY(4px);
         box-shadow: none;
     }
-    
-    .instruction-red {
-        color: red;
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin-bottom: 15px;
-        text-align: center;
-        line-height: 1.4;
+    .piece.dragging {
+        position: fixed;
+        z-index: 1000;
+        pointer-events: none;
+        opacity: 0.9;
+        box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+        transform: scale(1.1);
     }
-
-    /* できた！ボタン */
+    
     .check-btn {
-        padding: 15px 40px;
-        font-size: 1.5rem;
+        padding: 0 25px;
+        height: 60px;
+        margin-left: 10px;
+        font-size: 1.4rem;
         cursor: pointer;
         border: 2px solid #00bfff;
         background-color: #00bfff;
@@ -276,13 +288,21 @@
         border-radius: 8px;
         outline: none;
         box-shadow: 0 4px 0 #0088cc;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        flex-shrink: 0;
     }
     .check-btn:active {
         transform: translateY(4px);
         box-shadow: none;
     }
+    .check-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: translateY(4px);
+        box-shadow: none;
+    }
 
-    /* その他共通UI */
     .div-btn {
         width: 45px; height: 45px; font-size: 1.6rem;
         cursor: pointer; border: 1px solid #999;
@@ -294,6 +314,14 @@
         color: #555;
         margin-left: 10px;
     }
+    .instruction-red {
+        color: red;
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-align: center;
+        line-height: 1.4;
+    }
 
     .judge-overlay {
         position: fixed; top: 50%; left: 50%;
@@ -302,17 +330,17 @@
         font-size: 6rem; font-weight: bold; padding: 30px 60px;
         -webkit-text-stroke: 3px #000; text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
         z-index: 9999; pointer-events: none; transition: all 0.3s;
-        white-space: nowrap; /* 💡修正：文字の折り返しを禁止して1行に収める */
+        white-space: nowrap;
     }
     .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
     .judge-overlay.incorrect { color: #3366ff; }
     
     .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
     .clear-message h2 { font-size: 1.8rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .final-result-details { font-size: 1.3rem; color: #333; line-height: 1.8; }
     .retry-btn, .menu-btn { padding: 12px 30px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 8px; color:#fff; text-decoration: none; display: inline-block; margin: 10px;}
-    .retry-btn { background-color: #a0c4ff; }
-    .menu-btn { background-color: #95a5a6; }
-    
+    .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px;}
+    .menu-btn { background-color: #95a5a6; color: #fff; }
     .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .toggle-group { display: flex; gap: 15px; }
     .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; }
@@ -365,6 +393,8 @@
                    date.getSeconds().toString().padStart(2, '0');
         }
 
+        const numberReadings = ["ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう", "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"];
+
         const allProblems = [];
         for (let d = 2; d <= 8; d++) {
             for (let n = 1; n < d; n++) {
@@ -379,7 +409,6 @@
         
         let currentIndex = 0; 
         let mistakeCount = 0; 
-        
         let problemStartTime;
         const appContainer = document.getElementById('app');
 
@@ -408,7 +437,6 @@
             }
             
             const prob = problems[currentIndex]; 
-            
             document.getElementById('status-bar').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 10 問`;
 
@@ -453,10 +481,6 @@
             const controlsArea = document.createElement('div');
             controlsArea.className = 'controls-area';
 
-            const checkBtn = document.createElement('button');
-            checkBtn.className = 'check-btn';
-            checkBtn.textContent = 'できた！';
-
             const eqContainer = document.createElement('div');
             eqContainer.className = 'eq-container';
             eqContainer.innerHTML = `
@@ -468,65 +492,47 @@
                 </div>
                 <div style="margin: 0 15px;">＝</div>
                 <div class="eq-fraction">
-                    <div class="input-box active-input" id="ans-num" style="width:70px; height:70px;"></div>
-                    <div style="width:100%; height:5px; background-color:#000; margin:8px 0;"></div>
-                    <div class="input-box" id="ans-den" style="width:70px; height:70px;"></div>
+                    <div class="drop-zone" id="ans-num"></div>
+                    <div class="fraction-line"></div>
+                    <div class="drop-zone" id="ans-den"></div>
                 </div>
             `;
-            
-            const btnWrapper = document.createElement('div');
-            btnWrapper.style.marginLeft = '40px';
-            btnWrapper.appendChild(checkBtn);
-            eqContainer.appendChild(btnWrapper);
-
             controlsArea.appendChild(eqContainer);
 
             const instruction = document.createElement('div');
             instruction.className = 'instruction-red';
-            instruction.innerHTML = '※下の数字を指で移動（またはタップ）して青い解答欄の中に入れて答える。<br>（青枠をタップすると数字を消せます）';
+            instruction.innerHTML = '※下の数字を指で移動して点線の枠の中に入れて答える。（枠をタップすると数字を消せます）';
             controlsArea.appendChild(instruction);
 
-            const numPad = document.createElement('div');
-            numPad.className = 'num-pad';
-            [1,2,3,4,5,6,7,8,9,0].forEach(n => {
-                const btn = document.createElement('button');
-                btn.className = 'num-btn';
-                btn.textContent = n;
-                btn.onclick = () => {
-                    const box = document.getElementById(activeInputId);
-                    if(box.textContent.length < 2) box.textContent += n;
-                };
-                numPad.appendChild(btn);
-            });
-            controlsArea.appendChild(numPad);
+            const piecesContainer = document.createElement('div');
+            piecesContainer.className = 'pieces-container';
+            for (let i = 0; i <= 9; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.dataset.val = i;
+                piece.textContent = i;
+                piecesContainer.appendChild(piece);
+            }
+            
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+            piecesContainer.appendChild(checkBtn);
+            controlsArea.appendChild(piecesContainer);
 
             container.appendChild(mainArea);
             container.appendChild(controlsArea);
             appContainer.appendChild(container);
 
-            let activeInputId = 'ans-num';
             const boxNum = document.getElementById('ans-num');
             const boxDen = document.getElementById('ans-den');
             
-            boxNum.onclick = function() {
-                if (activeInputId === 'ans-num') {
-                    this.textContent = '';
-                } else {
-                    activeInputId = 'ans-num';
-                    boxNum.classList.add('active-input');
-                    boxDen.classList.remove('active-input');
-                }
-            };
-            
-            boxDen.onclick = function() {
-                if (activeInputId === 'ans-den') {
-                    this.textContent = '';
-                } else {
-                    activeInputId = 'ans-den';
-                    boxDen.classList.add('active-input');
-                    boxNum.classList.remove('active-input');
-                }
-            };
+            [boxNum, boxDen].forEach(zone => {
+                zone.addEventListener('click', () => { 
+                    zone.textContent = ''; 
+                    speak("くりあ");
+                });
+            });
 
             let currentDivisions = 1;
             const bar1 = document.getElementById('bar1');
@@ -585,7 +591,7 @@
                 const problemType = `1＋分数のたし算(仮分数)`;
                 const problemContent = `1 + ${prob.num}/${prob.den}`;
                 const userAnswer = `${numVal}/${denVal}`;
-                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},"テンキー",${isCorrect ? "正解" : "不正解"}\n`;
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},"ドラッグ",${isCorrect ? "正解" : "不正解"}\n`;
                 if (window.webkit && window.webkit.messageHandlers.appBridge) {
                     window.webkit.messageHandlers.appBridge.postMessage({ action: "saveCSV", csvLine: csvLine });
                 }
@@ -594,36 +600,74 @@
                 if (isCorrect) {
                     overlay.textContent = 'せいかい！';
                     overlay.className = 'judge-overlay show';
-                    if (soundCheckbox && soundCheckbox.checked) {
-                        okSound.currentTime = 0; okSound.play();
-                    }
-                    
+                    if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
                     checkBtn.disabled = true; 
-                    document.querySelectorAll('.num-btn').forEach(b => b.disabled = true);
-                    
                     setTimeout(() => { overlay.classList.remove('show'); }, 1200);
-                    setTimeout(() => {
-                        currentIndex++;
-                        renderProblem();
-                    }, 1500);
+                    setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
                 } else {
                     overlay.textContent = 'おしい！';
                     overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++; 
-                    if (soundCheckbox && soundCheckbox.checked) {
-                        ngSound.currentTime = 0; ngSound.play();
-                    }
+                    if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
                     setTimeout(() => { overlay.classList.remove('show'); }, 1200);
                 }
             };
         }
+
+        let draggingPiece = null;
+        function handleStart(e) {
+            if (e.target.classList.contains('piece') && !e.target.classList.contains('dragging')) {
+                const val = e.target.dataset.val;
+                draggingPiece = document.createElement('div');
+                draggingPiece.className = 'piece dragging';
+                draggingPiece.textContent = val;
+                draggingPiece.dataset.val = val;
+                document.body.appendChild(draggingPiece);
+                movePiece(e);
+            }
+        }
+        function movePiece(e) {
+            if (!draggingPiece) return;
+            e.preventDefault(); 
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } 
+            else { clientX = e.clientX; clientY = e.clientY; }
+            draggingPiece.style.left = (clientX - 30) + 'px';
+            draggingPiece.style.top = (clientY - 30) + 'px';
+        }
+        function handleEnd(e) {
+            if (!draggingPiece) return;
+            draggingPiece.style.display = 'none';
+            let clientX, clientY;
+            if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } 
+            else { clientX = e.clientX; clientY = e.clientY; }
+            let elem = document.elementFromPoint(clientX, clientY);
+            draggingPiece.style.display = 'flex';
+            if (elem && elem.classList.contains('drop-zone')) {
+                let currentVal = elem.textContent;
+                let newVal = currentVal + draggingPiece.dataset.val;
+                if (newVal.length <= 2) { 
+                    elem.textContent = newVal;
+                    const parsedVal = parseInt(newVal, 10);
+                    if (parsedVal >= 0 && parsedVal <= 20) speak(numberReadings[parsedVal]); else speak(newVal);
+                }
+            }
+            draggingPiece.remove();
+            draggingPiece = null;
+        }
+
+        document.addEventListener('touchstart', handleStart, {passive: false});
+        document.addEventListener('touchmove', movePiece, {passive: false});
+        document.addEventListener('touchend', handleEnd);
+        document.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', movePiece);
+        document.addEventListener('mouseup', handleEnd);
 
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
             renderProblem();
         });
-
     </script>
 </body>
 </html>

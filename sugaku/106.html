@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>分数のひき算</title>
+<style>
+    html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; }
+    body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; margin: 0; padding: 20px; background-color: #ffffff; color: #333; touch-action: none; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    .start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f0f8ff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; }
+    .start-screen h1 { font-size: 3rem; color: #2c3e50; margin-bottom: 40px; }
+    .start-btn { padding: 20px 60px; font-size: 2.5rem; font-weight: bold; color: #fff; background-color: #3498db; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 8px 0 #2980b9; transition: transform 0.1s, box-shadow 0.1s; -webkit-tap-highlight-color: transparent; }
+    .start-btn:active { transform: translateY(8px); box-shadow: none; }
+    
+    .status-bar { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: #555; }
+    .question-title-container { display: flex; align-items: center; font-size: 1.6rem; font-weight: normal; margin-bottom: 20px; margin-top: 0; flex-wrap: wrap; }
+    .problem-container { display: flex; flex-direction: column; margin-bottom: 10px; width: 100%; max-width: 900px; margin-left: auto; margin-right: auto; }
+    .problem-main { display: flex; flex-direction: column; align-items: center; width: 100%; }
+    
+    .bar-wrapper { width: 100%; display: flex; flex-direction: column; margin-bottom: 25px; }
+    .length-indicator-container { position: relative; width: 100%; height: 35px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; }
+    .red-bar-indicator { position: absolute; width: 100%; height: 2px; background-color: red; border-radius: 1px; box-sizing: border-box; top: 50%; transform: translateY(-50%); }
+    .red-bar-indicator::before, .red-bar-indicator::after { content: ''; position: absolute; top: -8px; height: 18px; width: 2px; background-color: red; }
+    .red-bar-indicator::before { left: 0; } .red-bar-indicator::after { right: 0; }
+    .indicator-label-center { position: relative; z-index: 2; background-color: #ffffff; padding: 0 10px; color: red; font-size: 1.6rem; font-weight: bold; line-height: 1.0; top: -1px; }
+    
+    .bar { display: flex; width: 100%; height: 70px; border: 2px solid #000; box-sizing: border-box; }
+    .segment { flex: 1; border-right: 1px dotted #000; box-sizing: border-box; transition: background-color 0.2s ease; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .segment:last-child { border-right: none; }
+    .segment.filled { background-color: #00bfff; }
+    .segment.gray-filled { background-color: #95a5a6 !important; }
+    
+    .inner-fraction { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; font-size: 1.6rem; font-weight: bold; }
+    .inner-num { border-bottom: 2px solid #000; padding: 0 4px; line-height: 1.1; }
+    .inner-den { padding: 0 4px; line-height: 1.1; }
+    
+    .controls-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .eq-container { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; font-size: 3rem; font-weight: bold; }
+    .eq-fraction { display: inline-flex; flex-direction: column; align-items: center; font-size: 2.5rem; margin: 0 10px; }
+    
+    /* 吸着型点線枠のスタイル */
+    .drop-zone { width: 70px; height: 70px; border: 3px dashed #3498db; background-color: #f0f8ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 3.5rem; font-weight: bold; cursor: pointer; color: #333; flex-shrink: 0; }
+    .fraction-line { width: 100%; height: 5px; background-color: #000; margin: 8px 0; }
+    
+    /* ドラッグ＆ドロップ用の駒（1行レイアウト） */
+    .pieces-container { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 8px; margin-top: 5px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 100%; box-sizing: border-box; }
+    .piece { width: 60px; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 2.4rem; font-weight: bold; cursor: grab; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: none; flex-shrink: 0; }
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    .piece.dragging { position: fixed; z-index: 1000; pointer-events: none; opacity: 0.9; box-shadow: 0 10px 15px rgba(0,0,0,0.3); transform: scale(1.1); }
+    
+    .check-btn { padding: 0 25px; height: 60px; margin-left: 10px; font-size: 1.4rem; cursor: pointer; border: 2px solid #00bfff; background-color: #00bfff; color: #fff; font-weight: bold; border-radius: 8px; outline: none; box-shadow: 0 4px 0 #0088cc; -webkit-tap-highlight-color: transparent; touch-action: manipulation; flex-shrink: 0; }
+    .check-btn:active { transform: translateY(4px); box-shadow: none; }
+    .check-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: translateY(4px); box-shadow: none; }
+    
+    .instruction-red { color: red; font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; text-align: center; line-height: 1.5; }
+    
+    .judge-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.7); opacity: 0; visibility: hidden; color: #ff3333; font-size: 6rem; font-weight: bold; padding: 30px 60px; -webkit-text-stroke: 3px #000; text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5); z-index: 9999; pointer-events: none; transition: all 0.3s; white-space: nowrap; }
+    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
+    .judge-overlay.incorrect { color: #3366ff; }
+    
+    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
+    .clear-message h2 { font-size: 1.8rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .final-result-details { font-size: 1.4rem; color: #333; line-height: 1.8; }
+    .retry-btn, .menu-btn { padding: 12px 30px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 8px; outline: none; touch-action: manipulation; text-decoration: none; display: inline-block; margin: 10px;}
+    .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px;}
+    .menu-btn { background-color: #95a5a6; color: #fff; }
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .toggle-group { display: flex; gap: 15px; }
+    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; }
+    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
+    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>分数のひき算</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
+                <label class="settings-toggle"><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <div id="question-title" class="question-title-container">
+            ・ 次の分数のひき算を求めなさい。
+        </div>
+        
+        <div id="app"></div>
+        <div id="judge-overlay" class="judge-overlay"></div>
+    </div>
+
+    <script>
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function formatTime(date) { return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0') + ':' + date.getSeconds().toString().padStart(2, '0'); }
+        const numberReadings = ["ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう", "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"];
+
+        const allProblems = [];
+        for (let d = 2; d <= 8; d++) {
+            for (let n1 = 2; n1 <= d; n1++) {
+                for (let n2 = 1; n2 < n1; n2++) {
+                    allProblems.push({ den: d, n1: n1, n2: n2 });
+                }
+            }
+        }
+        for (let i = allProblems.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allProblems[i], allProblems[j]] = [allProblems[j], allProblems[i]];
+        }
+        const problems = allProblems.slice(0, 10); 
+        
+        let currentIndex = 0; 
+        let mistakeCount = 0; 
+        let problemStartTime;
+        const appContainer = document.getElementById('app');
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+            problemStartTime = new Date();
+
+            if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.getElementById('question-title').style.display = 'none';
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                clearMsg.innerHTML = `<h2>全10問合格！！</h2><div class="final-result-details"><div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>${mistakeCount === 0 ? '<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>' : ''}</div><button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button><a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                appContainer.appendChild(clearMsg);
+                speak("ぜんもんごうかくです。おつかれさまでした。");
+                return;
+            }
+            
+            const prob = problems[currentIndex]; 
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 10 問`;
+
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) { qSound.currentTime = 0; qSound.play().catch(e => {}); }
+            speak(`${prob.den}ぶんの${prob.n1}、ひく、${prob.den}ぶんの${prob.n2}、は`);
+
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+            const mainArea = document.createElement('div');
+            mainArea.className = 'problem-main';
+            
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'bar-wrapper';
+            barWrapper.innerHTML = `<div class="length-indicator-container"><div class="red-bar-indicator"></div><div class="indicator-label-center">1</div></div>`;
+            
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            
+            for(let i=0; i<prob.den; i++) {
+                const seg = document.createElement('div');
+                seg.className = 'segment';
+                if (i < prob.n1) {
+                    seg.classList.add('filled');
+                    seg.innerHTML = `<div class="inner-fraction"><div class="inner-num">1</div><div class="inner-den">${prob.den}</div></div>`;
+                    seg.onclick = function() {
+                        this.classList.toggle('gray-filled');
+                    };
+                }
+                bar.appendChild(seg);
+            }
+            barWrapper.appendChild(bar);
+            mainArea.appendChild(barWrapper);
+
+            const controlsArea = document.createElement('div');
+            controlsArea.className = 'controls-area';
+
+            const eqContainer = document.createElement('div');
+            eqContainer.className = 'eq-container';
+            
+            let firstTermHTML = '';
+            if (prob.n1 === prob.den) {
+                firstTermHTML = `<div>1</div>`;
+            } else {
+                firstTermHTML = `<div class="eq-fraction"><div class="inner-num" style="border-bottom: 3px solid #000;">${prob.n1}</div><div class="inner-den">${prob.den}</div></div>`;
+            }
+
+            eqContainer.innerHTML = `${firstTermHTML}<div style="margin: 0 15px;">ー</div><div class="eq-fraction"><div class="inner-num" style="border-bottom: 3px solid #000;">${prob.n2}</div><div class="inner-den">${prob.den}</div></div><div style="margin: 0 15px;">＝</div><div class="eq-fraction"><div class="drop-zone" id="ans-num"></div><div class="fraction-line"></div><div class="drop-zone" id="ans-den"></div></div>`;
+            controlsArea.appendChild(eqContainer);
+
+            const instruction = document.createElement('div');
+            instruction.className = 'instruction-red';
+            instruction.innerHTML = '※水色のブロックをタップして灰色にし、ひき算をしましょう。<br>※下の数字を指で移動して点線の枠の中に入れて答える。（枠をタップで消せます）';
+            controlsArea.appendChild(instruction);
+
+            // ドラッグ＆ドロップ用の駒と判定ボタン
+            const piecesContainer = document.createElement('div');
+            piecesContainer.className = 'pieces-container';
+            for (let i = 0; i <= 9; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.dataset.val = i;
+                piece.textContent = i;
+                piecesContainer.appendChild(piece);
+            }
+            
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+            piecesContainer.appendChild(checkBtn);
+            controlsArea.appendChild(piecesContainer);
+
+            container.appendChild(mainArea);
+            container.appendChild(controlsArea);
+            appContainer.appendChild(container);
+
+            [document.getElementById('ans-num'), document.getElementById('ans-den')].forEach(zone => {
+                zone.addEventListener('click', () => { 
+                    zone.textContent = ''; 
+                    speak("くりあ");
+                });
+            });
+
+            checkBtn.onclick = () => {
+                const boxNum = document.getElementById('ans-num');
+                const boxDen = document.getElementById('ans-den');
+                const numVal = boxNum.textContent;
+                const denVal = boxDen.textContent;
+                if(numVal === "" || denVal === "") return;
+                
+                const isCorrect = (parseInt(denVal) === prob.den && parseInt(numVal) === (prob.n1 - prob.n2));
+                
+                const endTime = new Date();
+                const problemType = `分数のひき算`;
+                const problemContent = `${prob.n1}/${prob.den} - ${prob.n2}/${prob.den}`;
+                const userAnswer = `${numVal}/${denVal}`;
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},"ドラッグ",${isCorrect ? "正解" : "不正解"}\n`;
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({ action: "saveCSV", csvLine: csvLine });
+                }
+
+                const overlay = document.getElementById('judge-overlay');
+                if (isCorrect) {
+                    overlay.textContent = 'せいかい！';
+                    overlay.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
+                    checkBtn.disabled = true; 
+                    document.querySelectorAll('.piece').forEach(b => b.style.pointerEvents = 'none');
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                    setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
+                } else {
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
+                    mistakeCount++; 
+                    if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
+                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                }
+            };
+        }
+
+        // ドラッグ＆ドロップ処理
+        let draggingPiece = null;
+        function handleStart(e) {
+            if (e.target.classList.contains('piece') && !e.target.classList.contains('dragging')) {
+                const val = e.target.dataset.val;
+                draggingPiece = document.createElement('div');
+                draggingPiece.className = 'piece dragging';
+                draggingPiece.textContent = val;
+                draggingPiece.dataset.val = val;
+                document.body.appendChild(draggingPiece);
+                movePiece(e);
+            }
+        }
+        function movePiece(e) {
+            if (!draggingPiece) return;
+            e.preventDefault(); 
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } 
+            else { clientX = e.clientX; clientY = e.clientY; }
+            draggingPiece.style.left = (clientX - 30) + 'px';
+            draggingPiece.style.top = (clientY - 30) + 'px';
+        }
+        function handleEnd(e) {
+            if (!draggingPiece) return;
+            draggingPiece.style.display = 'none';
+            let clientX, clientY;
+            if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } 
+            else { clientX = e.clientX; clientY = e.clientY; }
+            let elem = document.elementFromPoint(clientX, clientY);
+            draggingPiece.style.display = 'flex';
+            if (elem && elem.classList.contains('drop-zone')) {
+                let currentVal = elem.textContent;
+                let newVal = currentVal + draggingPiece.dataset.val;
+                if (newVal.length <= 2) { 
+                    elem.textContent = newVal;
+                    const parsedVal = parseInt(newVal, 10);
+                    if (parsedVal >= 0 && parsedVal <= 20) speak(numberReadings[parsedVal]); else speak(newVal);
+                }
+            }
+            draggingPiece.remove();
+            draggingPiece = null;
+        }
+
+        document.addEventListener('touchstart', handleStart, {passive: false});
+        document.addEventListener('touchmove', movePiece, {passive: false});
+        document.addEventListener('touchend', handleEnd);
+        document.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', movePiece);
+        document.addEventListener('mouseup', handleEnd);
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
+    </script>
+</body>
+</html>
