@@ -247,13 +247,12 @@
         margin: 0 5px;
     }
 
-    /* 💡修正：絶対に折り返さず、1行に収めるためのスタイル */
     .pieces-container {
         display: flex;
         justify-content: center;
         align-items: center;
-        flex-wrap: nowrap; /* 折り返し禁止 */
-        gap: 8px; /* 余白を微調整 */
+        flex-wrap: nowrap; 
+        gap: 8px; 
         margin-top: 5px;
         padding: 15px;
         background-color: #ecf0f1;
@@ -262,7 +261,7 @@
         box-sizing: border-box;
     }
     .piece {
-        width: 60px; /* サイズを微調整 */
+        width: 60px; 
         height: 60px;
         border: 2px solid #2c3e50;
         background-color: #f1c40f;
@@ -276,7 +275,7 @@
         color: #2c3e50;
         box-shadow: 0 4px 0 #d4ac0d;
         touch-action: none;
-        flex-shrink: 0; /* 縮小禁止 */
+        flex-shrink: 0; 
     }
     .piece:active {
         transform: translateY(4px);
@@ -293,8 +292,8 @@
     
     .check-btn {
         padding: 0 25px;
-        height: 60px; /* 駒の高さと完全に一致させる */
-        margin-left: 10px; /* 9からの距離 */
+        height: 60px; 
+        margin-left: 10px; 
         font-size: 1.4rem;
         cursor: pointer;
         border: 2px solid #00bfff;
@@ -306,7 +305,7 @@
         box-shadow: 0 4px 0 #0088cc;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
-        flex-shrink: 0; /* 縮小禁止 */
+        flex-shrink: 0; 
     }
     .check-btn:active {
         transform: translateY(4px);
@@ -336,7 +335,7 @@
         z-index: 9999;
         pointer-events: none;
         transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
-        white-space: nowrap;
+        white-space: nowrap; /* 💡折り返し禁止を追加 */
     }
     .judge-overlay.show {
         opacity: 1;
@@ -690,7 +689,7 @@
 
             container.appendChild(equationSection);
 
-            // 💡修正：0〜9の駒と判定ボタンを完全に1行に収める
+            // 0〜9の駒と判定ボタンを完全に1行に収める
             const piecesContainer = document.createElement('div');
             piecesContainer.className = 'pieces-container';
             for (let i = 0; i <= 9; i++) {
@@ -757,7 +756,7 @@
                     return;
                 }
 
-                // 途中式も完璧かチェック（n1とn2の順序は逆でも正解とする）
+                // 途中式も完璧かチェック
                 const sumN1Correct = (uSumN1 === prob.n1 && uSumN2 === prob.n2) || (uSumN1 === prob.n2 && uSumN2 === prob.n1);
                 const allCorrect = sumN1Correct && (uSumD === prob.d);
 
@@ -806,7 +805,6 @@
                 clientX = e.clientX;
                 clientY = e.clientY;
             }
-            // マウス・指の中心に駒が来るように調整
             draggingPiece.style.left = (clientX - 30) + 'px';
             draggingPiece.style.top = (clientY - 30) + 'px';
         }
@@ -826,7 +824,6 @@
             let elem = document.elementFromPoint(clientX, clientY);
             draggingPiece.style.display = 'flex';
             
-            // ドロップゾーンの上で離された場合
             if (elem && elem.classList.contains('drop-zone')) {
                 let currentVal = elem.textContent;
                 let newVal = currentVal + draggingPiece.dataset.val;

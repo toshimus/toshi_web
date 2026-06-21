@@ -302,6 +302,7 @@
         font-size: 6rem; font-weight: bold; padding: 30px 60px;
         -webkit-text-stroke: 3px #000; text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
         z-index: 9999; pointer-events: none; transition: all 0.3s;
+        white-space: nowrap; /* 💡修正：文字の折り返しを禁止して1行に収める */
     }
     .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
     .judge-overlay.incorrect { color: #3366ff; }
@@ -345,12 +346,10 @@
     </div>
 
     <script>
-        // 音声・効果音ファイル
         const okSound = new Audio('ok.mp3');
         const ngSound = new Audio('ng.mp3');
         const qSound = new Audio('q.mp3');
 
-        // 音声読み上げ（Web Speech API）
         function speak(text) {
             const speechCheckbox = document.getElementById('speech-checkbox');
             if (speechCheckbox && !speechCheckbox.checked) return; 
@@ -366,7 +365,6 @@
                    date.getSeconds().toString().padStart(2, '0');
         }
 
-        // 分母2〜8の全問題を生成してシャッフル
         const allProblems = [];
         for (let d = 2; d <= 8; d++) {
             for (let n = 1; n < d; n++) {
@@ -377,7 +375,7 @@
             const j = Math.floor(Math.random() * (i + 1));
             [allProblems[i], allProblems[j]] = [allProblems[j], allProblems[i]];
         }
-        const problems = allProblems.slice(0, 10); // ランダムに10問選出
+        const problems = allProblems.slice(0, 10); 
         
         let currentIndex = 0; 
         let mistakeCount = 0; 
@@ -389,7 +387,6 @@
             appContainer.innerHTML = '';
             problemStartTime = new Date();
 
-            // 全10問終了時の合格画面
             if (currentIndex >= problems.length) {
                 document.getElementById('status-bar').style.display = 'none';
                 document.getElementById('question-title').style.display = 'none';
@@ -415,7 +412,6 @@
             document.getElementById('status-bar').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 10 問`;
 
-            // 音声再生と問題文読み上げ
             const soundCheckbox = document.getElementById('sound-checkbox');
             if (soundCheckbox && soundCheckbox.checked) {
                 qSound.currentTime = 0; qSound.play().catch(e => {});
@@ -427,7 +423,6 @@
             const mainArea = document.createElement('div');
             mainArea.className = 'problem-main';
             
-            // 💡 ヒントバー1（1を表すバー）
             const bar1Wrapper = document.createElement('div');
             bar1Wrapper.className = 'bar-wrapper';
             bar1Wrapper.innerHTML = `
@@ -444,7 +439,6 @@
             `;
             mainArea.appendChild(bar1Wrapper);
 
-            // 💡 ヒントバー2（足す分数を表すバー）
             const bar2Wrapper = document.createElement('div');
             bar2Wrapper.className = 'bar-wrapper';
             bar2Wrapper.innerHTML = `
@@ -459,12 +453,10 @@
             const controlsArea = document.createElement('div');
             controlsArea.className = 'controls-area';
 
-            // できた！ボタンを作成
             const checkBtn = document.createElement('button');
             checkBtn.className = 'check-btn';
             checkBtn.textContent = 'できた！';
 
-            // 式エリアの構築（右端にできたボタンを配置）
             const eqContainer = document.createElement('div');
             eqContainer.className = 'eq-container';
             eqContainer.innerHTML = `
@@ -482,7 +474,6 @@
                 </div>
             `;
             
-            // できたボタンを解答欄のすぐ右隣に追加
             const btnWrapper = document.createElement('div');
             btnWrapper.style.marginLeft = '40px';
             btnWrapper.appendChild(checkBtn);
@@ -490,7 +481,6 @@
 
             controlsArea.appendChild(eqContainer);
 
-            // テンキーと注意書きの構築
             const instruction = document.createElement('div');
             instruction.className = 'instruction-red';
             instruction.innerHTML = '※下の数字を指で移動（またはタップ）して青い解答欄の中に入れて答える。<br>（青枠をタップすると数字を消せます）';
@@ -514,9 +504,6 @@
             container.appendChild(controlsArea);
             appContainer.appendChild(container);
 
-            // === 動的なDOM操作とイベント付与（HTMLが描画された後） ===
-            
-            // 入力枠のフォーカス切り替え
             let activeInputId = 'ans-num';
             const boxNum = document.getElementById('ans-num');
             const boxDen = document.getElementById('ans-den');
@@ -541,14 +528,13 @@
                 }
             };
 
-            // バー1の分割ロジック
             let currentDivisions = 1;
             const bar1 = document.getElementById('bar1');
             const updateBar1 = () => {
                 bar1.innerHTML = '';
                 for(let i=0; i<currentDivisions; i++){
                     const seg = document.createElement('div');
-                    seg.className = 'segment filled'; // 全面水色
+                    seg.className = 'segment filled'; 
                     if (currentDivisions === 1) {
                         seg.innerHTML = `<div class="inner-fraction"><div style="font-size:2rem; font-weight:bold;">1</div></div>`;
                     } else {
@@ -576,29 +562,25 @@
                 }
             };
 
-            // バー2（問題の分数）の描画ロジック
             const bar2 = document.getElementById('bar2');
             bar2.innerHTML = '';
             for(let i=0; i<prob.den; i++){
                 const seg = document.createElement('div');
                 seg.className = 'segment';
                 if(i < prob.num) {
-                    seg.classList.add('pink-filled'); // ピンク色に塗る
+                    seg.classList.add('pink-filled'); 
                     seg.innerHTML = `<div class="inner-fraction"><div class="inner-num">1</div><div class="inner-den">${prob.den}</div></div>`;
                 }
                 bar2.appendChild(seg);
             }
 
-            // 正誤判定ロジック
             checkBtn.onclick = () => {
                 const numVal = boxNum.textContent;
                 const denVal = boxDen.textContent;
                 if(numVal === "" || denVal === "") return;
                 
-                // 正解は、分母が同じで、分子が (分母 + 問題の分子)
                 const isCorrect = (parseInt(denVal) === prob.den && parseInt(numVal) === (prob.den + prob.num));
                 
-                // CSV連携
                 const endTime = new Date();
                 const problemType = `1＋分数のたし算(仮分数)`;
                 const problemContent = `1 + ${prob.num}/${prob.den}`;
@@ -636,7 +618,6 @@
             };
         }
 
-        // --- スタート処理ロジック ---
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
