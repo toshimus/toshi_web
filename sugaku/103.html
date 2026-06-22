@@ -466,12 +466,13 @@
         const overlay = document.getElementById('overlay');
         const calcContainer = document.getElementById('calc-container');
         let activeInputBox = null;
+        let baseValue = 0; /* +10ボタン用のベース値 */
 
         const calcKeys = [
             '7', '8', '9',
             '4', '5', '6',
             '1', '2', '3',
-            '0', '削除', '決定'
+            '0', '削除', '+10'
         ];
 
         calcKeys.forEach(key => {
@@ -483,27 +484,38 @@
                 piece.classList.add('delete-btn');
                 piece.addEventListener('click', () => {
                     if (activeInputBox) {
-                        activeInputBox.textContent = activeInputBox.textContent.slice(0, -1);
+                        activeInputBox.textContent = ''; // 内容をクリア
+                        baseValue = 0; // ベース値もリセット
                     }
                 });
-            } else if (key === '決定') {
+            } else if (key === '+10') {
                 piece.classList.add('enter-btn');
                 piece.addEventListener('click', () => {
-                    calcContainer.style.display = 'none';
-                    overlay.style.display = 'none';
-                    activeInputBox = null;
+                    if (activeInputBox) {
+                        baseValue += 10;
+                        activeInputBox.textContent = baseValue; // 一時的に表示
+                        speak("じゅう");
+                    }
                 });
             } else {
+                // 0〜9の数字ボタン（押した瞬間に確定して閉じる）
                 piece.addEventListener('click', () => {
-                    if (activeInputBox && activeInputBox.textContent.length < 2) {
-                        activeInputBox.textContent += key;
+                    if (activeInputBox) {
+                        const num = parseInt(key, 10);
+                        const finalValue = baseValue + num;
+                        activeInputBox.textContent = finalValue;
                         
-                        const parsedVal = parseInt(activeInputBox.textContent, 10);
-                        if (parsedVal >= 0 && parsedVal <= 20) {
-                            speak(numberReadings[parsedVal]);
+                        // 入力された数字を読み上げる
+                        if (finalValue >= 0 && finalValue <= 20) {
+                            speak(numberReadings[finalValue]);
                         } else {
-                            speak(activeInputBox.textContent);
+                            speak(finalValue.toString());
                         }
+
+                        // 即決でパネルを閉じる
+                        calcContainer.style.display = 'none';
+                        overlay.style.display = 'none';
+                        activeInputBox = null;
                     }
                 });
             }

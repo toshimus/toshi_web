@@ -390,17 +390,18 @@
         ];
 
         /* ==========================================
-           計算機パネルの構築とロジック（初期化）
+           計算機パネルの構築とロジック（改修版：即決入力）
            ========================================== */
         const overlay = document.getElementById('overlay');
         const calcContainer = document.getElementById('calc-container');
-        let activeInputBox = null;
+        let activeInputBox = null; /* タップされた入力枠を記録する変数 */
+        let baseValue = 0; /* +10ボタン用のベース値 */
 
         const calcKeys = [
             '7', '8', '9',
             '4', '5', '6',
             '1', '2', '3',
-            '0', '削除', '決定'
+            '0', '削除', '+10'
         ];
 
         calcKeys.forEach(key => {
@@ -412,27 +413,38 @@
                 piece.classList.add('delete-btn');
                 piece.addEventListener('click', () => {
                     if (activeInputBox) {
-                        activeInputBox.textContent = activeInputBox.textContent.slice(0, -1);
+                        activeInputBox.textContent = ''; // 内容をクリア
+                        baseValue = 0; // ベース値もリセット
                     }
                 });
-            } else if (key === '決定') {
+            } else if (key === '+10') {
                 piece.classList.add('enter-btn');
                 piece.addEventListener('click', () => {
-                    calcContainer.style.display = 'none';
-                    overlay.style.display = 'none';
-                    activeInputBox = null;
+                    if (activeInputBox) {
+                        baseValue += 10;
+                        activeInputBox.textContent = baseValue; // 一時的に表示
+                        speak("じゅう");
+                    }
                 });
             } else {
+                // 0〜9の数字ボタン（押した瞬間に確定して閉じる）
                 piece.addEventListener('click', () => {
-                    if (activeInputBox && activeInputBox.textContent.length < 2) {
-                        activeInputBox.textContent += key;
+                    if (activeInputBox) {
+                        const num = parseInt(key, 10);
+                        const finalValue = baseValue + num;
+                        activeInputBox.textContent = finalValue;
                         
-                        const parsedVal = parseInt(activeInputBox.textContent, 10);
-                        if (parsedVal >= 0 && parsedVal <= 20) {
-                            speak(numberReadings[parsedVal]);
+                        // 入力された数字を読み上げる
+                        if (finalValue >= 0 && finalValue <= 20) {
+                            speak(numberReadings[finalValue]);
                         } else {
-                            speak(activeInputBox.textContent);
+                            speak(finalValue.toString());
                         }
+
+                        // 即決でパネルを閉じる
+                        calcContainer.style.display = 'none';
+                        overlay.style.display = 'none';
+                        activeInputBox = null;
                     }
                 });
             }
@@ -490,7 +502,7 @@
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 8) + 3; 
+            const den = Math.floor(Math.random() * 8) + 3; // 分母は3から10
             const num = Math.floor(Math.random() * (den - 1)) + 1; 
             const fracKey = `${num}/${den}`;
             if (!seen.has(fracKey)) {
@@ -539,7 +551,6 @@
                 if (mistakeCount === 0) {
                     htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
                 }
-                
                 htmlContent += `</div>`;
                 htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
                 htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
@@ -555,6 +566,7 @@
             document.getElementById('question-title').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
+            // 問題提示音の再生
             const soundCheckbox = document.getElementById('sound-checkbox');
             if (soundCheckbox && soundCheckbox.checked) {
                 qSound.currentTime = 0;
@@ -566,9 +578,7 @@
             const container = document.createElement('div');
             container.className = 'problem-container';
 
-            const mainArea = document.createElement('div');
-            mainArea.className = 'problem-main';
-
+            // --- ビーカー描画エリア ---
             const beakerArea = document.createElement('div');
             beakerArea.className = 'beaker-area';
             
@@ -598,11 +608,11 @@
                 const countRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 countRect.setAttribute('x', '40');
                 countRect.setAttribute('y', segmentY.toString());
-                countRect.setAttribute('width', '90');
+                countRect.setAttribute('width', '90'); // ビーカー内幅
                 countRect.setAttribute('height', segmentHeight.toString());
-                countRect.setAttribute('fill', 'transparent'); 
-                countRect.setAttribute('class', 'countable-segment'); 
-                countRect.setAttribute('stroke', 'none');
+                countRect.setAttribute('fill', 'transparent'); // クリックを検知するため
+                countRect.setAttribute('class', 'countable-segment'); // CSSクラスを適用
+                countRect.setAttribute('stroke', 'none'); // 初期状態は枠線なし
 
                 // 押している間だけ赤枠を表示し、離すと消える制御
                 const showBox = function(e) {
@@ -629,6 +639,7 @@
             beakerOutline.setAttribute('fill', 'none');
             beakerOutline.setAttribute('stroke', '#000');
             beakerOutline.setAttribute('stroke-width', '4');
+            // 下の矩形のクリックを邪魔しないようにする
             beakerOutline.setAttribute('pointer-events', 'none'); 
             svg.appendChild(beakerOutline);
 
@@ -642,6 +653,7 @@
                 line.setAttribute('y2', yPos.toString());
                 line.setAttribute('stroke', '#000');
                 line.setAttribute('stroke-width', '2');
+                // 下の矩形のクリックを邪魔しないようにする
                 line.setAttribute('pointer-events', 'none'); 
                 svg.appendChild(line);
                 
@@ -651,6 +663,7 @@
                     label1L.setAttribute('y', '35');
                     label1L.setAttribute('font-size', '24');
                     label1L.setAttribute('font-weight', 'bold');
+                    // 下の矩形のクリックを邪魔しないようにする
                     label1L.setAttribute('pointer-events', 'none'); 
                     label1L.textContent = '1L';
                     svg.appendChild(label1L);
@@ -701,7 +714,7 @@
             countZone.id = 'ans-count';
             countZone.addEventListener('click', () => { 
                 countZone.textContent = ''; 
-                //speak("くりあ");
+                baseValue = 0; // 追加
                 activeInputBox = countZone;
                 calcContainer.style.display = 'flex';
                 overlay.style.display = 'block';
@@ -736,7 +749,7 @@
             numZone.id = 'ans-num';
             numZone.addEventListener('click', () => { 
                 numZone.textContent = ''; 
-                //speak("くりあ");
+                baseValue = 0; // 追加
                 activeInputBox = numZone;
                 calcContainer.style.display = 'flex';
                 overlay.style.display = 'block';
@@ -750,7 +763,7 @@
             denZone.id = 'ans-den';
             denZone.addEventListener('click', () => { 
                 denZone.textContent = ''; 
-                //speak("くりあ");
+                baseValue = 0; // 追加
                 activeInputBox = denZone;
                 calcContainer.style.display = 'flex';
                 overlay.style.display = 'block';
@@ -824,11 +837,11 @@
                     });
                 }
 
-                const judgeOverlay = document.getElementById('judge-overlay');
+                const overlay = document.getElementById('judge-overlay');
 
                 if (isCorrect) {
-                    judgeOverlay.textContent = '正解！';
-                    judgeOverlay.className = 'judge-overlay show';
+                    overlay.textContent = '正解！';
+                    overlay.className = 'judge-overlay show';
                     
                     if (soundCheckbox && soundCheckbox.checked) {
                         okSound.currentTime = 0;
@@ -838,7 +851,7 @@
                     checkBtn.disabled = true;
                     
                     setTimeout(() => {
-                        judgeOverlay.classList.remove('show');
+                        overlay.classList.remove('show');
                     }, 1200);
                     
                     setTimeout(() => {
@@ -846,8 +859,8 @@
                         renderProblem();
                     }, 1500);
                 } else {
-                    judgeOverlay.textContent = 'おしい！';
-                    judgeOverlay.className = 'judge-overlay incorrect show';
+                    overlay.textContent = 'おしい！';
+                    overlay.className = 'judge-overlay incorrect show';
                     mistakeCount++;
                     
                     if (soundCheckbox && soundCheckbox.checked) {
@@ -856,7 +869,7 @@
                     }
                     
                     setTimeout(() => {
-                        judgeOverlay.classList.remove('show');
+                        overlay.classList.remove('show');
                     }, 1200);
                 }
             });
