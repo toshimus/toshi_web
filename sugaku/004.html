@@ -23,6 +23,43 @@
         -webkit-user-select: none;
     }
     
+    /* スタート画面のスタイル */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
     /* 上部ステータスバーと問題文のスタイル */
     .status-bar {
         font-size: 1.4rem;
@@ -43,13 +80,13 @@
         margin-bottom: 10px;
         width: 100%;
         max-width: 900px;
-        align-items: center; /* 縦方向の中央揃えに変更 */
+        align-items: center;
     }
     
     .beaker-area {
-        width: 200px;
-        height: 250px;
-        margin-right: 30px;
+        width: 280px; 
+        height: 350px; 
+        margin-right: 40px;
         display: flex;
         justify-content: center;
         align-items: flex-end;
@@ -58,6 +95,18 @@
     .svg-container {
         width: 100%;
         height: 100%;
+    }
+    
+    /* SVG内のカウント用矩形のスタイル */
+    .countable-segment {
+        cursor: pointer;
+        outline: none; 
+        -webkit-tap-highlight-color: transparent;
+    }
+    .countable-segment.counted {
+        stroke: red;
+        stroke-width: 4px;
+        fill: rgba(255, 0, 0, 0.1);
     }
     
     .question-area {
@@ -282,29 +331,36 @@
 </head>
 <body>
 
-    <div class="top-nav">
-        <div class="toggle-group">
-            <label class="settings-toggle">
-                <input type="checkbox" id="speech-checkbox" checked>
-                スピーチON
-            </label>
-            <label class="settings-toggle">
-                <input type="checkbox" id="sound-checkbox" checked>
-                効果音ON
-            </label>
-        </div>
-        <a href="index.html" class="back-btn">メニューへ戻る</a>
+    <div id="start-screen" class="start-screen">
+        <h1>水のかさ（分数）</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
     </div>
-    
-    <div id="status-bar" class="status-bar"></div>
-    <h1 class="question-title" id="question-title">・ 図を見て、水のかさを答えましょう。</h1>
-    
-    <div id="app"></div>
-    
-    <div id="judge-overlay" class="judge-overlay"></div>
 
-    <div class="overlay" id="overlay"></div>
-    <div class="pieces-container" id="calc-container"></div>
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle">
+                    <input type="checkbox" id="speech-checkbox" checked>
+                    スピーチON
+                </label>
+                <label class="settings-toggle">
+                    <input type="checkbox" id="sound-checkbox" checked>
+                    効果音ON
+                </label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title" id="question-title">・ 図を見て、水のかさを答えましょう。</h1>
+        
+        <div id="app"></div>
+        
+        <div id="judge-overlay" class="judge-overlay"></div>
+
+        <div class="overlay" id="overlay"></div>
+        <div class="pieces-container" id="calc-container"></div>
+    </div>
 
     <script>
         // 音声ファイル（mp3）のセットアップ
@@ -327,7 +383,7 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        // 読み上げ用の数字辞書（0〜20）
+        // 読み上げ用の数字辞書
         const numberReadings = [
             "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
             "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
@@ -338,7 +394,7 @@
            ========================================== */
         const overlay = document.getElementById('overlay');
         const calcContainer = document.getElementById('calc-container');
-        let activeInputBox = null; /* タップされた入力枠を記録する変数 */
+        let activeInputBox = null;
 
         const calcKeys = [
             '7', '8', '9',
@@ -371,7 +427,6 @@
                     if (activeInputBox && activeInputBox.textContent.length < 2) {
                         activeInputBox.textContent += key;
                         
-                        // 入力された数字を読み上げる
                         const parsedVal = parseInt(activeInputBox.textContent, 10);
                         if (parsedVal >= 0 && parsedVal <= 20) {
                             speak(numberReadings[parsedVal]);
@@ -435,7 +490,7 @@
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 8) + 3; // 分母は3から10
+            const den = Math.floor(Math.random() * 8) + 3; 
             const num = Math.floor(Math.random() * (den - 1)) + 1; 
             const fracKey = `${num}/${den}`;
             if (!seen.has(fracKey)) {
@@ -484,6 +539,7 @@
                 if (mistakeCount === 0) {
                     htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
                 }
+                
                 htmlContent += `</div>`;
                 htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
                 htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
@@ -499,7 +555,6 @@
             document.getElementById('question-title').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
-            // 問題提示音の再生
             const soundCheckbox = document.getElementById('sound-checkbox');
             if (soundCheckbox && soundCheckbox.checked) {
                 qSound.currentTime = 0;
@@ -511,7 +566,9 @@
             const container = document.createElement('div');
             container.className = 'problem-container';
 
-            // --- ビーカー描画エリア ---
+            const mainArea = document.createElement('div');
+            mainArea.className = 'problem-main';
+
             const beakerArea = document.createElement('div');
             beakerArea.className = 'beaker-area';
             
@@ -522,6 +579,7 @@
             svg.setAttribute('height', '100%');
             svg.setAttribute('viewBox', '0 0 150 250');
             
+            // 水の描画
             const waterHeight = (200 / prob.den) * prob.num;
             const waterY = 220 - waterHeight;
             const water = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -532,13 +590,49 @@
             water.setAttribute('fill', '#e0f0fa');
             svg.appendChild(water);
 
+            // カウント用の透明な矩形群の描画
+            for (let i = 0; i < prob.den; i++) {
+                const segmentHeight = 200 / prob.den;
+                const segmentY = 220 - segmentHeight * (i + 1);
+                
+                const countRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                countRect.setAttribute('x', '40');
+                countRect.setAttribute('y', segmentY.toString());
+                countRect.setAttribute('width', '90');
+                countRect.setAttribute('height', segmentHeight.toString());
+                countRect.setAttribute('fill', 'transparent'); 
+                countRect.setAttribute('class', 'countable-segment'); 
+                countRect.setAttribute('stroke', 'none');
+
+                // 押している間だけ赤枠を表示し、離すと消える制御
+                const showBox = function(e) {
+                    this.classList.add('counted');
+                };
+                const hideBox = function(e) {
+                    this.classList.remove('counted');
+                };
+
+                countRect.addEventListener('mousedown', showBox);
+                countRect.addEventListener('touchstart', showBox, {passive: true});
+                
+                countRect.addEventListener('mouseup', hideBox);
+                countRect.addEventListener('mouseleave', hideBox);
+                countRect.addEventListener('touchend', hideBox);
+                countRect.addEventListener('touchcancel', hideBox);
+                
+                svg.appendChild(countRect);
+            }
+
+            // ビーカーの輪郭描画
             const beakerOutline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
             beakerOutline.setAttribute('points', '40,20 40,220 130,220 130,20');
             beakerOutline.setAttribute('fill', 'none');
             beakerOutline.setAttribute('stroke', '#000');
             beakerOutline.setAttribute('stroke-width', '4');
+            beakerOutline.setAttribute('pointer-events', 'none'); 
             svg.appendChild(beakerOutline);
 
+            // 目盛りの線描画
             for (let i = 0; i <= prob.den; i++) {
                 const yPos = 220 - (200 / prob.den) * i;
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -548,6 +642,7 @@
                 line.setAttribute('y2', yPos.toString());
                 line.setAttribute('stroke', '#000');
                 line.setAttribute('stroke-width', '2');
+                line.setAttribute('pointer-events', 'none'); 
                 svg.appendChild(line);
                 
                 if (i === prob.den) {
@@ -556,6 +651,7 @@
                     label1L.setAttribute('y', '35');
                     label1L.setAttribute('font-size', '24');
                     label1L.setAttribute('font-weight', 'bold');
+                    label1L.setAttribute('pointer-events', 'none'); 
                     label1L.textContent = '1L';
                     svg.appendChild(label1L);
                     
@@ -566,6 +662,7 @@
                     topDecorL.setAttribute('y2', '20');
                     topDecorL.setAttribute('stroke', '#000');
                     topDecorL.setAttribute('stroke-width', '2');
+                    topDecorL.setAttribute('pointer-events', 'none'); 
                     svg.appendChild(topDecorL);
                     
                     const topDecorR = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -575,6 +672,7 @@
                     topDecorR.setAttribute('y2', '20');
                     topDecorR.setAttribute('stroke', '#000');
                     topDecorR.setAttribute('stroke-width', '2');
+                    topDecorR.setAttribute('pointer-events', 'none'); 
                     svg.appendChild(topDecorR);
                 }
             }
@@ -726,11 +824,11 @@
                     });
                 }
 
-                const overlay = document.getElementById('judge-overlay');
+                const judgeOverlay = document.getElementById('judge-overlay');
 
                 if (isCorrect) {
-                    overlay.textContent = '正解！';
-                    overlay.className = 'judge-overlay show';
+                    judgeOverlay.textContent = '正解！';
+                    judgeOverlay.className = 'judge-overlay show';
                     
                     if (soundCheckbox && soundCheckbox.checked) {
                         okSound.currentTime = 0;
@@ -740,7 +838,7 @@
                     checkBtn.disabled = true;
                     
                     setTimeout(() => {
-                        overlay.classList.remove('show');
+                        judgeOverlay.classList.remove('show');
                     }, 1200);
                     
                     setTimeout(() => {
@@ -748,8 +846,8 @@
                         renderProblem();
                     }, 1500);
                 } else {
-                    overlay.textContent = 'おしい！';
-                    overlay.className = 'judge-overlay incorrect show';
+                    judgeOverlay.textContent = 'おしい！';
+                    judgeOverlay.className = 'judge-overlay incorrect show';
                     mistakeCount++;
                     
                     if (soundCheckbox && soundCheckbox.checked) {
@@ -758,13 +856,18 @@
                     }
                     
                     setTimeout(() => {
-                        overlay.classList.remove('show');
+                        judgeOverlay.classList.remove('show');
                     }, 1200);
                 }
             });
         }
 
-        renderProblem();
+        // --- スタートボタンのイベントリスナー ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
     </script>
 </body>
 </html>

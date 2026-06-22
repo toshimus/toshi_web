@@ -21,6 +21,43 @@
         box-sizing: border-box;
     }
     
+    /* スタート画面のスタイル */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
     /* 上部ステータスバーと問題文のスタイル */
     .status-bar {
         font-size: 1.2rem;
@@ -262,26 +299,33 @@
 </head>
 <body>
 
-    <div class="top-nav">
-        <div class="toggle-group">
-            <label class="settings-toggle">
-                <input type="checkbox" id="speech-checkbox" checked>
-                スピーチON
-            </label>
-            <label class="settings-toggle">
-                <input type="checkbox" id="sound-checkbox" checked>
-                効果音ON
-            </label>
-        </div>
-        <a href="index.html" class="back-btn">メニューへ戻る</a>
+    <div id="start-screen" class="start-screen">
+        <h1>分数の色塗り（円）</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
     </div>
-    
-    <div id="status-bar" class="status-bar"></div>
-    <h1 class="question-title">・ 次の分数の分だけ色をぬりましょう。</h1>
-    
-    <div id="app"></div>
-    
-    <div id="judge-overlay" class="judge-overlay"></div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle">
+                    <input type="checkbox" id="speech-checkbox" checked>
+                    スピーチON
+                </label>
+                <label class="settings-toggle">
+                    <input type="checkbox" id="sound-checkbox" checked>
+                    効果音ON
+                </label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title" id="question-title">・ 次の分数の分だけ色をぬりましょう。</h1>
+        
+        <div id="app"></div>
+        
+        <div id="judge-overlay" class="judge-overlay"></div>
+    </div>
 
     <script>
         // 音声ファイル（mp3）のセットアップ
@@ -349,7 +393,7 @@
 
             if (currentIndex >= problems.length) {
                 document.getElementById('status-bar').style.display = 'none';
-                document.querySelector('.question-title').style.display = 'none';
+                document.getElementById('question-title').style.display = 'none';
                 
                 const clearMsg = document.createElement('div');
                 clearMsg.className = 'clear-message';
@@ -382,7 +426,7 @@
             }
             
             document.getElementById('status-bar').style.display = 'block';
-            document.querySelector('.question-title').style.display = 'block';
+            document.getElementById('question-title').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
             const prob = problems[currentIndex];
@@ -585,7 +629,12 @@
             appContainer.appendChild(container);
         }
 
-        renderProblem();
+        // --- スタートボタンのイベントリスナー ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
     </script>
 </body>
 </html>
