@@ -22,6 +22,45 @@
         user-select: none;
         -webkit-user-select: none;
     }
+
+    /* ==========================================
+       スタート画面のスタイル
+       ========================================== */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
     
     .status-bar {
         font-size: 1.4rem;
@@ -111,10 +150,10 @@
     
     .check-btn-container {
         display: flex;
-        justify-content: flex-end;
+        justify-content: center;
         width: 100%;
         max-width: 800px;
-        margin-top: 10px;
+        margin-top: 15px;
         margin-left: auto;
         margin-right: auto;
     }
@@ -122,20 +161,25 @@
         padding: 15px 40px;
         font-size: 1.3rem;
         cursor: pointer;
-        border: 1px solid #999;
-        background-color: #f0f0f0;
+        border: 2px solid #00bfff;
+        background-color: #00bfff;
+        color: #fff;
+        font-weight: bold;
         border-radius: 8px;
-        font-family: inherit;
         outline: none;
+        box-shadow: 0 4px 0 #0088cc;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
     }
     .check-btn:active {
-        background-color: #dcdcdc;
+        transform: translateY(4px);
+        box-shadow: none;
     }
     .check-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: translateY(4px);
+        box-shadow: none;
     }
     
     .judge-overlay {
@@ -242,9 +286,9 @@
     }
 
     /* ==========================================
-       計算機パネルとオーバーレイのスタイル追加
+       計算機パネルとオーバーレイのスタイル
        ========================================== */
-    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
+    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
     .pieces-container:active { cursor: grabbing; }
     
     .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
@@ -258,28 +302,35 @@
 </head>
 <body>
 
-    <div class="top-nav">
-        <div class="toggle-group">
-            <label class="settings-toggle">
-                <input type="checkbox" id="speech-checkbox" checked>
-                スピーチON
-            </label>
-            <label class="settings-toggle">
-                <input type="checkbox" id="sound-checkbox" checked>
-                効果音ON
-            </label>
-        </div>
-        <a href="index.html" class="back-btn">メニューへ戻る</a>
+    <div id="start-screen" class="start-screen">
+        <h1>分母と分子</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
     </div>
-    
-    <div id="status-bar" class="status-bar"></div>
-    <h1 class="question-title" id="question-title">・ 次の分数の分母、分子はそれぞれいくつでしょう。</h1>
-    
-    <div id="app"></div>
-    <div id="judge-overlay" class="judge-overlay"></div>
 
-    <div class="overlay" id="overlay"></div>
-    <div class="pieces-container" id="calc-container"></div>
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle">
+                    <input type="checkbox" id="speech-checkbox" checked>
+                    スピーチON
+                </label>
+                <label class="settings-toggle">
+                    <input type="checkbox" id="sound-checkbox" checked>
+                    効果音ON
+                </label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title" id="question-title">・ 次の分数の分母、分子はそれぞれいくつでしょう。</h1>
+        
+        <div id="app"></div>
+        <div id="judge-overlay" class="judge-overlay"></div>
+
+        <div class="overlay" id="overlay"></div>
+        <div class="pieces-container" id="calc-container"></div>
+    </div>
 
     <script>
         const okSound = new Audio('ok.mp3');
@@ -401,18 +452,8 @@
         /* ==========================================
            問題生成と判定ロジック
            ========================================== */
-        const problems = [];
-        const seen = new Set();
-        while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 9) + 2; 
-            const num = Math.floor(Math.random() * (den - 1)) + 1;
-            const fracKey = `${num}/${den}`;
-            if (!seen.has(fracKey)) {
-                seen.add(fracKey);
-                problems.push({ num: num, den: den });
-            }
-        }
-
+        
+        // 配列をシャッフルする関数
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -420,12 +461,36 @@
             }
         }
 
+        // 分子5問、分母5問のターゲット配列を作成してシャッフル
+        const targets = ['den', 'den', 'den', 'den', 'den', 'num', 'num', 'num', 'num', 'num'];
+        shuffleArray(targets);
+
+        const problems = [];
+        const seen = new Set();
+        while (problems.length < 10) {
+            const den = Math.floor(Math.random() * 9) + 2; 
+            const num = Math.floor(Math.random() * (den - 1)) + 1;
+            const fracKeyBase = `${num}/${den}`;
+            if (!seen.has(fracKeyBase)) {
+                seen.add(fracKeyBase);
+                // ターゲットを順番に割り当てる
+                problems.push({ num: num, den: den, target: targets[problems.length] });
+            }
+        }
+        // 問題の順番自体もシャッフルする
         shuffleArray(problems);
+
         let currentIndex = 0;
         let mistakeCount = 0;
         const appContainer = document.getElementById('app');
         
         let problemStartTime = new Date();
+
+        function formatDate(date) {
+            return date.getFullYear() + '/' + 
+                   (date.getMonth() + 1).toString().padStart(2, '0') + '/' + 
+                   date.getDate().toString().padStart(2, '0');
+        }
 
         function formatTime(date) {
             return date.getHours().toString().padStart(2, '0') + ':' + 
@@ -462,8 +527,13 @@
                 return;
             }
 
+            const prob = problems[currentIndex];
+            const isDenTarget = (prob.target === 'den');
+
+            /* 動的に問題指示文を変更 */
             document.getElementById('status-bar').style.display = 'block';
             document.getElementById('question-title').style.display = 'block';
+            document.getElementById('question-title').textContent = `・ 次の分数の${isDenTarget ? '分母' : '分子'}はいくつでしょう。`;
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
             const soundCheckbox = document.getElementById('sound-checkbox');
@@ -471,8 +541,7 @@
                 qSound.currentTime = 0;
                 qSound.play().catch(e => console.log("Auto-play blocked:", e));
             }
-
-            const prob = problems[currentIndex];
+            speak(`${prob.den}ぶんの${prob.num}の、${isDenTarget ? 'ぶんぼ' : 'ぶんし'}は、いくつでしょう。`);
 
             const container = document.createElement('div');
             container.className = 'problem-container';
@@ -499,48 +568,49 @@
             const answerPanel = document.createElement('div');
             answerPanel.className = 'answer-panel';
 
-            // 分母
-            const denRow = document.createElement('div');
-            denRow.className = 'input-row';
-            const denLabel = document.createElement('div');
-            denLabel.className = 'answer-label';
-            denLabel.textContent = '分母：';
-            const denZone = document.createElement('div');
-            denZone.className = 'drop-zone';
-            denZone.id = 'ans-den';
-            denZone.addEventListener('click', () => { 
-                denZone.textContent = ''; 
-                speak("くりあ");
-                activeInputBox = denZone;
-                calcContainer.style.display = 'flex';
-                overlay.style.display = 'block';
-            });
-            denRow.appendChild(denLabel);
-            denRow.appendChild(denZone);
+            if (isDenTarget) {
+                // 分母が問題のとき（分子の行は作らない）
+                const denRow = document.createElement('div');
+                denRow.className = 'input-row';
+                const denLabel = document.createElement('div');
+                denLabel.className = 'answer-label';
+                denLabel.textContent = '分母：';
+                const denZone = document.createElement('div');
+                denZone.className = 'drop-zone';
+                denZone.id = 'ans-den';
+                denZone.addEventListener('click', () => { 
+                    denZone.textContent = ''; 
+                    speak("くりあ");
+                    activeInputBox = denZone;
+                    calcContainer.style.display = 'flex';
+                    overlay.style.display = 'block';
+                });
+                denRow.appendChild(denLabel);
+                denRow.appendChild(denZone);
+                answerPanel.appendChild(denRow);
+            } else {
+                // 分子が問題のとき（分母の行は作らない）
+                const numRow = document.createElement('div');
+                numRow.className = 'input-row';
+                const numLabel = document.createElement('div');
+                numLabel.className = 'answer-label';
+                numLabel.textContent = '分子：';
+                const numZone = document.createElement('div');
+                numZone.className = 'drop-zone';
+                numZone.id = 'ans-num';
+                numZone.addEventListener('click', () => { 
+                    numZone.textContent = ''; 
+                    speak("くりあ");
+                    activeInputBox = numZone;
+                    calcContainer.style.display = 'flex';
+                    overlay.style.display = 'block';
+                });
+                numRow.appendChild(numLabel);
+                numRow.appendChild(numZone);
+                answerPanel.appendChild(numRow);
+            }
 
-            // 分子
-            const numRow = document.createElement('div');
-            numRow.className = 'input-row';
-            const numLabel = document.createElement('div');
-            numLabel.className = 'answer-label';
-            numLabel.textContent = '分子：';
-            const numZone = document.createElement('div');
-            numZone.className = 'drop-zone';
-            numZone.id = 'ans-num';
-            numZone.addEventListener('click', () => { 
-                numZone.textContent = ''; 
-                speak("くりあ");
-                activeInputBox = numZone;
-                calcContainer.style.display = 'flex';
-                overlay.style.display = 'block';
-            });
-            numRow.appendChild(numLabel);
-            numRow.appendChild(numZone);
-
-            answerPanel.appendChild(denRow);
-            answerPanel.appendChild(numRow);
             container.appendChild(answerPanel);
-
             appContainer.appendChild(container);
 
             // --- 計算機入力用のヒントテキスト ---
@@ -559,22 +629,38 @@
             appContainer.appendChild(checkBtnContainer);
 
             checkBtn.addEventListener('click', () => {
-                const userDen = parseInt(document.getElementById('ans-den').textContent, 10);
-                const userNum = parseInt(document.getElementById('ans-num').textContent, 10);
+                let isCorrect = false;
+                let userAnswer = "";
+                let userDen = "";
+                let userNum = "";
 
-                if (isNaN(userDen) || isNaN(userNum)) return;
-
-                const isCorrect = (userDen === prob.den) && (userNum === prob.num);
+                if (isDenTarget) {
+                    const ansDenEl = document.getElementById('ans-den');
+                    if (!ansDenEl.textContent) return;
+                    userDen = parseInt(ansDenEl.textContent, 10);
+                    isCorrect = (userDen === prob.den);
+                    userAnswer = `分母入力:${userDen}`;
+                } else {
+                    const ansNumEl = document.getElementById('ans-num');
+                    if (!ansNumEl.textContent) return;
+                    userNum = parseInt(ansNumEl.textContent, 10);
+                    isCorrect = (userNum === prob.num);
+                    userAnswer = `分子入力:${userNum}`;
+                }
                 
                 const endTime = new Date();
-                const problemType = "分母と分子";
+                const dateStr = formatDate(problemStartTime);
+                const problemType = `分母と分子（${isDenTarget ? '分母クイズ' : '分子クイズ'}）`;
                 const problemContent = `${prob.num}/${prob.den}`;
-                const userAnswer = `分母:${userDen}, 分子:${userNum}`;
                 const inputMethod = "計算機入力";
                 const resultStr = isCorrect ? "正解" : "不正解";
                 
-                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                const csvLine = `"${dateStr}","${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
                 
+                let currentHistory = localStorage.getItem('calc_app_history') || '';
+                currentHistory += csvLine;
+                localStorage.setItem('calc_app_history', currentHistory);
+
                 if (window.webkit && window.webkit.messageHandlers.appBridge) {
                     window.webkit.messageHandlers.appBridge.postMessage({
                         action: "saveCSV",
@@ -582,33 +668,38 @@
                     });
                 }
 
-                const overlay = document.getElementById('judge-overlay');
+                const overlayJudge = document.getElementById('judge-overlay');
 
                 if (isCorrect) {
-                    overlay.textContent = '正解！';
-                    overlay.className = 'judge-overlay show';
+                    overlayJudge.textContent = '正解！';
+                    overlayJudge.className = 'judge-overlay show';
                     if (soundCheckbox && soundCheckbox.checked) {
                         okSound.currentTime = 0;
                         okSound.play();
                     }
                     checkBtn.disabled = true;
                     
-                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
                     setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
                 } else {
-                    overlay.textContent = 'おしい！';
-                    overlay.className = 'judge-overlay incorrect show';
+                    overlayJudge.textContent = 'おしい！';
+                    overlayJudge.className = 'judge-overlay incorrect show';
                     mistakeCount++;
                     if (soundCheckbox && soundCheckbox.checked) {
                         ngSound.currentTime = 0;
                         ngSound.play();
                     }
-                    setTimeout(() => { overlay.classList.remove('show'); }, 1200);
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
                 }
             });
         }
 
-        renderProblem();
+        // --- スタートボタンのイベントリスナー ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
     </script>
 </body>
 </html>
