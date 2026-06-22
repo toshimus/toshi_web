@@ -346,6 +346,7 @@
                 zone.addEventListener('click', () => { 
                     zone.textContent = ''; 
                     //speak("くりあ");
+                    baseValue = 0; // ベース値をリセット
                     activeInputBox = zone;
                     calcContainer.style.display = 'flex';
                     overlay.style.display = 'block';

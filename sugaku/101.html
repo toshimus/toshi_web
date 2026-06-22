@@ -705,6 +705,7 @@
                     box.onclick = function() {
                         this.textContent = '';
                         //speak("くりあ");
+                        baseValue = 0; /* ← 追加：枠をタップするたびに+10の記憶を0にリセット */
                         activeInputBox = this;
                         calcContainer.style.display = 'flex';
                         overlay.style.display = 'block';

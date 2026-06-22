@@ -754,6 +754,7 @@
             zones.forEach(zone => {
                 zone.addEventListener('click', () => { 
                     zone.textContent = ''; 
+                    baseValue = 0; // ベース値をリセット
                     activeInputBox = zone;
                     calcContainer.style.display = 'flex';
                     overlay.style.display = 'block';

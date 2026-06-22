@@ -598,6 +598,7 @@
             numZone.addEventListener('click', () => { 
                 numZone.textContent = ''; 
                 //speak("くりあ");
+                baseValue = 0; // ベース値をリセット
                 activeInputBox = numZone;
                 calcContainer.style.display = 'flex';
                 overlay.style.display = 'block';
@@ -613,6 +614,7 @@
             denZone.addEventListener('click', () => { 
                 denZone.textContent = ''; 
                 //speak("くりあ");
+                baseValue = 0; // ベース値をリセット
                 activeInputBox = denZone;
                 calcContainer.style.display = 'flex';
                 overlay.style.display = 'block';
