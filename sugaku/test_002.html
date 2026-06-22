@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ドラッグ＆ドロップ学習用サンプル（iPad連動版）</title>
+<style>
+    /* 全体レイアウトの設定 */
+    html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; }
+    body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #ffffff; user-select: none; -webkit-user-select: none; }
+    
+    /* 問題文のスタイル */
+    .question-title { font-size: 2rem; font-weight: bold; margin-bottom: 20px; text-align: center; }
+
+    /* 回答入力エリアのスタイル */
+    .answer-panel { display: flex; justify-content: center; align-items: center; background-color: #f9f9f9; padding: 20px; border-radius: 12px; border: 1px solid #ddd; width: fit-content; margin: 0 auto 20px auto; }
+    .answer-label { font-size: 1.5rem; font-weight: bold; margin-right: 20px; }
+    
+    /* ドロップゾーン（はめ込む枠）のスタイル */
+    .drop-zone { width: 80px; height: 80px; border: 2px dashed #3498db; background-color: #f0f8ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 3rem; font-weight: bold; cursor: pointer; color: #333; }
+
+    /* ヒントテキスト */
+    .hint-text { text-align: center; color: #e74c3c; font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; }
+    
+    /* 駒とボタンを入れるコンテナ */
+    .pieces-container { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 6px; padding: 10px; background-color: #ecf0f1; border-radius: 12px; max-width: 800px; margin: 0 auto; box-sizing: border-box; }
+    
+    /* 数字の駒単体のスタイル */
+    .piece { flex: 1 1 0; max-width: 55px; height: 55px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 2rem; font-weight: bold; cursor: grab; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: none; }
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    
+    /* ドラッグ中に浮き上がる分身のスタイル（幅固定修正済み） */
+    .piece.dragging { position: fixed; z-index: 1000; pointer-events: none; opacity: 0.9; box-shadow: 0 10px 15px rgba(0,0,0,0.3); transform: scale(1.1); width: 55px; }
+    
+    /* できた！ボタンのスタイル */
+    .check-btn { flex: 2 1 0; max-width: 120px; height: 55px; margin-left: 5px; font-size: 1.2rem; font-weight: bold; color: #ffffff; cursor: pointer; border: none; background-color: #00bfff; border-radius: 10px; box-shadow: 0 4px 0 #008ecc; touch-action: manipulation; }
+    .check-btn:active { transform: translateY(4px); box-shadow: none; }
+</style>
+</head>
+<body>
+
+    <h1 class="question-title">ここに問題がきます！</h1>
+    
+    <div class="answer-panel">
+        <div class="answer-label">答え：</div>
+        <div class="drop-zone" id="ans-box"></div>
+    </div>
+    
+    <div class="hint-text">駒（こま）をドラッグして枠にはめよう！※枠をタップすると数字を消せます</div>
+
+    <div class="pieces-container" id="pieces-container"></div>
+
+    <script>
+        /* ==========================================
+           1. 画面の要素（UI）の準備と時間管理
+           ========================================== */
+        const piecesContainer = document.getElementById('pieces-container');
+        const ansBox = document.getElementById('ans-box');
+        
+        /* 画面が開かれた時間（問題開始時間）を記録しておきます */
+        let startTime = new Date();
+
+        /**
+         * CSV配信用にお知らせする時間を「hh:mm:ss」の形式に整形する関数
+         */
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        /* 枠をタップしたら、中の数字を空にする処理 */
+        ansBox.addEventListener('click', () => { 
+            ansBox.textContent = ''; 
+        });
+
+        /* 0〜9の数字の駒を作って並べる処理 */
+        for (let i = 0; i <= 9; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.dataset.val = i;
+            piece.textContent = i;
+            piecesContainer.appendChild(piece);
+        }
+
+        /* 「できた！」ボタンを作って一番右に置く処理 */
+        const checkBtn = document.createElement('button');
+        checkBtn.className = 'check-btn';
+        checkBtn.textContent = 'できた！';
+        piecesContainer.appendChild(checkBtn);
+
+        /* ==========================================
+           【重要】Swiftへのデータ送信処理
+           ========================================== */
+        checkBtn.addEventListener('click', () => {
+            const answer = ansBox.textContent; /* 枠の中の文字を取得します */
+            if (answer === '') {
+                alert('枠の中に数字がありません。');
+                return; /* 空欄の場合はここで処理を中断します */
+            }
+
+            const endTime = new Date(); /* ボタンを押した時間（終了時間）を記録します */
+            
+            /* Swift側に送るためのデータを用意します */
+            const problemType = "シンプル版テスト";
+            const problemContent = "ここに問題がきます！";
+            const userAnswer = answer;
+            const inputMethod = "ドラッグ＆ドロップ";
+            const resultStr = "判定なし"; /* シンプル版なので正誤判定は省いています */
+            
+            /* Swift（iOSネイティブ側）へ渡すCSVフォーマットのテキスト行を作成します */
+            const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(startTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+            
+            /* window.webkitが存在するかどうかで、実行環境（iPadかPCか）を判別します */
+            if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                /* --- iPadのWKWebView環境で動いている場合 --- */
+                window.webkit.messageHandlers.appBridge.postMessage({
+                    action: "saveCSV",
+                    csvLine: csvLine
+                });
+                alert('iPadアプリ（Swift）へデータを送信しました。');
+            } else {
+                /* --- パソコンのブラウザ等で動いている場合（テスト用） --- */
+                alert(`※パソコンで起動しているため、Swiftへの送信は行われません。\n\n【作成されたCSVデータ】\n${csvLine}`);
+            }
+
+            /* 送信が終わったら、枠を空にして時間をリセットし、次の入力に備えます */
+            ansBox.textContent = '';
+            startTime = new Date();
+        });
+
+        /* ==========================================
+           2. ドラッグ＆ドロップの仕組み（コア部分）
+           ========================================== */
+        let draggingPiece = null;
+
+        /* [A] さわった時（ドラッグ開始） */
+        function handleStart(e) {
+            if (e.target.classList.contains('piece') && !e.target.classList.contains('dragging')) {
+                const val = e.target.dataset.val;
+                
+                draggingPiece = document.createElement('div');
+                draggingPiece.className = 'piece dragging';
+                draggingPiece.textContent = val;
+                draggingPiece.dataset.val = val;
+                
+                document.body.appendChild(draggingPiece);
+                movePiece(e);
+            }
+        }
+
+        /* [B] 動かしている時（ドラッグ中） */
+        function movePiece(e) {
+            if (!draggingPiece) return;
+            e.preventDefault();
+            
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            draggingPiece.style.left = (clientX - 25) + 'px';
+            draggingPiece.style.top = (clientY - 25) + 'px';
+        }
+
+        /* [C] はなした時（ドロップ判定） */
+        function handleEnd(e) {
+            if (!draggingPiece) return;
+            
+            draggingPiece.style.display = 'none'; 
+            
+            let clientX, clientY;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            let elem = document.elementFromPoint(clientX, clientY);
+            
+            if (elem && elem.classList.contains('drop-zone')) {
+                let currentVal = elem.textContent;
+                let newVal = currentVal + draggingPiece.dataset.val;
+                
+                if (newVal.length <= 2) { 
+                    elem.textContent = newVal;
+                }
+            }
+            
+            draggingPiece.remove();
+            draggingPiece = null;
+        }
+
+        document.addEventListener('touchstart', handleStart, {passive: false});
+        document.addEventListener('touchmove', movePiece, {passive: false});
+        document.addEventListener('touchend', handleEnd);
+        
+        document.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', movePiece);
+        document.addEventListener('mouseup', handleEnd);
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LocalStorage ビューアー（日付分割出力対応）</title>
+<style>
+    body { 
+        font-family: sans-serif; 
+        padding: 20px; 
+        background-color: #f4f6f8; 
+        color: #333; 
+        margin: 0;
+    }
+    h1 { 
+        font-size: 1.5rem; 
+        border-bottom: 2px solid #3498db; 
+        padding-bottom: 10px; 
+        margin-top: 0;
+    }
+    .controls { 
+        margin-bottom: 20px; 
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    button { 
+        padding: 10px 15px; 
+        font-size: 1rem; 
+        cursor: pointer; 
+        border: none; 
+        border-radius: 5px; 
+        color: #fff; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: opacity 0.2s;
+    }
+    button:active {
+        transform: translateY(2px);
+        box-shadow: none;
+    }
+    button:hover {
+        opacity: 0.8;
+    }
+    .btn-refresh { background-color: #3498db; }
+    .btn-clear { background-color: #e74c3c; }
+    .btn-export { background-color: #2ecc71; }
+    
+    table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        background-color: #fff; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    th, td { 
+        padding: 12px 15px; 
+        border: 1px solid #ddd; 
+        text-align: left; 
+        word-break: break-all; 
+    }
+    th { 
+        background-color: #2c3e50; 
+        color: #fff; 
+    }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .empty-msg { 
+        text-align: center; 
+        font-style: italic; 
+        color: #7f8c8d; 
+        padding: 20px; 
+    }
+    .btn-delete-item { 
+        background-color: #f39c12; 
+        padding: 6px 12px; 
+        font-size: 0.9rem; 
+    }
+    .col-checkbox {
+        text-align: center;
+        width: 5%;
+    }
+</style>
+</head>
+<body>
+    <h1>LocalStorage ビューアー</h1>
+    
+    <div class="controls">
+        <button class="btn-refresh" onclick="renderTable()">↻ 最新状態に更新</button>
+        <button class="btn-export" onclick="exportSplitByDateCSV()">📥 選択データを日付ごとに分割してCSV書き出し</button>
+        <button class="btn-clear" onclick="clearAll()">⚠ 全て消去</button>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th class="col-checkbox"><input type="checkbox" id="check-all" onclick="toggleAll(this)"></th>
+                <th style="width: 20%;">キー (Key)</th>
+                <th style="width: 60%;">値 (Value)</th>
+                <th style="width: 15%;">操作</th>
+            </tr>
+        </thead>
+        <tbody id="storage-body">
+            </tbody>
+    </table>
+
+    <script>
+        const tbody = document.getElementById('storage-body');
+
+        /* LocalStorageの内容をテーブルに描画する処理 */
+        function renderTable() {
+            tbody.innerHTML = '';
+            const len = localStorage.length;
+
+            const checkAllBtn = document.getElementById('check-all');
+            if (checkAllBtn) checkAllBtn.checked = false;
+
+            if (len === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">LocalStorageに保存されているデータはありません。</td></tr>';
+                return;
+            }
+
+            for (let i = 0; i < len; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                const tr = document.createElement('tr');
+                
+                const tdCheck = document.createElement('td');
+                tdCheck.className = 'col-checkbox';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'row-checkbox';
+                cb.value = key;
+                tdCheck.appendChild(cb);
+
+                const tdKey = document.createElement('td');
+                tdKey.textContent = key;
+                
+                const tdValue = document.createElement('td');
+                tdValue.textContent = value;
+                
+                const tdAction = document.createElement('td');
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn-delete-item';
+                delBtn.textContent = '削除';
+                delBtn.onclick = () => deleteItem(key);
+                tdAction.appendChild(delBtn);
+
+                tr.appendChild(tdCheck);
+                tr.appendChild(tdKey);
+                tr.appendChild(tdValue);
+                tr.appendChild(tdAction);
+                
+                tbody.appendChild(tr);
+            }
+        }
+
+        /* 全選択・全解除の切り替え処理 */
+        function toggleAll(source) {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = source.checked;
+            });
+        }
+
+        /* データの中身を解析し、日付ごとに分割してCSVとして書き出す処理 */
+        function exportSplitByDateCSV() {
+            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('書き出すデータが選択されていません。');
+                return;
+            }
+
+            /* 抽出したデータを日付ごとに格納するためのオブジェクト */
+            let groupedData = {}; 
+
+            checkboxes.forEach(cb => {
+                const key = cb.value;
+                const value = localStorage.getItem(key);
+                if (value !== null) {
+                    /* 改行コードで1行ずつに分割します */
+                    const lines = value.split('\n');
+                    
+                    lines.forEach(line => {
+                        if (line.trim() === '') return; /* 空行はスキップします */
+
+                        let dateKey = 'unknown_date'; /* 日付が判定できなかった場合のデフォルト値 */
+                        
+                        /* パターン1: "YYYY/MM/DD" (最新のフォーマット) */
+                        let matchNew = line.match(/(?:^|,)\s*"?(\d{4})\/(\d{1,2})\/(\d{1,2})"?/);
+                        /* パターン2: YYYY年M月D日 (過去プロジェクトのフォーマット) */
+                        let matchOld = line.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+
+                        if (matchNew) {
+                            /* YYYYMMDD の形式に整形します */
+                            dateKey = matchNew[1] + matchNew[2].padStart(2, '0') + matchNew[3].padStart(2, '0');
+                        } else if (matchOld) {
+                            dateKey = matchOld[1] + matchOld[2].padStart(2, '0') + matchOld[3].padStart(2, '0');
+                        }
+
+                        /* グループ分けオブジェクトの初期化 */
+                        if (!groupedData[dateKey]) groupedData[dateKey] = {};
+                        if (!groupedData[dateKey][key]) groupedData[dateKey][key] = [];
+                        
+                        /* 該当する日付・キーの配列に行を追加します */
+                        groupedData[dateKey][key].push(line);
+                    });
+                }
+            });
+
+            let exportedFilesCount = 0;
+
+            /* グループ化されたデータから個別のCSVファイルを生成し、ダウンロードを実行します */
+            for (const dateKey in groupedData) {
+                for (const key in groupedData[dateKey]) {
+                    const lines = groupedData[dateKey][key];
+                    const csvContent = lines.join('\n') + '\n';
+                    
+                    /* BOMを付与してExcelでの文字化けを防ぎます */
+                    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+                    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${key}_${dateKey}.csv`; /* 例: calc_app_history_20260622.csv */
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    exportedFilesCount++;
+                }
+            }
+
+            /* 処理完了後、チェックを外します */
+            const checkAllBtn = document.getElementById('check-all');
+            if (checkAllBtn) checkAllBtn.checked = false;
+            checkboxes.forEach(cb => cb.checked = false);
+
+            /* 複数ファイルが生成された場合、ブラウザの設定によってはダウンロード許可のポップアップが出ることがあります */
+            alert(`データを解析し、${exportedFilesCount} 個のCSVファイルに分割して書き出しました。`);
+        }
+
+        /* 個別のデータを削除する処理 */
+        function deleteItem(key) {
+            if (confirm(`キー「${key}」のデータを削除してもよろしいですか？`)) {
+                localStorage.removeItem(key);
+                renderTable();
+            }
+        }
+
+        /* 全てのデータを消去する処理 */
+        function clearAll() {
+            if (localStorage.length === 0) {
+                alert('消去するデータがありません。');
+                return;
+            }
+            if (confirm('LocalStorageの全データを消去します。本当によろしいですか？\n※他のシステムが保存したデータも消去される可能性があります。')) {
+                localStorage.clear();
+                renderTable();
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', renderTable);
+    </script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ドラッグ＆ドロップ学習用サンプル</title>
+<style>
+    /* 全体レイアウトの設定 */
+    html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; }
+    body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #ffffff; user-select: none; -webkit-user-select: none; }
+    
+    /* 問題文のスタイル */
+    .question-title { font-size: 2rem; font-weight: bold; margin-bottom: 20px; text-align: center; }
+
+    /* 回答入力エリアのスタイル */
+    .answer-panel { display: flex; justify-content: center; align-items: center; background-color: #f9f9f9; padding: 20px; border-radius: 12px; border: 1px solid #ddd; width: fit-content; margin: 0 auto 20px auto; }
+    .answer-label { font-size: 1.5rem; font-weight: bold; margin-right: 20px; }
+    
+    /* ドロップゾーン（はめ込む枠）のスタイル */
+    .drop-zone { width: 80px; height: 80px; border: 2px dashed #3498db; background-color: #f0f8ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 3rem; font-weight: bold; cursor: pointer; color: #333; }
+
+    /* ヒントテキスト */
+    .hint-text { text-align: center; color: #e74c3c; font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; }
+    
+    /* 駒とボタンを入れるコンテナ */
+    .pieces-container { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 6px; padding: 10px; background-color: #ecf0f1; border-radius: 12px; max-width: 800px; margin: 0 auto; box-sizing: border-box; }
+    
+    /* 数字の駒単体のスタイル */
+    .piece { flex: 1 1 0; max-width: 55px; height: 55px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 2rem; font-weight: bold; cursor: grab; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: none; }
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    
+    /* ドラッグ中に浮き上がる分身のスタイル */
+    .piece.dragging { position: fixed; z-index: 1000; pointer-events: none; opacity: 0.9; box-shadow: 0 10px 15px rgba(0,0,0,0.3); transform: scale(1.1); width: 55px;}
+    
+    /* できた！ボタンのスタイル */
+    .check-btn { flex: 2 1 0; max-width: 120px; height: 55px; margin-left: 5px; font-size: 1.2rem; font-weight: bold; color: #ffffff; cursor: pointer; border: none; background-color: #00bfff; border-radius: 10px; box-shadow: 0 4px 0 #008ecc; touch-action: manipulation; }
+    .check-btn:active { transform: translateY(4px); box-shadow: none; }
+</style>
+</head>
+<body>
+
+    <h1 class="question-title">ここに問題がきます！</h1>
+    
+    <div class="answer-panel">
+        <div class="answer-label">答え：</div>
+        <div class="drop-zone" id="ans-box"></div>
+    </div>
+    
+    <div class="hint-text">駒（こま）をドラッグして枠にはめよう！※枠をタップすると数字を消せます</div>
+
+    <div class="pieces-container" id="pieces-container"></div>
+
+    <script>
+        /* ==========================================
+           1. 画面の要素（UI）の準備
+           ========================================== */
+        const piecesContainer = document.getElementById('pieces-container');
+        const ansBox = document.getElementById('ans-box');
+
+        /* 枠をタップしたら、中の数字を空にする処理 */
+        ansBox.addEventListener('click', () => { 
+            ansBox.textContent = ''; 
+        });
+
+        /* 0〜9の数字の駒を作って並べる処理 */
+        for (let i = 0; i <= 10; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.dataset.val = i;  /* 見えないデータとして数値を記憶させます */
+            piece.textContent = i;  /* 画面に表示する数字です */
+            piecesContainer.appendChild(piece);
+        }
+
+        /* 「できた！」ボタンを作って一番右に置く処理 */
+        const checkBtn = document.createElement('button');
+        checkBtn.className = 'check-btn';
+        checkBtn.textContent = 'できた！';
+        piecesContainer.appendChild(checkBtn);
+
+        /* 「できた！」ボタンが押された時の処理 */
+        checkBtn.addEventListener('click', () => {
+            const answer = ansBox.textContent; /* 枠の中の文字を取得します */
+            if (answer === '') {
+                alert('枠の中に数字がありません。');
+            } else {
+                /* 本番環境ではここで正誤判定やデータ送信を行いますが、今回は画面に表示するだけです */
+                alert(`解答として「 ${answer} 」を記録しました。`);
+            }
+        });
+
+        /* ==========================================
+           2. ドラッグ＆ドロップの仕組み（コア部分）
+           ========================================== */
+        let draggingPiece = null; /* 指についてくる「分身」を入れておく変数です */
+
+        /* [A] さわった時（ドラッグ開始） */
+        function handleStart(e) {
+            /* 触ったものが「piece（駒）」だったら */
+            if (e.target.classList.contains('piece') && !e.target.classList.contains('dragging')) {
+                const val = e.target.dataset.val;
+                
+                /* 指の動きに追従させるための「分身（クローン）」を作ります */
+                draggingPiece = document.createElement('div');
+                draggingPiece.className = 'piece dragging';
+                draggingPiece.textContent = val;
+                draggingPiece.dataset.val = val;
+                
+                document.body.appendChild(draggingPiece);
+                movePiece(e); /* 指の場所に分身を瞬間移動させます */
+            }
+        }
+
+        /* [B] 動かしている時（ドラッグ中） */
+        function movePiece(e) {
+            if (!draggingPiece) return; /* 分身がいなければ何もしません */
+            e.preventDefault(); /* スマホで画面全体がスクロールしてしまうのを防ぎます */
+            
+            /* タッチ操作かマウス操作かを判定して座標を取得します */
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            /* 分身の中心が指の真下にくるように、座標をズラして配置します */
+            draggingPiece.style.left = (clientX - 25) + 'px';
+            draggingPiece.style.top = (clientY - 25) + 'px';
+        }
+
+        /* [C] はなした時（ドロップ判定） */
+        function handleEnd(e) {
+            if (!draggingPiece) return;
+            
+            /* 指を離した場所の「下」に何があるかを調べるため、分身を一時的に透明（非表示）にします */
+            draggingPiece.style.display = 'none'; 
+            
+            let clientX, clientY;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            /* 指を離した座標にあるHTML要素を取得します */
+            let elem = document.elementFromPoint(clientX, clientY);
+            
+            /* その要素が「drop-zone（はめ込む枠）」だった場合 */
+            if (elem && elem.classList.contains('drop-zone')) {
+                /* 枠に入っている数字の右側に、持ってきた数字をくっつけます（例："1" + "2" = "12"） */
+                let currentVal = elem.textContent;
+                let newVal = currentVal + draggingPiece.dataset.val;
+                
+                /* 最大2桁（99まで）に制限します */
+                if (newVal.length <= 2) { 
+                    elem.textContent = newVal;
+                }
+            }
+            
+            /* 使い終わった分身を画面から完全に消去します */
+            draggingPiece.remove();
+            draggingPiece = null;
+        }
+
+        /* 画面全体に、タッチとマウス両方のイベントを登録します */
+        document.addEventListener('touchstart', handleStart, {passive: false});
+        document.addEventListener('touchmove', movePiece, {passive: false});
+        document.addEventListener('touchend', handleEnd);
+        
+        document.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', movePiece);
+        document.addEventListener('mouseup', handleEnd);
+
+    </script>
+</body>
+</html>

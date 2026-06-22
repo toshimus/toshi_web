@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>計算機入力学習用サンプル</title>
+<style>
+    /* 全体レイアウトの設定 */
+    html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; }
+    body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #ffffff; user-select: none; -webkit-user-select: none; }
+    
+    /* 問題文のスタイル */
+    .question-title { font-size: 2rem; font-weight: bold; margin-bottom: 20px; text-align: center; }
+
+    /* 回答入力エリアのスタイル */
+    .answer-panel { display: flex; justify-content: center; align-items: center; background-color: #f9f9f9; padding: 20px; border-radius: 12px; border: 1px solid #ddd; width: fit-content; margin: 0 auto 20px auto; }
+    .answer-label { font-size: 1.5rem; font-weight: bold; margin-right: 20px; }
+    
+    /* ドロップゾーン（はめ込む枠）のスタイル */
+    .drop-zone { width: 80px; height: 80px; border: 2px dashed #3498db; background-color: #f0f8ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 3rem; font-weight: bold; cursor: pointer; color: #333; }
+
+    /* ヒントテキスト */
+    .hint-text { text-align: center; color: #e74c3c; font-size: 1.1rem; font-weight: bold; margin-bottom: 20px; }
+    
+    /* 計算機パネル（ドラッグ移動可能に変更） */
+    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
+    .pieces-container:active { cursor: grabbing; }
+    
+    /* 計算機のキー */
+    .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    
+    /* 特殊キー（削除、決定）の追加スタイル */
+    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
+    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
+    
+    /* できた！ボタンのスタイル（メイン画面用） */
+    .check-btn { display: block; width: 200px; height: 60px; margin: 20px auto; font-size: 1.5rem; font-weight: bold; color: #ffffff; cursor: pointer; border: none; background-color: #00bfff; border-radius: 10px; box-shadow: 0 4px 0 #008ecc; touch-action: manipulation; }
+    .check-btn:active { transform: translateY(4px); box-shadow: none; }
+    
+    /* 背景のオーバーレイ（計算機表示時に背景を暗くする） */
+    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+</style>
+</head>
+<body>
+
+    <h1 class="question-title">ここに問題がきます！</h1>
+    
+    <div class="answer-panel">
+        <div class="answer-label">答え：</div>
+        <div class="drop-zone" id="ans-box"></div>
+    </div>
+    
+    <div class="hint-text">枠をタップして、計算機で数字を入力してください</div>
+
+    <button class="check-btn" id="check-btn">できた！</button>
+
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="pieces-container" id="pieces-container"></div>
+
+    <script>
+        /* ==========================================
+           1. 画面の要素（UI）の準備
+           ========================================== */
+        const piecesContainer = document.getElementById('pieces-container');
+        const ansBox = document.getElementById('ans-box');
+        const checkBtn = document.getElementById('check-btn');
+        const overlay = document.getElementById('overlay');
+
+        /* 枠をタップしたら、計算機パネルを表示する処理 */
+        ansBox.addEventListener('click', () => { 
+            piecesContainer.style.display = 'flex'; 
+            overlay.style.display = 'block';
+        });
+
+        /* オーバーレイ（暗い背景）をタップしたら計算機を閉じる処理 */
+        overlay.addEventListener('click', () => {
+            piecesContainer.style.display = 'none';
+            overlay.style.display = 'none';
+        });
+
+        /* ==========================================
+           2. 計算機パネルの構築と入力ロジック
+           ========================================== */
+        const calcKeys = [
+            '7', '8', '9',
+            '4', '5', '6',
+            '1', '2', '3',
+            '0', '削除', '決定'
+        ];
+
+        calcKeys.forEach(key => {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.textContent = key;
+            
+            if (key === '削除') {
+                piece.classList.add('delete-btn');
+                piece.addEventListener('click', () => {
+                    ansBox.textContent = ansBox.textContent.slice(0, -1);
+                });
+            } else if (key === '決定') {
+                piece.classList.add('enter-btn');
+                piece.addEventListener('click', () => {
+                    piecesContainer.style.display = 'none';
+                    overlay.style.display = 'none';
+                });
+            } else {
+                piece.addEventListener('click', () => {
+                    if (ansBox.textContent.length < 2) {
+                        ansBox.textContent += key;
+                    }
+                });
+            }
+            piecesContainer.appendChild(piece);
+        });
+
+        /* ==========================================
+           3. 最終回答の判定処理
+           ========================================== */
+        checkBtn.addEventListener('click', () => {
+            const answer = ansBox.textContent;
+            if (answer === '') {
+                alert('枠の中に数字がありません。');
+            } else {
+                alert(`解答として「 ${answer} 」を記録しました。`);
+            }
+        });
+
+        /* ==========================================
+           4. 計算機パネルのドラッグ移動ロジック
+           ========================================== */
+        let isDragging = false;
+        let dragStartX, dragStartY, initialLeft, initialTop;
+
+        /* ドラッグ開始 */
+        function startDrag(e) {
+            /* タッチ・クリックした要素がボタン(.piece)ならドラッグを開始しない */
+            if (e.target.classList.contains('piece')) return;
+            
+            isDragging = true;
+            
+            /* タッチかマウスかで座標の取得方法を分けます */
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            dragStartX = clientX;
+            dragStartY = clientY;
+            
+            /* 現在のパネルの座標（px）を取得して記録します */
+            let style = window.getComputedStyle(piecesContainer);
+            initialLeft = parseFloat(style.left);
+            initialTop = parseFloat(style.top);
+        }
+
+        /* ドラッグ中 */
+        function doDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault(); /* スクロールなどのデフォルト動作を防ぎます */
+            
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            /* 移動量を計算します */
+            let dx = clientX - dragStartX;
+            let dy = clientY - dragStartY;
+            
+            /* パネルの座標を更新します */
+            piecesContainer.style.left = (initialLeft + dx) + 'px';
+            piecesContainer.style.top = (initialTop + dy) + 'px';
+        }
+
+        /* ドラッグ終了 */
+        function stopDrag() {
+            isDragging = false;
+        }
+
+        /* マウス用イベント */
+        piecesContainer.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', doDrag, { passive: false });
+        document.addEventListener('mouseup', stopDrag);
+
+        /* スマホ・タブレット（タッチ）用イベント */
+        piecesContainer.addEventListener('touchstart', startDrag, { passive: false });
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('touchend', stopDrag);
+
+    </script>
+</body>
+</html>
