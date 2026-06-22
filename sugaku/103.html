@@ -728,7 +728,7 @@
             opEq2.textContent = '＝';
             opEq2.style.display = 'none';
 
-            // ステップ2：最終的な答え
+            // ステップ2：最終的な答えの分数
             const step2 = document.createElement('div');
             step2.className = 'step-container';
             step2.style.display = 'none';
@@ -739,6 +739,23 @@
             const zoneFinalD = document.createElement('div'); zoneFinalD.className = 'drop-zone'; zoneFinalD.id = 'ans-final-den';
             finalFrac.appendChild(zoneFinalN); finalFrac.appendChild(line3); finalFrac.appendChild(zoneFinalD);
             step2.appendChild(finalFrac);
+
+            // イコールボタン3（分子分母が同じ場合のみ表示される）
+            const opEq3 = document.createElement('div');
+            opEq3.className = 'eq-btn';
+            opEq3.textContent = '＝';
+            opEq3.style.display = 'none';
+
+            // ステップ3：最終的な答えが1になる場合の入力枠
+            const step3 = document.createElement('div');
+            step3.className = 'step-container';
+            step3.style.display = 'none';
+            const zoneFinalWhole = document.createElement('div');
+            zoneFinalWhole.className = 'drop-zone';
+            zoneFinalWhole.id = 'ans-final-whole';
+            zoneFinalWhole.style.width = '55px';
+            zoneFinalWhole.style.height = '55px';
+            step3.appendChild(zoneFinalWhole);
 
             // ボタンのクリックイベント（展開）
             opEq1.addEventListener('click', () => {
@@ -753,15 +770,28 @@
                 if(opEq2.classList.contains('eq-btn')) {
                     opEq2.className = 'operator-eq';
                     step2.style.display = 'flex';
+                    
+                    // 分子と分母が同じになるかチェック
+                    const correctFinalN = prob.n1 + prob.n2;
+                    const correctFinalD = prob.d;
+                    if (correctFinalN === correctFinalD) {
+                        opEq3.style.display = 'flex';
+                    }
+                    speak("イコール");
+                }
+            });
+            opEq3.addEventListener('click', () => {
+                if(opEq3.classList.contains('eq-btn')) {
+                    opEq3.className = 'operator-eq';
+                    step3.style.display = 'flex';
                     speak("イコール");
                 }
             });
 
             // ドロップゾーンのタップで計算機ポップアップ
-            [zoneSumN1, zoneSumN2, zoneSumD, zoneFinalN, zoneFinalD].forEach(zone => {
+            [zoneSumN1, zoneSumN2, zoneSumD, zoneFinalN, zoneFinalD, zoneFinalWhole].forEach(zone => {
                 zone.addEventListener('click', () => { 
                     zone.textContent = ''; 
-                    speak("くりあ");
                     activeInputBox = zone;
                     calcContainer.style.display = 'flex';
                     overlay.style.display = 'block';
@@ -773,13 +803,14 @@
             equationSection.appendChild(step1);
             equationSection.appendChild(opEq2);
             equationSection.appendChild(step2);
+            equationSection.appendChild(opEq3);
+            equationSection.appendChild(step3);
 
             container.appendChild(equationSection);
 
             // --- 計算機入力用のヒントテキスト ---
             const hintText = document.createElement('div');
             hintText.className = 'instruction-red';
-            hintText.style.marginTop = '15px';
             hintText.innerHTML = '※枠をタップして、計算機で数字を入力してください';
             container.appendChild(hintText);
 
@@ -798,28 +829,42 @@
             checkBtn.addEventListener('click', () => {
                 const overlayJudge = document.getElementById('judge-overlay');
 
-                // 入力値の取得
-                const uFinalN = parseInt(document.getElementById('ans-final-num').textContent, 10);
-                const uFinalD = parseInt(document.getElementById('ans-final-den').textContent, 10);
-
-                if (isNaN(uFinalN) || isNaN(uFinalD)) return; 
-
-                // 正解の計算
-                const correctFinalN = prob.n1 + prob.n2;
-                const correctFinalD = prob.d;
-                
-                const lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
-                
-                // 途中式の取得
+                // 途中式および最終式の入力値の取得
                 const uSumN1 = parseInt(document.getElementById('ans-sum-num-1').textContent, 10);
                 const uSumN2 = parseInt(document.getElementById('ans-sum-num-2').textContent, 10);
                 const uSumD = parseInt(document.getElementById('ans-sum-den').textContent, 10);
 
+                const uFinalN = parseInt(document.getElementById('ans-final-num').textContent, 10);
+                const uFinalD = parseInt(document.getElementById('ans-final-den').textContent, 10);
+
+                if (isNaN(uFinalN) || isNaN(uFinalD) || isNaN(uSumN1) || isNaN(uSumN2) || isNaN(uSumD)) return; 
+
+                // 正解の計算
+                const correctFinalN = prob.n1 + prob.n2;
+                const correctFinalD = prob.d;
+                const needsWhole = (correctFinalN === correctFinalD);
+                
+                let lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
+                let uFinalWhole = null;
+
+                // 1 になる場合の追加判定
+                if (needsWhole) {
+                    const boxFinalWhole = document.getElementById('ans-final-whole');
+                    if (!boxFinalWhole || boxFinalWhole.textContent === "") return;
+                    uFinalWhole = parseInt(boxFinalWhole.textContent, 10);
+                    if (uFinalWhole !== 1) {
+                        lastCorrect = false;
+                    }
+                }
+
                 // CSV連携
                 const endTime = new Date();
-                const problemType = "分母が同じたし算";
+                const problemType = "分母が同じ分数のたし算";
                 const problemContent = `${prob.n1}/${prob.d} + ${prob.n2}/${prob.d}`;
-                const userAnswer = `途中:(${uSumN1}+${uSumN2})/${uSumD}, 最終:${uFinalN}/${uFinalD}`;
+                let userAnswer = `途中:(${uSumN1}+${uSumN2})/${uSumD}, 最終:${uFinalN}/${uFinalD}`;
+                if (needsWhole && uFinalWhole !== null) {
+                    userAnswer += `=${uFinalWhole}`;
+                }
                 const inputMethod = "計算機入力";
                 const resultStr = lastCorrect ? "正解" : "不正解";
                 

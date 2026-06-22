@@ -81,7 +81,7 @@
         flex-direction: column;
         margin-bottom: 10px;
         width: 100%;
-        max-width: 900px;
+        max-width: 950px;
         margin-left: auto;
         margin-right: auto;
     }
@@ -96,13 +96,13 @@
         width: 100%;
         display: flex;
         flex-direction: column;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     
     .length-indicator-container {
         position: relative;
         width: 100%;
-        height: 35px; 
+        height: 30px; 
         margin-bottom: 5px;
         display: flex;
         align-items: center; 
@@ -145,7 +145,7 @@
     .bar {
         display: flex;
         width: 100%;
-        height: 60px;
+        height: 50px;
         border: 2px solid #000;
         box-sizing: border-box;
     }
@@ -171,7 +171,7 @@
         align-items: center;
         justify-content: center;
         height: 100%;
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         font-weight: bold;
     }
     .inner-num {
@@ -191,34 +191,86 @@
         width: 100%;
     }
 
-    .eq-container {
+    /* 段階的な計算式エリア */
+    .equation-section {
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-wrap: wrap;
-        margin-bottom: 25px;
-        font-size: 3rem;
+        font-size: 1.6rem;
         font-weight: bold;
+        margin-bottom: 15px;
+        flex-wrap: wrap; 
+        width: 100%;
+        background-color: #fff;
+        padding: 15px 5px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .step-container {
+        display: flex;
+        align-items: center;
+    }
+    .operator {
+        margin: 0 8px;
+        color: #555;
+        flex-shrink: 0;
+        font-size: 2.2rem;
+    }
+    .operator-eq {
+        margin: 0 15px; 
+        color: #555;
+        flex-shrink: 0;
+        font-size: 2.2rem;
+    }
+    .eq-btn {
+        margin: 0 15px;
+        color: #fff;
+        background-color: #3498db;
+        border-radius: 8px;
+        padding: 0 15px;
+        height: 40px;
+        font-size: 1.8rem;
+        font-weight: bold;
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 0 #2980b9;
+        transition: all 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .eq-btn:active {
+        transform: translateY(4px);
+        box-shadow: none;
     }
     .eq-fraction {
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        font-size: 2.5rem;
-        margin: 0 10px;
+        margin: 0 8px;
+    }
+    .eq-fraction .inner-num {
+        border-bottom: 3px solid #000;
+        padding: 0 5px;
+        font-size: 2.2rem;
+    }
+    .eq-fraction .inner-den {
+        padding: 0 5px;
+        font-size: 2.2rem;
     }
 
     /* 吸着型点線枠のスタイル */
     .drop-zone {
-        width: 70px;
-        height: 70px;
-        border: 3px dashed #3498db;
+        width: 50px;
+        height: 50px;
+        border: 2px dashed #3498db;
         background-color: #f0f8ff;
-        border-radius: 8px;
+        border-radius: 6px;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 3.5rem;
+        font-size: 2.2rem;
         font-weight: bold;
         cursor: pointer;
         color: #333;
@@ -226,9 +278,9 @@
     }
     .fraction-line {
         width: 100%;
-        height: 5px;
+        height: 3px;
         background-color: #000;
-        margin: 8px 0;
+        margin: 5px 0;
     }
 
     .instruction-red {
@@ -245,7 +297,7 @@
         width: 100%;
         display: flex;
         justify-content: center;
-        margin-top: 10px;
+        margin-top: 5px;
     }
     .check-btn {
         padding: 15px 50px;
@@ -270,13 +322,13 @@
 
     /* その他共通UI */
     .div-btn {
-        width: 45px; height: 45px; font-size: 1.6rem;
+        width: 40px; height: 40px; font-size: 1.4rem;
         cursor: pointer; border: 1px solid #999;
         background-color: #fff; border-radius: 8px;
-        margin: 0 10px;
+        margin: 0 8px;
     }
     .division-label {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         color: #555;
         margin-left: 10px;
     }
@@ -409,7 +461,6 @@
                     if (activeInputBox && activeInputBox.textContent.length < 2) {
                         activeInputBox.textContent += key;
                         
-                        // 入力された数字を読み上げる
                         const parsedVal = parseInt(activeInputBox.textContent, 10);
                         if (parsedVal >= 0 && parsedVal <= 20) {
                             speak(numberReadings[parsedVal]);
@@ -556,23 +607,85 @@
             const controlsArea = document.createElement('div');
             controlsArea.className = 'controls-area';
 
-            const eqContainer = document.createElement('div');
-            eqContainer.className = 'eq-container';
-            eqContainer.innerHTML = `
-                <div>1</div>
-                <div style="margin: 0 15px;">＋</div>
-                <div class="eq-fraction">
-                    <div class="inner-num" style="border-bottom: 3px solid #000;">${prob.num}</div>
+            // --- 段階的な計算式エリア ---
+            const equationSection = document.createElement('div');
+            equationSection.className = 'equation-section';
+
+            // step0: 1 + num/den
+            const step0 = document.createElement('div');
+            step0.className = 'step-container';
+            step0.innerHTML = `
+                <div style="font-size: 2.8rem; margin: 0 10px;">1</div>
+                <div class="operator">＋</div>
+                <div class="fraction eq-fraction">
+                    <div class="inner-num">${prob.num}</div>
                     <div class="inner-den">${prob.den}</div>
                 </div>
-                <div style="margin: 0 15px;">＝</div>
-                <div class="eq-fraction">
-                    <div class="drop-zone" id="ans-num"></div>
+            `;
+
+            // opEq1: 最初の「＝」ボタン
+            const opEq1 = document.createElement('div');
+            opEq1.className = 'eq-btn';
+            opEq1.textContent = '＝';
+
+            // step1: □/□ + num/den (1を分数に直すステップ)
+            const step1 = document.createElement('div');
+            step1.className = 'step-container';
+            step1.style.display = 'none';
+            step1.innerHTML = `
+                <div class="fraction eq-fraction">
+                    <div class="drop-zone" id="ans-step-num"></div>
                     <div class="fraction-line"></div>
-                    <div class="drop-zone" id="ans-den"></div>
+                    <div class="drop-zone" id="ans-step-den"></div>
+                </div>
+                <div class="operator">＋</div>
+                <div class="fraction eq-fraction">
+                    <div class="inner-num">${prob.num}</div>
+                    <div class="inner-den">${prob.den}</div>
                 </div>
             `;
-            controlsArea.appendChild(eqContainer);
+
+            // opEq2: 次の「＝」ボタン
+            const opEq2 = document.createElement('div');
+            opEq2.className = 'eq-btn';
+            opEq2.textContent = '＝';
+            opEq2.style.display = 'none';
+
+            // step2: 最終解答 □/□
+            const step2 = document.createElement('div');
+            step2.className = 'step-container';
+            step2.style.display = 'none';
+            step2.innerHTML = `
+                <div class="fraction eq-fraction">
+                    <div class="drop-zone" id="ans-final-num"></div>
+                    <div class="fraction-line"></div>
+                    <div class="drop-zone" id="ans-final-den"></div>
+                </div>
+            `;
+
+            // opEq3: 最終解答が1になる場合のみ表示される「＝」ボタン
+            const opEq3 = document.createElement('div');
+            opEq3.className = 'eq-btn';
+            opEq3.textContent = '＝';
+            opEq3.style.display = 'none';
+
+            // step3: □ (分子分母が同じ場合、1を入力する枠)
+            const step3 = document.createElement('div');
+            step3.className = 'step-container';
+            step3.style.display = 'none';
+            step3.innerHTML = `
+                <div class="drop-zone" id="ans-final-whole" style="width:60px; height:60px;"></div>
+            `;
+
+            equationSection.appendChild(step0);
+            equationSection.appendChild(opEq1);
+            equationSection.appendChild(step1);
+            equationSection.appendChild(opEq2);
+            equationSection.appendChild(step2);
+            equationSection.appendChild(opEq3);
+            equationSection.appendChild(step3);
+
+            controlsArea.appendChild(equationSection);
 
             const instruction = document.createElement('div');
             instruction.className = 'instruction-red';
@@ -591,13 +704,44 @@
             container.appendChild(controlsArea);
             appContainer.appendChild(container);
 
-            const boxNum = document.getElementById('ans-num');
-            const boxDen = document.getElementById('ans-den');
-            
-            [boxNum, boxDen].forEach(zone => {
+            // 「＝」ボタンによるステップ進行イベント
+            opEq1.addEventListener('click', () => {
+                if(opEq1.classList.contains('eq-btn')) {
+                    opEq1.className = 'operator-eq';
+                    step1.style.display = 'flex';
+                    opEq2.style.display = 'flex';
+                    speak("イコール");
+                }
+            });
+
+            opEq2.addEventListener('click', () => {
+                if(opEq2.classList.contains('eq-btn')) {
+                    opEq2.className = 'operator-eq';
+                    step2.style.display = 'flex';
+                    
+                    // 最終回答の分子と分母が同じになるかをチェック
+                    const correctFinalN = prob.den + prob.num;
+                    const correctFinalD = prob.den;
+                    if (correctFinalN === correctFinalD) {
+                        opEq3.style.display = 'flex';
+                    }
+                    speak("イコール");
+                }
+            });
+
+            opEq3.addEventListener('click', () => {
+                if(opEq3.classList.contains('eq-btn')) {
+                    opEq3.className = 'operator-eq';
+                    step3.style.display = 'flex';
+                    speak("イコール");
+                }
+            });
+
+            // 入力枠のイベントリスナー
+            const zones = equationSection.querySelectorAll('.drop-zone');
+            zones.forEach(zone => {
                 zone.addEventListener('click', () => { 
                     zone.textContent = ''; 
-                    speak("くりあ");
                     activeInputBox = zone;
                     calcContainer.style.display = 'flex';
                     overlay.style.display = 'block';
@@ -651,16 +795,52 @@
             }
 
             checkBtn.onclick = () => {
-                const numVal = boxNum.textContent;
-                const denVal = boxDen.textContent;
-                if(numVal === "" || denVal === "") return;
+                const boxStepNum = document.getElementById('ans-step-num');
+                const boxStepDen = document.getElementById('ans-step-den');
+                const boxFinalNum = document.getElementById('ans-final-num');
+                const boxFinalDen = document.getElementById('ans-final-den');
+                const boxFinalWhole = document.getElementById('ans-final-whole');
+
+                const sNum = boxStepNum ? boxStepNum.textContent : "";
+                const sDen = boxStepDen ? boxStepDen.textContent : "";
+                const fNum = boxFinalNum ? boxFinalNum.textContent : "";
+                const fDen = boxFinalDen ? boxFinalDen.textContent : "";
                 
-                const isCorrect = (parseInt(denVal) === prob.den && parseInt(numVal) === (prob.den + prob.num));
+                // すべての入力枠が埋まっているかチェック
+                if(sNum === "" || sDen === "" || fNum === "" || fDen === "") return;
+                
+                const uStepN = parseInt(sNum, 10);
+                const uStepD = parseInt(sDen, 10);
+                const uFinalN = parseInt(fNum, 10);
+                const uFinalD = parseInt(fDen, 10);
+
+                const correctFinalN = prob.den + prob.num;
+                const correctFinalD = prob.den;
+                const needsWhole = (correctFinalN === correctFinalD);
+
+                let uFinalWhole = null;
+                if (needsWhole) {
+                    if (boxFinalWhole && boxFinalWhole.textContent === "") return;
+                    uFinalWhole = parseInt(boxFinalWhole.textContent, 10);
+                }
+
+                // 1を分数に直した形が合っているか
+                const stepCorrect = (uStepD === prob.den && uStepN === prob.den);
+                // 最終回答が合っているか
+                let finalCorrect = (uFinalD === prob.den && uFinalN === correctFinalN);
+                
+                if (needsWhole) {
+                    if (uFinalWhole !== 1) finalCorrect = false;
+                }
+
+                const isCorrect = stepCorrect && finalCorrect;
                 
                 const endTime = new Date();
-                const problemType = `1＋分数のたし算(仮分数)`;
+                const problemType = `1＋分数のたし算`;
                 const problemContent = `1 + ${prob.num}/${prob.den}`;
-                const userAnswer = `${numVal}/${denVal}`;
+                let userAnswer = `途中:${sNum}/${sDen}, 最終:${fNum}/${fDen}`;
+                if (needsWhole) userAnswer += ` = ${uFinalWhole}`;
+                
                 const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},"計算機入力",${isCorrect ? "正解" : "不正解"}\n`;
                 if (window.webkit && window.webkit.messageHandlers.appBridge) {
                     window.webkit.messageHandlers.appBridge.postMessage({ action: "saveCSV", csvLine: csvLine });

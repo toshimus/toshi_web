@@ -137,10 +137,11 @@
         color: #333;
     }
 
-    /* 分類の駒エリア */
+    /* 分類の駒と判定ボタンのエリア */
     .pieces-container {
         display: flex;
         justify-content: center;
+        align-items: center;
         flex-wrap: wrap;
         gap: 20px;
         margin-top: 10px;
@@ -169,6 +170,37 @@
         box-shadow: none;
     }
     
+    /* 判定ボタンを青色の立体パターンに変更 */
+    .check-btn {
+        padding: 0 30px;
+        height: 60px;
+        font-size: 1.6rem;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+        background-color: #00bfff;
+        color: #ffffff;
+        border-radius: 10px;
+        font-family: inherit;
+        outline: none;
+        box-shadow: 0 4px 0 #0088cc;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .check-btn:active {
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+    .check-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+
     .hint-text {
         text-align: center;
         color: #e74c3c;
@@ -176,33 +208,6 @@
         font-weight: bold;
         margin-top: 10px;
         margin-bottom: 5px;
-    }
-    
-    .check-btn-container {
-        display: flex;
-        justify-content: flex-end;
-        width: 100%;
-        max-width: 800px;
-        margin-top: 10px;
-    }
-    .check-btn {
-        padding: 15px 40px;
-        font-size: 1.3rem;
-        cursor: pointer;
-        border: 1px solid #999;
-        background-color: #f0f0f0;
-        border-radius: 8px;
-        font-family: inherit;
-        outline: none;
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-    }
-    .check-btn:active {
-        background-color: #dcdcdc;
-    }
-    .check-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
     }
     
     .judge-overlay {
@@ -477,7 +482,7 @@
             questionArea.appendChild(dropZone);
             container.appendChild(questionArea);
 
-            // --- 分類の駒エリア ---
+            // --- 分類の駒と判定ボタンのエリア ---
             const hintText = document.createElement('div');
             hintText.className = 'hint-text';
             hintText.innerHTML = 'あてはまる言葉をタップして、□にはめよう！<br>※枠をタップすると消せます';
@@ -486,11 +491,11 @@
             const piecesContainer = document.createElement('div');
             piecesContainer.className = 'pieces-container';
             
+            // 選択肢の駒を生成
             ['真分数', '仮分数', '帯分数'].forEach(label => {
                 const piece = document.createElement('div');
                 piece.className = 'piece';
                 piece.textContent = label;
-                // クリックで枠に入れるように変更
                 piece.addEventListener('click', () => {
                     dropZone.textContent = label;
                     speak(typeReadings[label]);
@@ -498,16 +503,13 @@
                 piecesContainer.appendChild(piece);
             });
             
-            container.appendChild(piecesContainer);
-
-            // 判定ボタン
-            const checkBtnContainer = document.createElement('div');
-            checkBtnContainer.className = 'check-btn-container';
+            // 判定ボタンを駒と同じコンテナ内に追加（横一列に並ぶ）
             const checkBtn = document.createElement('button');
             checkBtn.className = 'check-btn';
             checkBtn.textContent = 'できた！';
-            checkBtnContainer.appendChild(checkBtn);
-            container.appendChild(checkBtnContainer);
+            piecesContainer.appendChild(checkBtn);
+            
+            container.appendChild(piecesContainer);
 
             appContainer.appendChild(container);
 
@@ -543,6 +545,8 @@
                         okSound.play();
                     }
                     checkBtn.disabled = true;
+                    // ボタン群を操作できなくする
+                    piecesContainer.style.pointerEvents = 'none';
                     
                     setTimeout(() => { overlay.classList.remove('show'); }, 1200);
                     setTimeout(() => { currentIndex++; renderProblem(); }, 1500);

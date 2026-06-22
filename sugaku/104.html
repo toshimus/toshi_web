@@ -823,10 +823,12 @@
             const equationSection = document.createElement('div');
             equationSection.className = 'equation-section';
 
+            // step0: 左側の問題（M>1のときは×Mが動的に追加される）
             const step0 = document.createElement('div');
             step0.className = 'step-container';
             const eqFrac1 = document.createElement('div');
             eqFrac1.className = 'fraction eq-fraction';
+            // 初期状態はM=1のためシンプル表示
             eqFrac1.innerHTML = `<div class="numerator">${prob.n1}</div><div class="denominator">${prob.d1}</div>`;
             const opPlus1 = document.createElement('div');
             opPlus1.className = 'operator'; opPlus1.textContent = '＋';
@@ -841,28 +843,7 @@
             opEq1.className = 'eq-btn';
             opEq1.textContent = '＝';
 
-            const step1 = document.createElement('div');
-            step1.className = 'step-container';
-            step1.style.display = 'none';
-            const eqMulFrac = document.createElement('div');
-            eqMulFrac.className = 'fraction eq-fraction';
-            const eqMulNum = document.createElement('div'); eqMulNum.className = 'numerator';
-            const eqMulDen = document.createElement('div'); eqMulDen.className = 'denominator';
-            eqMulFrac.appendChild(eqMulNum); eqMulFrac.appendChild(eqMulDen);
-            const opPlus2 = document.createElement('div');
-            opPlus2.className = 'operator'; opPlus2.textContent = '＋';
-            const eqFrac2_2 = document.createElement('div');
-            eqFrac2_2.className = 'fraction eq-fraction';
-            eqFrac2_2.innerHTML = `<div class="numerator">${prob.n2}</div><div class="denominator">${prob.d2}</div>`;
-            step1.appendChild(eqMulFrac);
-            step1.appendChild(opPlus2);
-            step1.appendChild(eqFrac2_2);
-
-            const opEq2 = document.createElement('div');
-            opEq2.className = 'eq-btn';
-            opEq2.textContent = '＝';
-            opEq2.style.display = 'none';
-
+            // 元の step1 は削除し、元の step2 (ここでは step2 と命名) に直接繋げる
             const step2 = document.createElement('div');
             step2.className = 'step-container';
             step2.style.display = 'none';
@@ -881,11 +862,12 @@
             step2.appendChild(opPlus3);
             step2.appendChild(eqFrac2_3);
 
-            const opEq3 = document.createElement('div');
-            opEq3.className = 'eq-btn';
-            opEq3.textContent = '＝';
-            opEq3.style.display = 'none';
+            const opEq2 = document.createElement('div');
+            opEq2.className = 'eq-btn';
+            opEq2.textContent = '＝';
+            opEq2.style.display = 'none';
 
+            // step3: (□＋□) / □
             const step3 = document.createElement('div');
             step3.className = 'step-container';
             step3.style.display = 'none';
@@ -902,11 +884,12 @@
             dropSumFrac.appendChild(numSumBox); dropSumFrac.appendChild(line2); dropSumFrac.appendChild(zoneSumD);
             step3.appendChild(dropSumFrac);
 
-            const opEq4 = document.createElement('div');
-            opEq4.className = 'eq-btn';
-            opEq4.textContent = '＝';
-            opEq4.style.display = 'none';
+            const opEq3 = document.createElement('div');
+            opEq3.className = 'eq-btn';
+            opEq3.textContent = '＝';
+            opEq3.style.display = 'none';
 
+            // step4: □ / □
             const step4 = document.createElement('div');
             step4.className = 'step-container';
             step4.style.display = 'none';
@@ -918,10 +901,24 @@
             finalFrac.appendChild(zoneFinalN); finalFrac.appendChild(line3); finalFrac.appendChild(zoneFinalD);
             step4.appendChild(finalFrac);
 
+            // 追加: 分子と分母が同じ場合のみ表示される「＝」と「1」の入力枠（step5）
+            const opEq4 = document.createElement('div');
+            opEq4.className = 'eq-btn';
+            opEq4.textContent = '＝';
+            opEq4.style.display = 'none';
+
+            const step5 = document.createElement('div');
+            step5.className = 'step-container';
+            step5.style.display = 'none';
+            const zoneFinalWhole = document.createElement('div'); 
+            zoneFinalWhole.className = 'drop-zone'; 
+            zoneFinalWhole.id = 'ans-final-whole';
+            step5.appendChild(zoneFinalWhole);
+
             opEq1.addEventListener('click', () => {
                 if(opEq1.classList.contains('eq-btn')) {
                     opEq1.className = 'operator-eq';
-                    step1.style.display = 'flex';
+                    step2.style.display = 'flex';
                     opEq2.style.display = 'flex';
                     speak("イコール");
                 }
@@ -929,7 +926,7 @@
             opEq2.addEventListener('click', () => {
                 if(opEq2.classList.contains('eq-btn')) {
                     opEq2.className = 'operator-eq';
-                    step2.style.display = 'flex';
+                    step3.style.display = 'flex';
                     opEq3.style.display = 'flex';
                     speak("イコール");
                 }
@@ -937,24 +934,28 @@
             opEq3.addEventListener('click', () => {
                 if(opEq3.classList.contains('eq-btn')) {
                     opEq3.className = 'operator-eq';
-                    step3.style.display = 'flex';
-                    opEq4.style.display = 'flex';
+                    step4.style.display = 'flex';
+                    
+                    const correctFinalN = (prob.n1 * prob.M_target) + prob.n2;
+                    const correctFinalD = prob.d2;
+                    if (correctFinalN === correctFinalD) {
+                        opEq4.style.display = 'flex';
+                    }
                     speak("イコール");
                 }
             });
             opEq4.addEventListener('click', () => {
                 if(opEq4.classList.contains('eq-btn')) {
                     opEq4.className = 'operator-eq';
-                    step4.style.display = 'flex';
+                    step5.style.display = 'flex';
                     speak("イコール");
                 }
             });
 
             // ドロップゾーンのタップで計算機ポップアップ
-            [zoneNum1, zoneDen1, zoneSumN1, zoneSumN2, zoneSumD, zoneFinalN, zoneFinalD].forEach(zone => {
+            [zoneNum1, zoneDen1, zoneSumN1, zoneSumN2, zoneSumD, zoneFinalN, zoneFinalD, zoneFinalWhole].forEach(zone => {
                 zone.addEventListener('click', () => { 
                     zone.textContent = ''; 
-                    speak("くりあ");
                     activeInputBox = zone;
                     calcContainer.style.display = 'flex';
                     overlay.style.display = 'block';
@@ -963,13 +964,13 @@
 
             equationSection.appendChild(step0);
             equationSection.appendChild(opEq1);
-            equationSection.appendChild(step1);
-            equationSection.appendChild(opEq2);
             equationSection.appendChild(step2);
-            equationSection.appendChild(opEq3);
+            equationSection.appendChild(opEq2);
             equationSection.appendChild(step3);
-            equationSection.appendChild(opEq4);
+            equationSection.appendChild(opEq3);
             equationSection.appendChild(step4);
+            equationSection.appendChild(opEq4);
+            equationSection.appendChild(step5);
 
             container.appendChild(equationSection);
 
@@ -1015,11 +1016,15 @@
                     dynamicArrow.style.width = `calc(100% / ${totalSegments})`;
                 }
 
-                frac1Num.innerHTML = `<span style="color: #aaa;">${prob.n1}</span><span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
-                frac1Den.innerHTML = `${prob.d1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
-                
-                eqMulNum.innerHTML = `${prob.n1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
-                eqMulDen.innerHTML = `${prob.d1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
+                if (currentM > 1) {
+                    frac1Num.innerHTML = `<span style="color: #aaa;">${prob.n1}</span><span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
+                    frac1Den.innerHTML = `${prob.d1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span>`;
+                    eqFrac1.innerHTML = `<div class="numerator">${prob.n1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span></div><div class="denominator">${prob.d1}<span style="color: red; font-size: 1.4rem; margin-left: 3px;">×${currentM}</span></div>`;
+                } else {
+                    frac1Num.innerHTML = `<span style="color: #aaa;">${prob.n1}</span>`;
+                    frac1Den.innerHTML = `${prob.d1}`;
+                    eqFrac1.innerHTML = `<div class="numerator">${prob.n1}</div><div class="denominator">${prob.d1}</div>`;
+                }
 
                 if (currentM === prob.M_target) {
                     matchMessage.textContent = '分母がそろいました！';
@@ -1067,8 +1072,18 @@
 
                 const correctFinalN = (prob.n1 * prob.M_target) + prob.n2;
                 const correctFinalD = prob.d2;
+                const needsSimplification = (correctFinalN === correctFinalD);
                 
-                const lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
+                let lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
+                let uFinalWhole = null;
+
+                if (needsSimplification) {
+                    uFinalWhole = parseInt(document.getElementById('ans-final-whole').textContent, 10);
+                    if (isNaN(uFinalWhole)) return; // 1が入力されていない場合は判定を中止
+                    if (uFinalWhole !== 1) {
+                        lastCorrect = false;
+                    }
+                }
                 
                 const uNum1 = parseInt(document.getElementById('ans-num-1').textContent, 10);
                 const uDen1 = parseInt(document.getElementById('ans-den-1').textContent, 10);
@@ -1082,7 +1097,10 @@
                 
                 const ans1 = isNaN(uNum1) ? '?' : uNum1;
                 const ans2 = isNaN(uDen1) ? '?' : uDen1;
-                const userAnswer = `通分:${currentM}倍, 途中:${ans1}/${ans2}, 最終:${uFinalN}/${uFinalD}`;
+                let userAnswer = `通分:${currentM}倍, 途中:${ans1}/${ans2}, 最終:${uFinalN}/${uFinalD}`;
+                if (needsSimplification && !isNaN(uFinalWhole)) {
+                    userAnswer += `=${uFinalWhole}`;
+                }
                 
                 const inputMethod = "計算機入力";
                 const resultStr = lastCorrect ? "正解" : "不正解";
