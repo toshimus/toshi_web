@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>10までの引き算（テンフレーム）</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    /* スタート画面 */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
+    .status-bar {
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .question-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-top: 5px;
+        margin-bottom: 20px;
+    }
+
+    .problem-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        align-items: center;
+    }
+
+    /* 数式エリア */
+    .equation-area {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 5rem;
+        font-weight: bold;
+        gap: 15px;
+        margin: 20px 0;
+        background-color: #f9f9f9;
+        padding: 20px 40px;
+        border-radius: 12px;
+        border: 2px solid #eee;
+    }
+    .clickable-num {
+        cursor: pointer;
+        padding: 5px 20px;
+        border-radius: 12px;
+        border: 4px dashed transparent;
+        transition: all 0.2s;
+    }
+    .clickable-num:hover {
+        background-color: #f0f0f0;
+    }
+    .clickable-num.num-left {
+        border-color: #ffb3ba;
+        color: #ff4757;
+    }
+    .clickable-num.num-right {
+        border-color: #a0c4ff;
+        color: #1e90ff;
+    }
+    .clickable-num.clicked {
+        pointer-events: none;
+        border-style: solid;
+        background-color: #fff;
+    }
+
+    /* ドロップゾーン（解答の□） */
+    .drop-zone {
+        width: 80px;
+        height: 80px;
+        border: 4px dashed #3498db;
+        background-color: #f0f8ff;
+        border-radius: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 4rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: #333;
+        flex-shrink: 0;
+    }
+
+    /* テンフレーム（5×2のマス目） */
+    .frames-container {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin: 20px 0 30px 0;
+    }
+    .ten-frame {
+        display: grid;
+        grid-template-columns: repeat(5, 65px);
+        grid-template-rows: repeat(2, 65px);
+        border: 5px solid #333;
+        background-color: #fff;
+        gap: 0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .cell {
+        border: 2px solid #ccc;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+        position: relative;
+    }
+    
+    /* アニメーション・ドラッグ用の● */
+    .circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        cursor: grab;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        touch-action: none; 
+    }
+    .circle:active {
+        cursor: grabbing;
+    }
+    .circle.red {
+        background-color: #ff4757;
+        border: 2px solid #ff0000;
+    }
+    .circle.blue {
+        background-color: #1e90ff;
+        border: 2px solid #0000ff;
+    }
+    .circle.gray {
+        background-color: #bdc3c7;
+        border: 2px solid #7f8c8d;
+    }
+    .circle.dragging {
+        position: fixed;
+        z-index: 2000;
+        pointer-events: none;
+        transform: scale(1.15) !important;
+        opacity: 0.85;
+    }
+
+    .instruction-red {
+        color: red;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    
+    /* 判定ボタン */
+    .check-btn-container {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        margin-top: 10px;
+    }
+    .check-btn {
+        padding: 0 40px;
+        height: 70px;
+        font-size: 1.8rem;
+        cursor: pointer;
+        border: 2px solid #00bfff;
+        background-color: #00bfff;
+        color: #fff;
+        font-weight: bold;
+        border-radius: 10px;
+        outline: none;
+        box-shadow: 0 5px 0 #0088cc;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    .check-btn:active {
+        transform: translateY(5px);
+        box-shadow: none;
+    }
+    .check-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: translateY(5px);
+        box-shadow: none;
+    }
+    
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent;
+        color: #ff3333;
+        font-size: 7rem;
+        font-weight: bold;
+        padding: 30px 60px;
+        -webkit-text-stroke: 3px #000;
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
+        white-space: nowrap; 
+    }
+    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
+    .judge-overlay.incorrect { color: #3366ff; }
+    
+    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
+    .clear-message h2 { font-size: 2rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .final-result-details { font-size: 1.4rem; color: #333; line-height: 1.8; }
+    .menu-btn, .retry-btn { margin-top: 20px; padding: 12px 30px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; outline: none; touch-action: manipulation; text-decoration: none; display: inline-block; font-weight: bold;}
+    .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
+    .menu-btn { background-color: #95a5a6; color: #fff; }
+    
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .toggle-group { display: flex; gap: 15px; }
+    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
+    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
+    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; touch-action: manipulation; }
+
+    /* 計算機パネル */
+    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
+    .pieces-container:active { cursor: grabbing; }
+    .calc-display { width: 100%; height: 50px; background-color: #fff; border: 2px inset #bdc3c7; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: flex-end; align-items: center; padding: 0 15px; font-size: 2.2rem; font-weight: bold; color: #2c3e50; box-sizing: border-box; }
+    .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
+    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
+    
+    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>10までの引き算（マス目）</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
+                <label class="settings-toggle"><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title">・ つぎの引き算を求めましょう！</h1>
+        
+        <div id="app"></div>
+        <div id="judge-overlay" class="judge-overlay"></div>
+
+        <div class="overlay" id="overlay"></div>
+        <div class="pieces-container" id="calc-container">
+            <div class="calc-display" id="calc-display"></div>
+        </div>
+    </div>
+
+    <script>
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        const numberReadings = [
+            "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
+            "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
+        ];
+
+        /* ==========================================
+           計算機パネルの構築とロジック
+           ========================================== */
+        const overlay = document.getElementById('overlay');
+        const calcContainer = document.getElementById('calc-container');
+        const calcDisplay = document.getElementById('calc-display');
+        let activeInputBox = null;
+
+        const calcKeys = [
+            '7', '8', '9',
+            '4', '5', '6',
+            '1', '2', '3',
+            '0', '削除', '決定'
+        ];
+
+        calcKeys.forEach(key => {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.textContent = key;
+            
+            if (key === '削除') {
+                piece.classList.add('delete-btn');
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        let currentVal = activeInputBox.textContent;
+                        if (currentVal.length > 0) {
+                            currentVal = currentVal.slice(0, -1);
+                            activeInputBox.textContent = currentVal; 
+                            calcDisplay.textContent = currentVal; 
+                        }
+                    }
+                });
+            } else if (key === '決定') {
+                piece.classList.add('enter-btn');
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        calcContainer.style.display = 'none';
+                        overlay.style.display = 'none';
+                        activeInputBox = null;
+                    }
+                });
+            } else {
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        let currentVal = activeInputBox.textContent;
+                        if (currentVal.length < 2) { 
+                            currentVal += key;
+                            activeInputBox.textContent = currentVal;
+                            calcDisplay.textContent = currentVal; 
+                            
+                            const parsedVal = parseInt(currentVal, 10);
+                            if (parsedVal >= 0 && parsedVal <= 20) {
+                                speak(numberReadings[parsedVal]);
+                            } else {
+                                speak(currentVal);
+                            }
+                        }
+                    }
+                });
+            }
+            calcContainer.appendChild(piece);
+        });
+
+        overlay.addEventListener('click', () => {
+            calcContainer.style.display = 'none';
+            overlay.style.display = 'none';
+            activeInputBox = null;
+        });
+
+        let isCalcDragging = false;
+        let calcDragStartX, calcDragStartY, calcInitialLeft, calcInitialTop;
+
+        function startCalcDrag(e) {
+            if (e.target.classList.contains('piece') || e.target.id === 'calc-display') return;
+            isCalcDragging = true;
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            calcDragStartX = clientX;
+            calcDragStartY = clientY;
+            let style = window.getComputedStyle(calcContainer);
+            calcInitialLeft = parseFloat(style.left);
+            calcInitialTop = parseFloat(style.top);
+        }
+
+        function doCalcDrag(e) {
+            if (!isCalcDragging) return;
+            e.preventDefault();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            let dx = clientX - calcDragStartX;
+            let dy = clientY - calcDragStartY;
+            calcContainer.style.left = (calcInitialLeft + dx) + 'px';
+            calcContainer.style.top = (calcInitialTop + dy) + 'px';
+        }
+
+        function stopCalcDrag() {
+            isCalcDragging = false;
+        }
+
+        calcContainer.addEventListener('mousedown', startCalcDrag);
+        document.addEventListener('mousemove', doCalcDrag, { passive: false });
+        document.addEventListener('mouseup', stopCalcDrag);
+        calcContainer.addEventListener('touchstart', startCalcDrag, { passive: false });
+        document.addEventListener('touchmove', doCalcDrag, { passive: false });
+        document.addEventListener('touchend', stopCalcDrag);
+
+        /* ==========================================
+           ●のドラッグ＆ドロップ、タップ、自動整列
+           ========================================== */
+        let draggingCircle = null;
+        let sourceCell = null;
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        function circleTouchStart(e) {
+            if (e.target.classList.contains('circle') && !e.target.classList.contains('dragging')) {
+                draggingCircle = e.target;
+                sourceCell = draggingCircle.parentElement;
+                
+                touchStartX = e.touches ? e.touches[0].clientX : e.clientX;
+                touchStartY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                draggingCircle.classList.add('dragging');
+                document.body.appendChild(draggingCircle);
+                
+                draggingCircle.style.left = (touchStartX - 25) + 'px'; 
+                draggingCircle.style.top = (touchStartY - 25) + 'px';
+            }
+        }
+
+        function circleTouchMove(e) {
+            if (!draggingCircle) return;
+            e.preventDefault(); 
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            draggingCircle.style.left = (clientX - 25) + 'px';
+            draggingCircle.style.top = (clientY - 25) + 'px';
+        }
+
+        function circleTouchEnd(e) {
+            if (!draggingCircle) return;
+            
+            draggingCircle.style.display = 'none'; 
+            let clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            let elem = document.elementFromPoint(clientX, clientY);
+            draggingCircle.style.display = 'block';
+            
+            // FLIP (First) : 現在のすべてのコマの位置を記録
+            const allCells = Array.from(document.querySelectorAll('.frames-container .cell'));
+            let allCircles = allCells.map(cell => cell.firstElementChild).filter(c => c !== null);
+            allCircles.push(draggingCircle);
+
+            const rects = new Map();
+            allCircles.forEach(circle => {
+                rects.set(circle, circle.getBoundingClientRect());
+            });
+
+            draggingCircle.classList.remove('dragging');
+            draggingCircle.style.left = '';
+            draggingCircle.style.top = '';
+            
+            // タップかドラッグかの判定
+            let dx = clientX - touchStartX;
+            let dy = clientY - touchStartY;
+            let isTap = Math.sqrt(dx*dx + dy*dy) < 5;
+            
+            if (isTap) {
+                sourceCell.appendChild(draggingCircle);
+                // 色の切り替え
+                if (draggingCircle.classList.contains('gray')) {
+                    draggingCircle.classList.remove('gray');
+                    draggingCircle.classList.add(draggingCircle.dataset.baseColor);
+                } else {
+                    draggingCircle.classList.remove(draggingCircle.dataset.baseColor);
+                    draggingCircle.classList.add('gray');
+                }
+            } else {
+                // ドロップ処理
+                let targetFrame = elem ? elem.closest('.ten-frame') : null;
+                if (targetFrame) {
+                    let emptyCell = Array.from(targetFrame.querySelectorAll('.cell')).find(c => !c.hasChildNodes());
+                    if (emptyCell) {
+                        emptyCell.appendChild(draggingCircle);
+                    } else {
+                        sourceCell.appendChild(draggingCircle);
+                    }
+                } else {
+                    sourceCell.appendChild(draggingCircle);
+                }
+            }
+            
+            // --- カラーが先、グレーが後になるよう再ソート ---
+            allCircles = allCells.map(cell => cell.firstElementChild).filter(c => c !== null);
+            const coloredCircles = allCircles.filter(c => !c.classList.contains('gray'));
+            const grayCircles = allCircles.filter(c => c.classList.contains('gray'));
+            const sortedCircles = [...coloredCircles, ...grayCircles];
+            
+            allCells.forEach(cell => cell.innerHTML = '');
+            sortedCircles.forEach((circle, index) => {
+                allCells[index].appendChild(circle);
+            });
+            
+            // FLIP (Invert & Play)
+            allCircles.forEach(circle => {
+                const firstRect = rects.get(circle);
+                const lastRect = circle.getBoundingClientRect();
+                const diffX = firstRect.left - lastRect.left;
+                const diffY = firstRect.top - lastRect.top;
+                
+                circle.style.transition = 'none';
+                circle.style.transform = `translate(${diffX}px, ${diffY}px) scale(1)`;
+            });
+            
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    allCircles.forEach(circle => {
+                        circle.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.4s, border-color 0.4s';
+                        circle.style.transform = 'translate(0, 0) scale(1)';
+                    });
+                });
+            });
+            
+            draggingCircle = null;
+            sourceCell = null;
+        }
+
+        document.addEventListener('touchstart', circleTouchStart, {passive: false});
+        document.addEventListener('touchmove', circleTouchMove, {passive: false});
+        document.addEventListener('touchend', circleTouchEnd);
+        document.addEventListener('mousedown', circleTouchStart);
+        document.addEventListener('mousemove', circleTouchMove);
+        document.addEventListener('mouseup', circleTouchEnd);
+
+
+        /* ==========================================
+           問題生成と判定ロジック (10までの引き算)
+           ========================================== */
+        const problems = [];
+        const seen = new Set();
+        while (problems.length < 10) {
+            const a = Math.floor(Math.random() * 10) + 1; // 1〜10
+            const b = Math.floor(Math.random() * a) + 1; // 1〜a
+            const key = `${a}-${b}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                problems.push({ n1: a, n2: b });
+            }
+        }
+
+        let currentIndex = 0;
+        let mistakeCount = 0;
+        const appContainer = document.getElementById('app');
+        let problemStartTime;
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        function spawnCirclesAll(container, count, colorClass) {
+            const cells = container.querySelectorAll('.cell');
+            let placed = 0;
+            let i = 0;
+            
+            function placeNext() {
+                if (placed >= count || i >= cells.length) return;
+                if (!cells[i].hasChildNodes()) {
+                    const circle = document.createElement('div');
+                    circle.className = `circle ${colorClass}`;
+                    circle.dataset.baseColor = colorClass; // 色を記憶
+                    circle.style.opacity = 0;
+                    circle.style.transform = 'scale(0.2)';
+                    circle.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.4s, border-color 0.4s';
+                    
+                    cells[i].appendChild(circle);
+                    void circle.offsetWidth; 
+                    circle.style.opacity = 1;
+                    circle.style.transform = 'scale(1)';
+                    placed++;
+                }
+                i++;
+                setTimeout(placeNext, 100);
+            }
+            placeNext();
+        }
+
+        function grayOutCircles(container, count) {
+            const circles = Array.from(container.querySelectorAll('.circle:not(.gray)'));
+            let grayoutCount = 0;
+            let i = circles.length - 1; // 後ろから
+
+            function grayNext() {
+                if (grayoutCount >= count || i < 0) return;
+                const circle = circles[i];
+                circle.classList.remove('red', 'blue');
+                circle.classList.add('gray');
+                grayoutCount++;
+                i--;
+                setTimeout(grayNext, 150);
+            }
+            grayNext();
+        }
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+            problemStartTime = new Date();
+
+            if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.querySelector('.question-title').style.display = 'none';
+                
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全10問合格！！</h2>`;
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                speak("ぜんもんごうかくです。おつかれさまでした。");
+                return;
+            }
+
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 10 問`;
+
+            const prob = problems[currentIndex];
+            speak(`つぎのひきざんをもとめましょう。${prob.n1} ひく ${prob.n2} は`);
+
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0; qSound.play().catch(e => {});
+            }
+
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+
+            // --- 数式エリア ---
+            const eqArea = document.createElement('div');
+            eqArea.className = 'equation-area';
+            
+            const num1El = document.createElement('div');
+            num1El.className = 'clickable-num num-left';
+            num1El.textContent = prob.n1;
+            
+            const opMinus = document.createElement('div');
+            opMinus.textContent = 'ー';
+            opMinus.style.color = '#555';
+            
+            const num2El = document.createElement('div');
+            num2El.className = 'clickable-num num-right';
+            num2El.textContent = prob.n2;
+            
+            const opEq = document.createElement('div');
+            opEq.textContent = '＝';
+            opEq.style.color = '#555';
+            
+            const ansZone = document.createElement('div');
+            ansZone.className = 'drop-zone';
+            ansZone.id = 'ans-box';
+            
+            ansZone.addEventListener('click', () => { 
+                ansZone.textContent = ''; 
+                document.getElementById('calc-display').textContent = ''; 
+                activeInputBox = ansZone;
+                calcContainer.style.display = 'flex';
+                overlay.style.display = 'block';
+            });
+
+            eqArea.appendChild(num1El);
+            eqArea.appendChild(opMinus);
+            eqArea.appendChild(num2El);
+            eqArea.appendChild(opEq);
+            eqArea.appendChild(ansZone);
+            
+            container.appendChild(eqArea);
+
+            // --- テンフレームエリア ---
+            const framesContainer = document.createElement('div');
+            framesContainer.className = 'frames-container';
+            
+            const frame1 = document.createElement('div');
+            frame1.className = 'ten-frame';
+            for(let i=0; i<10; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                frame1.appendChild(cell);
+            }
+            
+            const frame2 = document.createElement('div');
+            frame2.className = 'ten-frame';
+            for(let i=0; i<10; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                frame2.appendChild(cell);
+            }
+
+            framesContainer.appendChild(frame1);
+            framesContainer.appendChild(frame2);
+            container.appendChild(framesContainer);
+
+            // --- クリックイベント（●のアニメーション） ---
+            num1El.addEventListener('click', function() {
+                if (this.classList.contains('clicked')) return;
+                this.classList.add('clicked');
+                speak(prob.n1.toString());
+                spawnCirclesAll(framesContainer, prob.n1, 'red');
+            });
+
+            num2El.addEventListener('click', function() {
+                if (this.classList.contains('clicked')) return;
+                if (!num1El.classList.contains('clicked')) return; // ひかれる数が先
+                this.classList.add('clicked');
+                speak(prob.n2.toString());
+                grayOutCircles(framesContainer, prob.n2);
+            });
+
+            const instruction = document.createElement('div');
+            instruction.className = 'instruction-red';
+            instruction.innerHTML = 'ひかれる数をタップすると丸が出ます。<br>ひく数をタップすると引く数だけ丸が灰色になります。丸をタップして色をかえたり、自由に移動することもできます。<br>答えが分かったら、□をタップして入力してください。';
+            container.appendChild(instruction);
+
+            // 判定ボタン
+            const checkBtnContainer = document.createElement('div');
+            checkBtnContainer.className = 'check-btn-container';
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+            checkBtnContainer.appendChild(checkBtn);
+            container.appendChild(checkBtnContainer);
+            
+            appContainer.appendChild(container);
+
+            // 判定処理
+            checkBtn.addEventListener('click', () => {
+                const uAns = parseInt(ansZone.textContent, 10);
+                if (isNaN(uAns)) return;
+
+                const correctAns = prob.n1 - prob.n2;
+                const isCorrect = (uAns === correctAns);
+                
+                const endTime = new Date();
+                const problemType = "10までの引き算（テンフレーム）";
+                const problemContent = `${prob.n1} - ${prob.n2}`;
+                const userAnswer = uAns.toString();
+                const inputMethod = "計算機入力";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
+                const overlayJudge = document.getElementById('judge-overlay');
+                if (isCorrect) {
+                    overlayJudge.textContent = 'せいかい！';
+                    overlayJudge.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
+                    
+                    checkBtn.disabled = true;
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                    setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
+                } else {
+                    overlayJudge.textContent = 'おしい！';
+                    overlayJudge.className = 'judge-overlay incorrect show';
+                    mistakeCount++;
+                    if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                }
+            });
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
+
+    </script>
+</body>
+</html>
