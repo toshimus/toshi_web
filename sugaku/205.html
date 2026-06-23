@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>2桁+1桁のたし算（ひっ算）</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    /* スタート画面 */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
+    .status-bar {
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .question-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-top: 5px;
+        margin-bottom: 20px;
+    }
+
+    .problem-container {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        max-width: 1000px;
+        margin: 0 auto;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ひっ算エリア */
+    .hissan-wrapper {
+        display: grid;
+        grid-template-columns: 180px 60px 80px 80px 80px 180px; 
+        grid-template-rows: auto auto auto auto;
+        row-gap: 15px;
+        column-gap: 15px;
+        align-items: center;
+        justify-items: center;
+        font-size: 5rem;
+        font-weight: bold;
+        background-color: #f9f9f9;
+        padding: 40px 40px;
+        border-radius: 12px;
+        border: 2px solid #eee;
+        margin: 30px 0;
+    }
+
+    .hissan-line {
+        width: 100%;
+        height: 6px;
+        background-color: #333;
+        margin: 5px 0;
+    }
+
+    /* タップできる数字 */
+    .clickable-digit {
+        cursor: pointer;
+        border-bottom: 6px dashed;
+        transition: transform 0.1s, color 0.3s;
+    }
+    .clickable-digit:active {
+        transform: scale(0.9);
+    }
+
+    /* ヒントのコマ（アニメーション付き） */
+    .hint-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .hint-container.right-hint {
+        justify-content: flex-start;
+        padding-left: 20px;
+    }
+    .hint-container.left-hint {
+        justify-content: flex-end;
+        padding-right: 20px;
+    }
+
+    .hint-circle {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background-color: #ff4757;
+        border: 2px solid #e84118;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.1rem;
+        opacity: 0;
+        transform: scale(0.2);
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .hint-circle:active {
+        transform: scale(0.9) !important;
+    }
+    .hint-circle.blue {
+        background-color: #1e90ff;
+        border: 2px solid #00a8ff;
+    }
+    .hint-circle.tens {
+        background-color: #2ed573;
+        border: 2px solid #27ae60;
+    }
+    @keyframes popIn {
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    /* ドロップゾーン（解答の□） */
+    .drop-zone {
+        width: 80px;
+        height: 90px;
+        border: 4px dashed #3498db;
+        background-color: #f0f8ff;
+        border-radius: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 5rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: #333;
+        flex-shrink: 0;
+    }
+
+    /* 繰り上がり用の小さなメモ枠 */
+    .memo-zone {
+        width: 50px;
+        height: 50px;
+        border: 3px dashed #e74c3c;
+        background-color: #fff5f5;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 3rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: #e74c3c;
+    }
+    
+    /* 判定ボタン */
+    .check-btn {
+        width: 80%;
+        height: 80px;
+        font-size: 2rem;
+        cursor: pointer;
+        border: 2px solid #00bfff;
+        background-color: #00bfff;
+        color: #fff;
+        font-weight: bold;
+        border-radius: 10px;
+        outline: none;
+        box-shadow: 0 5px 0 #0088cc;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        justify-self: center;
+    }
+    .check-btn:active {
+        transform: translateY(5px);
+        box-shadow: none;
+    }
+    .check-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: translateY(5px);
+        box-shadow: none;
+    }
+    
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent;
+        color: #ff3333;
+        font-size: 7rem;
+        font-weight: bold;
+        padding: 30px 60px;
+        -webkit-text-stroke: 3px #000;
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
+        white-space: nowrap; 
+    }
+    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
+    .judge-overlay.incorrect { color: #3366ff; }
+    
+    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
+    .clear-message h2 { font-size: 2rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .final-result-details { font-size: 1.4rem; color: #333; line-height: 1.8; }
+    .menu-btn, .retry-btn { margin-top: 20px; padding: 12px 30px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; outline: none; touch-action: manipulation; text-decoration: none; display: inline-block; font-weight: bold;}
+    .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
+    .menu-btn { background-color: #95a5a6; color: #fff; }
+    
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .toggle-group { display: flex; gap: 15px; }
+    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
+    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
+    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; touch-action: manipulation; }
+
+    /* 計算機パネル */
+    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 20px; background-color: #ecf0f1; border-radius: 12px; width: 300px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
+    .pieces-container:active { cursor: grabbing; }
+    .piece { flex: 1 1 25%; height: 70px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 2rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.4rem; }
+    .piece.enter-btn { background-color: #95a5a6; color: white; border-color: #7f8c8d; box-shadow: 0 4px 0 #7f8c8d; font-size: 1.4rem; }
+    
+    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>2桁+1桁のたし算（ひっ算）</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
+                <label class="settings-toggle"><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title">・ つぎのたし算を求めましょう！</h1>
+        
+        <div id="app"></div>
+        <div id="judge-overlay" class="judge-overlay"></div>
+
+        <div class="overlay" id="overlay"></div>
+        <div class="pieces-container" id="calc-container"></div>
+    </div>
+
+    <script>
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        const numberReadings = [
+            "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
+            "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
+        ];
+        
+        // 十の位専用の読み上げ辞書
+        const tensReadings = {
+            10: "じゅう", 20: "にじゅう", 30: "さんじゅう", 40: "よんじゅう", 
+            50: "ごじゅう", 60: "ろくじゅう", 70: "ななじゅう", 80: "はちじゅう", 90: "きゅうじゅう"
+        };
+
+        /* ==========================================
+           計算機パネルの構築（即決パターン・表示なし）
+           ========================================== */
+        const overlay = document.getElementById('overlay');
+        const calcContainer = document.getElementById('calc-container');
+        let activeInputBox = null;
+
+        const calcKeys = [
+            '7', '8', '9',
+            '4', '5', '6',
+            '1', '2', '3',
+            '0', '削除', 'とじる'
+        ];
+
+        calcKeys.forEach(key => {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.textContent = key;
+            
+            if (key === '削除') {
+                piece.classList.add('delete-btn');
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        activeInputBox.textContent = ''; 
+                    }
+                });
+            } else if (key === 'とじる') {
+                piece.classList.add('enter-btn');
+                piece.addEventListener('click', () => {
+                    calcContainer.style.display = 'none';
+                    overlay.style.display = 'none';
+                    activeInputBox = null;
+                });
+            } else {
+                // 0〜9のキー (即決入力)
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        activeInputBox.textContent = key; 
+                        
+                        const parsedVal = parseInt(key, 10);
+                        if (parsedVal >= 0 && parsedVal <= 9) {
+                            speak(numberReadings[parsedVal]);
+                        } else {
+                            speak(key);
+                        }
+
+                        // 即決で閉じる
+                        calcContainer.style.display = 'none';
+                        overlay.style.display = 'none';
+                        activeInputBox = null;
+                    }
+                });
+            }
+            calcContainer.appendChild(piece);
+        });
+
+        overlay.addEventListener('click', () => {
+            calcContainer.style.display = 'none';
+            overlay.style.display = 'none';
+            activeInputBox = null;
+        });
+
+        // 計算機パネル自体のドラッグ機能
+        let isCalcDragging = false;
+        let calcDragStartX, calcDragStartY, calcInitialLeft, calcInitialTop;
+
+        function startCalcDrag(e) {
+            if (e.target.classList.contains('piece')) return;
+            isCalcDragging = true;
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            calcDragStartX = clientX;
+            calcDragStartY = clientY;
+            let style = window.getComputedStyle(calcContainer);
+            calcInitialLeft = parseFloat(style.left);
+            calcInitialTop = parseFloat(style.top);
+        }
+
+        function doCalcDrag(e) {
+            if (!isCalcDragging) return;
+            e.preventDefault();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            let dx = clientX - calcDragStartX;
+            let dy = clientY - calcDragStartY;
+            calcContainer.style.left = (calcInitialLeft + dx) + 'px';
+            calcContainer.style.top = (calcInitialTop + dy) + 'px';
+        }
+
+        function stopCalcDrag() {
+            isCalcDragging = false;
+        }
+
+        calcContainer.addEventListener('mousedown', startCalcDrag);
+        document.addEventListener('mousemove', doCalcDrag, { passive: false });
+        document.addEventListener('mouseup', stopCalcDrag);
+        calcContainer.addEventListener('touchstart', startCalcDrag, { passive: false });
+        document.addEventListener('touchmove', doCalcDrag, { passive: false });
+        document.addEventListener('touchend', stopCalcDrag);
+
+        /* ==========================================
+           問題生成と判定ロジック (2桁+1桁のひっ算)
+           ========================================== */
+        const problems = [];
+        const seen = new Set();
+        while (problems.length < 10) {
+            const a = Math.floor(Math.random() * 90) + 10; // 10〜99
+            const b = Math.floor(Math.random() * 9) + 1;   // 1〜9
+            const key = `${a}+${b}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                problems.push({ n1: a, n2: b });
+            }
+        }
+
+        let currentIndex = 0;
+        let mistakeCount = 0;
+        const appContainer = document.getElementById('app');
+        let problemStartTime;
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+            problemStartTime = new Date();
+
+            if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.querySelector('.question-title').style.display = 'none';
+                
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全10問合格！！</h2>`;
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                speak("ぜんもんごうかくです。おつかれさまでした。");
+                return;
+            }
+
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 10 問`;
+
+            const prob = problems[currentIndex];
+            speak(`つぎのたしざんをもとめましょう。${prob.n1} たす ${prob.n2} は`);
+
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0; qSound.play().catch(e => {});
+            }
+
+            // 問題エリア
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+
+            // --- ひっ算エリア ---
+            const hissanArea = document.createElement('div');
+            hissanArea.className = 'hissan-wrapper';
+            
+            const n1Str = prob.n1.toString();
+            const n2Str = prob.n2.toString();
+            const correctAns = prob.n1 + prob.n2;
+            const ansLength = correctAns.toString().length;
+
+            // 繰り上がりの判定とメモ枠の追加
+            const hasCarry = (prob.n1 % 10) + prob.n2 >= 10;
+            if (hasCarry) {
+                const memoBox = document.createElement('div');
+                memoBox.className = 'memo-zone';
+                memoBox.style.gridColumn = '4'; // 列4:十の位
+                memoBox.style.gridRow = '2';    // 第2項の行
+                memoBox.style.alignSelf = 'end';
+                memoBox.style.marginBottom = '-10px';
+                memoBox.addEventListener('click', () => { 
+                    memoBox.textContent = ''; 
+                    activeInputBox = memoBox;
+                    calcContainer.style.display = 'flex';
+                    overlay.style.display = 'block';
+                });
+                hissanArea.appendChild(memoBox);
+            }
+
+            // 第1項 (2桁) 十の位
+            const n1Tens = document.createElement('div');
+            n1Tens.textContent = n1Str[0];
+            n1Tens.style.gridColumn = '4'; 
+            n1Tens.style.gridRow = '1';
+            n1Tens.className = 'clickable-digit';
+            n1Tens.style.borderBottomColor = '#2ed573'; 
+
+            // 第1項 1の位
+            const n1Ones = document.createElement('div');
+            n1Ones.textContent = n1Str[1];
+            n1Ones.style.gridColumn = '5'; 
+            n1Ones.style.gridRow = '1';
+            n1Ones.className = 'clickable-digit';
+            n1Ones.style.borderBottomColor = '#ffb3ba';
+
+            // 第2項 (1桁) ＋記号つき
+            const opPlus = document.createElement('div');
+            opPlus.textContent = '＋';
+            opPlus.style.gridColumn = '2';
+            opPlus.style.gridRow = '2';
+            opPlus.style.color = '#555';
+
+            // 第2項 1の位
+            const n2Ones = document.createElement('div');
+            n2Ones.textContent = n2Str[0];
+            n2Ones.style.gridColumn = '5'; 
+            n2Ones.style.gridRow = '2';
+            n2Ones.className = 'clickable-digit';
+            n2Ones.style.borderBottomColor = '#a0c4ff';
+
+            // 横線
+            const hissanLine = document.createElement('div');
+            hissanLine.className = 'hissan-line';
+            hissanLine.style.gridColumn = '2 / span 4'; 
+            hissanLine.style.gridRow = '3';
+
+            // ヒント表示用のコンテナ（左側：10の位）
+            const hintTens = document.createElement('div');
+            hintTens.className = 'hint-container left-hint';
+            hintTens.style.gridColumn = '1';
+            hintTens.style.gridRow = '1';
+
+            // ヒント表示用のコンテナ（右側：1の位）
+            const hint1 = document.createElement('div');
+            hint1.className = 'hint-container right-hint';
+            hint1.style.gridColumn = '6';
+            hint1.style.gridRow = '1';
+
+            const hint2 = document.createElement('div');
+            hint2.className = 'hint-container right-hint';
+            hint2.style.gridColumn = '6';
+            hint2.style.gridRow = '2';
+
+            // クリックイベントでコマを表示
+            n1Tens.addEventListener('click', function() {
+                if (this.dataset.clicked === "true") return; 
+                this.dataset.clicked = "true";
+                this.style.borderBottom = 'none';
+                this.style.color = '#2ed573';
+                
+                hintTens.innerHTML = '';
+                const count = parseInt(n1Str[0], 10);
+                speak(tensReadings[count * 10]); // 「さんじゅう」など
+                
+                for (let i = 0; i < count; i++) {
+                    const c = document.createElement('div');
+                    c.className = 'hint-circle tens';
+                    c.textContent = '10';
+                    c.style.animationDelay = `${i * 0.08}s`;
+                    c.addEventListener('click', () => {
+                        const speakNumber = (i + 1) * 10;
+                        speak(tensReadings[speakNumber] || speakNumber.toString());
+                    });
+                    hintTens.appendChild(c);
+                }
+            });
+
+            n1Ones.addEventListener('click', function() {
+                if (this.dataset.clicked === "true") return;
+                this.dataset.clicked = "true";
+                this.style.borderBottom = 'none';
+                this.style.color = '#ff4757';
+                
+                hint1.innerHTML = '';
+                const count = parseInt(n1Str[1], 10);
+                speak(count.toString());
+                
+                for (let i = 0; i < count; i++) {
+                    const c = document.createElement('div');
+                    c.className = 'hint-circle';
+                    c.textContent = '1';
+                    c.style.animationDelay = `${i * 0.08}s`;
+                    c.addEventListener('click', () => {
+                        speak((i + 1).toString());
+                    });
+                    hint1.appendChild(c);
+                }
+            });
+
+            n2Ones.addEventListener('click', function() {
+                if (this.dataset.clicked === "true") return;
+                this.dataset.clicked = "true";
+                this.style.borderBottom = 'none';
+                this.style.color = '#1e90ff';
+
+                hint2.innerHTML = '';
+                const count = parseInt(n2Str[0], 10);
+                speak(count.toString());
+                
+                // 上の1の位の数を取得（続きから数えるため）
+                const n1OnesCount = parseInt(n1Str[1], 10);
+                
+                for (let i = 0; i < count; i++) {
+                    const c = document.createElement('div');
+                    c.className = 'hint-circle blue';
+                    c.textContent = '1';
+                    c.style.animationDelay = `${i * 0.08}s`;
+                    c.addEventListener('click', () => {
+                        // 上の数からの続きで読み上げる
+                        const speakNumber = n1OnesCount + i + 1;
+                        if (speakNumber >= 0 && speakNumber <= 20) {
+                            speak(numberReadings[speakNumber] || speakNumber.toString());
+                        } else {
+                            speak(speakNumber.toString());
+                        }
+                    });
+                    hint2.appendChild(c);
+                }
+            });
+
+            hissanArea.appendChild(n1Tens);
+            hissanArea.appendChild(n1Ones);
+            hissanArea.appendChild(opPlus);
+            hissanArea.appendChild(n2Ones);
+            hissanArea.appendChild(hissanLine);
+            hissanArea.appendChild(hintTens);
+            hissanArea.appendChild(hint1);
+            hissanArea.appendChild(hint2);
+
+            // 解答枠 (桁数に合わせて生成)
+            for (let i = 0; i < ansLength; i++) {
+                const box = document.createElement('div');
+                box.className = 'drop-zone';
+                box.id = `ans-box-${i}`;
+                
+                // ansLengthに応じて右詰め (列5が一の位、列4が十の位、列3が百の位)
+                let col = 5 - (ansLength - 1 - i);
+                box.style.gridColumn = col.toString();
+                box.style.gridRow = '4';
+
+                box.addEventListener('click', () => { 
+                    box.textContent = ''; 
+                    activeInputBox = box;
+                    calcContainer.style.display = 'flex';
+                    overlay.style.display = 'block';
+                });
+                hissanArea.appendChild(box);
+            }
+
+            // 「できた！」ボタンを解答枠の右側（列6）に配置
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+            checkBtn.style.gridColumn = '6';
+            checkBtn.style.gridRow = '4';
+            hissanArea.appendChild(checkBtn);
+
+            container.appendChild(hissanArea);
+            appContainer.appendChild(container);
+
+            // 判定処理
+            checkBtn.addEventListener('click', () => {
+                let uAnsStr = '';
+                let allFilled = true;
+                
+                // メモ枠は評価に含めず、解答枠のみを判定
+                for (let i = 0; i < ansLength; i++) {
+                    const box = document.getElementById(`ans-box-${i}`);
+                    if (box.textContent === '') {
+                        allFilled = false;
+                        break;
+                    }
+                    uAnsStr += box.textContent;
+                }
+
+                if (!allFilled) return; 
+
+                const uAns = parseInt(uAnsStr, 10);
+                const isCorrect = (uAns === correctAns);
+                
+                const endTime = new Date();
+                const problemType = "2桁+1桁のたし算（ひっ算）";
+                const problemContent = `${prob.n1} + ${prob.n2}`;
+                const userAnswer = uAns.toString();
+                const inputMethod = "計算機入力";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
+                const overlayJudge = document.getElementById('judge-overlay');
+                if (isCorrect) {
+                    overlayJudge.textContent = 'せいかい！';
+                    overlayJudge.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
+                    
+                    checkBtn.disabled = true;
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                    setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
+                } else {
+                    overlayJudge.textContent = 'おしい！';
+                    overlayJudge.className = 'judge-overlay incorrect show';
+                    mistakeCount++;
+                    if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                }
+            });
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
+
+    </script>
+</body>
+</html>
