@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>かけ算九九学習</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f8ff;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    /* スタート画面 */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+    .start-screen p {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 30px;
+    }
+    .dan-selector {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: center;
+        max-width: 600px;
+    }
+    .dan-btn {
+        padding: 15px 10px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        box-shadow: 0 5px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        width: calc(33.333% - 10px);
+        box-sizing: border-box;
+    }
+    .dan-btn.random {
+        background-color: #e67e22;
+        box-shadow: 0 5px 0 #d35400;
+        width: 100%;
+    }
+    .dan-btn:active {
+        transform: translateY(5px);
+        box-shadow: none;
+    }
+
+    .status-bar {
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .question-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-top: 5px;
+        margin-bottom: 20px;
+    }
+
+    .problem-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 1000px;
+        margin: 0 auto;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* 数式と解答エリア */
+    .math-formula {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        background-color: #ffffff;
+        padding: 30px 40px;
+        border-radius: 15px;
+        border: 2px solid #eee;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+
+    .formula-term {
+        font-size: 6rem;
+        font-weight: bold;
+        color: #333;
+    }
+    .formula-term.blue {
+        color: #1e90ff; /* かける数を青に */
+    }
+    .formula-op {
+        font-size: 5rem;
+        font-weight: bold;
+        color: #7f8c8d;
+    }
+
+    .ans-boxes {
+        display: flex;
+        gap: 10px;
+        margin: 0 20px;
+    }
+    .drop-zone {
+        width: 80px;
+        height: 100px;
+        border: 4px dashed #3498db;
+        background-color: #f0f8ff;
+        border-radius: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 5.5rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: #333;
+        flex-shrink: 0;
+    }
+
+    /* 判定ボタン */
+    .check-btn {
+        padding: 0 30px;
+        height: 100px;
+        font-size: 2rem;
+        cursor: pointer;
+        border: 2px solid #00bfff;
+        background-color: #00bfff;
+        color: #fff;
+        font-weight: bold;
+        border-radius: 10px;
+        outline: none;
+        box-shadow: 0 5px 0 #0088cc;
+        touch-action: manipulation;
+        white-space: nowrap; 
+    }
+    .check-btn:active {
+        transform: translateY(5px);
+        box-shadow: none;
+    }
+    .check-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: translateY(5px);
+        box-shadow: none;
+    }
+
+    /* サイコロ表示エリア */
+    .dice-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        width: 100%;
+        min-height: 120px;
+    }
+    .dice-icon {
+        width: 60px;
+        height: 60px;
+        background-color: #ffffff;
+        border: 3px solid #333333;
+        border-radius: 15px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        padding: 6px;
+        box-sizing: border-box;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        opacity: 0;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: box-shadow 0.1s;
+    }
+    /* タップした時に凹むアニメーション */
+    .dice-icon:active {
+        transform: scale(0.9) !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .dice-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: transparent;
+        justify-self: center;
+        align-self: center;
+    }
+    .dice-dot.black { background-color: #333333; }
+    .dice-dot.red { background-color: #ff0000; }
+
+    @keyframes popIn {
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .instruction-red {
+        color: #e74c3c;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 15px;
+    }
+
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent;
+        color: #ff3333;
+        font-size: 7rem;
+        font-weight: bold;
+        padding: 30px 60px;
+        -webkit-text-stroke: 3px #000;
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
+        white-space: nowrap; 
+    }
+    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
+    .judge-overlay.incorrect { color: #3366ff; }
+    
+    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #ffffff; border-radius: 12px; border: 2px solid #a0c4ff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .clear-message h2 { font-size: 2rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .final-result-details { font-size: 1.4rem; color: #333; line-height: 1.8; }
+    .menu-btn, .retry-btn { margin-top: 20px; padding: 12px 30px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; outline: none; touch-action: manipulation; text-decoration: none; display: inline-block; font-weight: bold;}
+    .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
+    .menu-btn { background-color: #95a5a6; color: #fff; }
+    
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .toggle-group { display: flex; gap: 15px; }
+    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
+    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
+    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; touch-action: manipulation; }
+
+    /* 計算機パネル */
+    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 20px; background-color: #ecf0f1; border-radius: 12px; width: 300px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
+    .pieces-container:active { cursor: grabbing; }
+    .piece { flex: 1 1 25%; height: 70px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 2rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.4rem; }
+    .piece.enter-btn { background-color: #95a5a6; color: white; border-color: #7f8c8d; box-shadow: 0 4px 0 #7f8c8d; font-size: 1.4rem; }
+    
+    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>かけ算 九九</h1>
+        <p>れんしゅうする だん を えらんでね</p>
+        <div class="dan-selector">
+            <button class="dan-btn" data-dan="1">1の段</button>
+            <button class="dan-btn" data-dan="2">2の段</button>
+            <button class="dan-btn" data-dan="3">3の段</button>
+            <button class="dan-btn" data-dan="4">4の段</button>
+            <button class="dan-btn" data-dan="5">5の段</button>
+            <button class="dan-btn" data-dan="6">6の段</button>
+            <button class="dan-btn" data-dan="7">7の段</button>
+            <button class="dan-btn" data-dan="8">8の段</button>
+            <button class="dan-btn" data-dan="9">9の段</button>
+            <button class="dan-btn random" data-dan="random">ランダム 10問</button>
+        </div>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
+                <label class="settings-toggle"><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title">・ つぎのかけ算を求めましょう！</h1>
+        
+        <div id="app"></div>
+        <div id="judge-overlay" class="judge-overlay"></div>
+
+        <div class="overlay" id="overlay"></div>
+        <div class="pieces-container" id="calc-container"></div>
+    </div>
+
+    <script>
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        const numberReadings = [
+            "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう"
+        ];
+
+        // 九九専用の読み上げ辞書
+        const kukuReadings = {
+            1: { 1: ["いんいちが", "いち"], 2: ["いんにが", "に"], 3: ["いんさんが", "さん"], 4: ["いんしが", "し"], 5: ["いんごが", "ご"], 6: ["いんろくが", "ろく"], 7: ["いんしちが", "しち"], 8: ["いんはちが", "はち"], 9: ["いんくが", "く"] },
+            2: { 1: ["にいちが", "に"], 2: ["ににんが", "し"], 3: ["にさんが", "ろく"], 4: ["にしが", "はち"], 5: ["にご", "じゅう"], 6: ["にろく", "じゅうに"], 7: ["にしち", "じゅうし"], 8: ["にはち", "じゅうろく"], 9: ["にく", "じゅうはち"] },
+            3: { 1: ["さんいちが", "さん"], 2: ["さんにが", "ろく"], 3: ["さざんが", "きゅう"], 4: ["さんし", "じゅうに"], 5: ["さんご", "じゅうご"], 6: ["さぶろく", "じゅうはち"], 7: ["さんしち", "にじゅういち"], 8: ["さんぱ", "にじゅうし"], 9: ["さんく", "にじゅうしち"] },
+            4: { 1: ["しいちが", "し"], 2: ["しにが", "はち"], 3: ["しさん", "じゅうに"], 4: ["しし", "じゅうろく"], 5: ["しご", "にじゅう"], 6: ["しろく", "にじゅうし"], 7: ["ししち", "にじゅうはち"], 8: ["しはち", "さんじゅうに"], 9: ["しく", "さんじゅうろく"] },
+            5: { 1: ["ごいちが", "ご"], 2: ["ごに", "じゅう"], 3: ["ごさん", "じゅうご"], 4: ["ごし", "にじゅう"], 5: ["ごご", "にじゅうご"], 6: ["ごろく", "さんじゅう"], 7: ["ごしち", "さんじゅうご"], 8: ["ごはち", "よんじゅう"], 9: ["ごっく", "しじゅうご"] },
+            6: { 1: ["ろくいちが", "ろく"], 2: ["ろくに", "じゅうに"], 3: ["ろくさん", "じゅうはち"], 4: ["ろくし", "にじゅうし"], 5: ["ろくご", "さんじゅう"], 6: ["ろくろく", "さんじゅうろく"], 7: ["ろくしち", "しじゅうに"], 8: ["ろくはち", "しじゅうはち"], 9: ["ろっく", "ごじゅうし"] },
+            7: { 1: ["しちいちが", "しち"], 2: ["しちに", "じゅうし"], 3: ["しちさん", "にじゅういち"], 4: ["しちし", "にじゅうはち"], 5: ["しちご", "さんじゅうご"], 6: ["しちろく", "しじゅうに"], 7: ["しちしち", "しじゅうく"], 8: ["しちは", "ごじゅうろく"], 9: ["しちく", "ろくじゅうさん"] },
+            8: { 1: ["はちいちが", "はち"], 2: ["はちに", "じゅうろく"], 3: ["はちさん", "にじゅうし"], 4: ["はちし", "さんじゅうに"], 5: ["はちご", "よんじゅう"], 6: ["はちろく", "しじゅうはち"], 7: ["はちしち", "ごじゅうろく"], 8: ["はっぱ", "ろくじゅうし"], 9: ["はっく", "しちじゅうに"] },
+            9: { 1: ["くいちが", "く"], 2: ["くに", "じゅうはち"], 3: ["くさん", "にじゅうしち"], 4: ["くし", "さんじゅうろく"], 5: ["くご", "しじゅうご"], 6: ["くろく", "ごじゅうし"], 7: ["くしち", "ろくじゅうさん"], 8: ["くはち", "しちじゅうに"], 9: ["くく", "はちじゅういち"] }
+        };
+
+        // サイコロの目のパターン
+        const dicePatterns = {
+            1: [4], 2: [0, 8], 3: [0, 4, 8],
+            4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
+            7: [0, 2, 3, 4, 5, 6, 8], 8: [0, 1, 2, 3, 5, 6, 7, 8], 9: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        };
+
+        /* ==========================================
+           計算機パネルの構築
+           ========================================== */
+        const overlay = document.getElementById('overlay');
+        const calcContainer = document.getElementById('calc-container');
+        let activeInputBox = null;
+
+        const calcKeys = [
+            '7', '8', '9',
+            '4', '5', '6',
+            '1', '2', '3',
+            '0', '削除', 'とじる'
+        ];
+
+        calcKeys.forEach(key => {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.textContent = key;
+            
+            if (key === '削除') {
+                piece.classList.add('delete-btn');
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) { activeInputBox.textContent = ''; }
+                });
+            } else if (key === 'とじる') {
+                piece.classList.add('enter-btn');
+                piece.addEventListener('click', () => {
+                    calcContainer.style.display = 'none';
+                    overlay.style.display = 'none';
+                    activeInputBox = null;
+                });
+            } else {
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        activeInputBox.textContent = key; 
+                        
+                        const parsedVal = parseInt(key, 10);
+                        if (parsedVal >= 0 && parsedVal <= 9) {
+                            speak(numberReadings[parsedVal]);
+                        }
+
+                        calcContainer.style.display = 'none';
+                        overlay.style.display = 'none';
+                        activeInputBox = null;
+                    }
+                });
+            }
+            calcContainer.appendChild(piece);
+        });
+
+        overlay.addEventListener('click', () => {
+            calcContainer.style.display = 'none';
+            overlay.style.display = 'none';
+            activeInputBox = null;
+        });
+
+        let isCalcDragging = false;
+        let calcDragStartX, calcDragStartY, calcInitialLeft, calcInitialTop;
+
+        function startCalcDrag(e) {
+            if (e.target.classList.contains('piece')) return;
+            isCalcDragging = true;
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            calcDragStartX = clientX;
+            calcDragStartY = clientY;
+            let style = window.getComputedStyle(calcContainer);
+            calcInitialLeft = parseFloat(style.left);
+            calcInitialTop = parseFloat(style.top);
+        }
+
+        function doCalcDrag(e) {
+            if (!isCalcDragging) return;
+            e.preventDefault();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            let dx = clientX - calcDragStartX;
+            let dy = clientY - calcDragStartY;
+            calcContainer.style.left = (calcInitialLeft + dx) + 'px';
+            calcContainer.style.top = (calcInitialTop + dy) + 'px';
+        }
+
+        function stopCalcDrag() {
+            isCalcDragging = false;
+        }
+
+        calcContainer.addEventListener('mousedown', startCalcDrag);
+        document.addEventListener('mousemove', doCalcDrag, { passive: false });
+        document.addEventListener('mouseup', stopCalcDrag);
+        calcContainer.addEventListener('touchstart', startCalcDrag, { passive: false });
+        document.addEventListener('touchmove', doCalcDrag, { passive: false });
+        document.addEventListener('touchend', stopCalcDrag);
+
+        /* ==========================================
+           問題生成と判定ロジック
+           ========================================== */
+        let problems = [];
+        let currentIndex = 0;
+        let mistakeCount = 0;
+        const appContainer = document.getElementById('app');
+        let problemStartTime;
+
+        function generateProblems(dan) {
+            problems = [];
+            if (dan === 'random') {
+                while (problems.length < 10) {
+                    let a = Math.floor(Math.random() * 9) + 1;
+                    let b = Math.floor(Math.random() * 9) + 1;
+                    problems.push({ n1: a, n2: b });
+                }
+            } else {
+                let num = parseInt(dan, 10);
+                for (let i = 1; i <= 9; i++) {
+                    problems.push({ n1: num, n2: i });
+                }
+            }
+        }
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+            problemStartTime = new Date();
+
+            if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.querySelector('.question-title').style.display = 'none';
+                
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全${problems.length}問合格！！</h2>`;
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                speak("ぜんもんごうかくです。おつかれさまでした。");
+                return;
+            }
+
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
+
+            const prob = problems[currentIndex];
+            
+            // 出題時の九九読み上げ
+            const yomi = kukuReadings[prob.n1][prob.n2][0];
+            speak(yomi);
+
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0; qSound.play().catch(e => {});
+            }
+
+            // --- 数式エリア ---
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+
+            const mathFormula = document.createElement('div');
+            mathFormula.className = 'math-formula';
+            
+            const correctAns = prob.n1 * prob.n2;
+            const ansLength = correctAns.toString().length;
+
+            mathFormula.innerHTML = `
+                <div class="formula-term">${prob.n1}</div>
+                <div class="formula-op">×</div>
+                <div class="formula-term blue">${prob.n2}</div>
+                <div class="formula-op">＝</div>
+            `;
+
+            const ansBoxes = document.createElement('div');
+            ansBoxes.className = 'ans-boxes';
+            
+            for (let i = 0; i < ansLength; i++) {
+                const box = document.createElement('div');
+                box.className = 'drop-zone';
+                box.id = `ans-box-${i}`;
+                box.addEventListener('click', () => { 
+                    box.textContent = ''; 
+                    activeInputBox = box;
+                    calcContainer.style.display = 'flex';
+                    overlay.style.display = 'block';
+                });
+                ansBoxes.appendChild(box);
+            }
+            mathFormula.appendChild(ansBoxes);
+
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+            mathFormula.appendChild(checkBtn);
+
+            container.appendChild(mathFormula);
+
+            // --- サイコロ表示エリア ---
+            const diceContainer = document.createElement('div');
+            diceContainer.className = 'dice-container';
+            
+            for (let i = 0; i < prob.n2; i++) {
+                const dice = document.createElement('div');
+                dice.className = 'dice-icon';
+                for (let j = 0; j < 9; j++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dice-dot';
+                    if (dicePatterns[prob.n1].includes(j)) {
+                        dot.classList.add(prob.n1 === 1 && j === 4 ? 'red' : 'black');
+                    }
+                    dice.appendChild(dot);
+                }
+                
+                // サイコロをタップした時に累計の数を読み上げるイベントを追加
+                dice.addEventListener('click', () => {
+                    const countNumber = prob.n1 * (i + 1);
+                    speak(countNumber.toString());
+                });
+
+                // アニメーションで順番に表示
+                dice.style.animation = `popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards ${i * 0.1}s`;
+                diceContainer.appendChild(dice);
+            }
+
+            container.appendChild(diceContainer);
+
+            // 操作のヒント文を追加
+            const instruction = document.createElement('div');
+            instruction.className = 'instruction-red';
+            instruction.textContent = 'サイコロをタップすると、かずをかぞえるよ。';
+            container.appendChild(instruction);
+
+            appContainer.appendChild(container);
+
+            // 判定処理
+            checkBtn.addEventListener('click', () => {
+                let uAnsStr = '';
+                let allFilled = true;
+                
+                for (let i = 0; i < ansLength; i++) {
+                    const box = document.getElementById(`ans-box-${i}`);
+                    if (box.textContent === '') {
+                        allFilled = false;
+                        break;
+                    }
+                    uAnsStr += box.textContent;
+                }
+
+                if (!allFilled) return; 
+
+                const uAns = parseInt(uAnsStr, 10);
+                const isCorrect = (uAns === correctAns);
+                
+                const endTime = new Date();
+                const problemType = "かけ算九九";
+                const problemContent = `${prob.n1} × ${prob.n2}`;
+                const userAnswer = uAns.toString();
+                const inputMethod = "計算機入力";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
+                const overlayJudge = document.getElementById('judge-overlay');
+                if (isCorrect) {
+                    overlayJudge.textContent = 'せいかい！';
+                    overlayJudge.className = 'judge-overlay show';
+                    if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
+                    
+                    // 正解時の読み上げ（例：「ろく」）
+                    speak(kukuReadings[prob.n1][prob.n2][1]);
+                    
+                    checkBtn.disabled = true;
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                    setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
+                } else {
+                    overlayJudge.textContent = 'おしい！';
+                    overlayJudge.className = 'judge-overlay incorrect show';
+                    mistakeCount++;
+                    if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                }
+            });
+        }
+
+        // スタート画面のボタン処理
+        const danBtns = document.querySelectorAll('.dan-btn');
+        danBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const dan = e.target.getAttribute('data-dan');
+                generateProblems(dan);
+                currentIndex = 0;
+                mistakeCount = 0;
+                
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                renderProblem();
+            });
+        });
+
+    </script>
+</body>
+</html>
