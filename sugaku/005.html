@@ -632,10 +632,22 @@
             beakerOutline.setAttribute('style', 'pointer-events: none;');
             svg.appendChild(beakerOutline);
 
+            // 目盛りの線描画（長さの調整を適用）
             for (let i = 0; i <= prob.den; i++) {
                 const yPos = 220 - segmentHeight * i;
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', '25');
+                
+                // --- 線の長さを条件分岐 ---
+                let lineX1;
+                if (i === 0 || i === prob.den) {
+                    lineX1 = 15; // 0と一番上（1L）の目盛りは一番長く
+                } else if (i % 5 === 0) {
+                    lineX1 = 22; // 5個目の目盛りは少し長く
+                } else {
+                    lineX1 = 30; // 通常の目盛り（少し短く）
+                }
+
+                line.setAttribute('x1', lineX1.toString());
                 line.setAttribute('y1', yPos.toString());
                 line.setAttribute('x2', '40');
                 line.setAttribute('y2', yPos.toString());

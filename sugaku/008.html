@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>数直線の分数</title>
+<title>1より大きい分数の数直線</title>
 <style>
     html, body {
         height: 100%;
@@ -305,7 +305,7 @@
 <body>
 
     <div id="start-screen" class="start-screen">
-        <h1>数直線の分数</h1>
+        <h1>1より大きい分数の数直線</h1>
         <button id="start-btn" class="start-btn">スタート</button>
     </div>
 
@@ -463,12 +463,13 @@
 
 
         /* ==========================================
-           問題生成と判定ロジック
+           問題生成と判定ロジック (1より大きい分数)
            ========================================== */
         const problems = [];
         while (problems.length < 10) {
             const den = Math.floor(Math.random() * 9) + 2; // 分母は2から10
-            const val = Math.floor(Math.random() * (den - 1)) + 1; // 1からden-1までの間
+            // 1から2の間（den+1 から den*2-1）の仮分数を生成
+            const val = Math.floor(Math.random() * (den - 1)) + den + 1; 
             problems.push({ den: den, val: val });
         }
 
@@ -548,10 +549,16 @@
             svg.appendChild(text0);
 
             const text1 = document.createElementNS(svgNS, 'text');
-            text1.setAttribute('x', '750'); text1.setAttribute('y', '50');
+            text1.setAttribute('x', '400'); text1.setAttribute('y', '50');
             text1.setAttribute('text-anchor', 'middle'); text1.setAttribute('font-size', '24');
             text1.textContent = '1';
             svg.appendChild(text1);
+
+            const text2 = document.createElementNS(svgNS, 'text');
+            text2.setAttribute('x', '750'); text2.setAttribute('y', '50');
+            text2.setAttribute('text-anchor', 'middle'); text2.setAttribute('font-size', '24');
+            text2.textContent = '2';
+            svg.appendChild(text2);
 
             const textM = document.createElementNS(svgNS, 'text');
             textM.setAttribute('x', '780'); textM.setAttribute('y', '50');
@@ -559,16 +566,37 @@
             textM.textContent = '(m)';
             svg.appendChild(textM);
 
-            for(let i = 0; i <= prob.den; i++) {
-                const xPos = 50 + (700 / prob.den) * i;
+            // 目盛りの描画（長さの調整を適用）
+            const intervalWidth = 350 / prob.den; // 0~1の幅が350
+            for(let i = 0; i <= prob.den * 2; i++) {
+                const xPos = 50 + intervalWidth * i;
                 const tick = document.createElementNS(svgNS, 'line');
-                tick.setAttribute('x1', xPos.toString()); tick.setAttribute('y1', '65');
-                tick.setAttribute('x2', xPos.toString()); tick.setAttribute('y2', '95');
-                tick.setAttribute('stroke', '#000'); tick.setAttribute('stroke-width', '3');
+                
+                let tickY1, tickY2;
+                if (i % prob.den === 0) {
+                    // 0, 1, 2（整数）の目盛りは一番長く
+                    tickY1 = 55;
+                    tickY2 = 105;
+                } else if (i % 5 === 0) {
+                    // 5個目の目盛りは少し長く
+                    tickY1 = 60;
+                    tickY2 = 100;
+                } else {
+                    // 通常の目盛り
+                    tickY1 = 70;
+                    tickY2 = 90;
+                }
+
+                tick.setAttribute('x1', xPos.toString());
+                tick.setAttribute('y1', tickY1.toString());
+                tick.setAttribute('x2', xPos.toString());
+                tick.setAttribute('y2', tickY2.toString());
+                tick.setAttribute('stroke', '#000');
+                tick.setAttribute('stroke-width', '3');
                 svg.appendChild(tick);
             }
 
-            const arrowX = 50 + (700 / prob.den) * prob.val;
+            const arrowX = 50 + intervalWidth * prob.val;
             const arrow = document.createElementNS(svgNS, 'path');
             const pathStr = `M ${arrowX} 135 L ${arrowX} 105 L ${arrowX - 8} 115 M ${arrowX} 105 L ${arrowX + 8} 115`;
             arrow.setAttribute('d', pathStr);
@@ -597,7 +625,6 @@
             numZone.id = 'ans-num';
             numZone.addEventListener('click', () => { 
                 numZone.textContent = ''; 
-                //speak("くりあ");
                 baseValue = 0; // ベース値をリセット
                 activeInputBox = numZone;
                 calcContainer.style.display = 'flex';
@@ -613,7 +640,6 @@
             denZone.id = 'ans-den';
             denZone.addEventListener('click', () => { 
                 denZone.textContent = ''; 
-                //speak("くりあ");
                 baseValue = 0; // ベース値をリセット
                 activeInputBox = denZone;
                 calcContainer.style.display = 'flex';
@@ -659,7 +685,7 @@
                 const isCorrect = (userNum === prob.val) && (userDen === prob.den);
                 
                 const endTime = new Date();
-                const problemType = "数直線の分数";
+                const problemType = "1より大きい分数の数直線";
                 const problemContent = `分母:${prob.den}, 値:${prob.val}`;
                 const userAnswer = `${userNum}/${userDen}`;
                 const inputMethod = "計算機入力";

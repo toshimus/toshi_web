@@ -554,17 +554,37 @@
             svg.appendChild(text1);
 
             const textM = document.createElementNS(svgNS, 'text');
-            textM.setAttribute('x', '780'); textM.setAttribute('y', '50');
+            textM.setAttribute('x', '760'); textM.setAttribute('y', '50');
             textM.setAttribute('text-anchor', 'start'); textM.setAttribute('font-size', '24');
             textM.textContent = '(m)';
             svg.appendChild(textM);
 
+            // 目盛りの描画（長さの調整を適用）
             for(let i = 0; i <= prob.den; i++) {
                 const xPos = 50 + (700 / prob.den) * i;
                 const tick = document.createElementNS(svgNS, 'line');
-                tick.setAttribute('x1', xPos.toString()); tick.setAttribute('y1', '65');
-                tick.setAttribute('x2', xPos.toString()); tick.setAttribute('y2', '95');
-                tick.setAttribute('stroke', '#000'); tick.setAttribute('stroke-width', '3');
+                
+                let tickY1, tickY2;
+                if (i === 0 || i === prob.den) {
+                    // 0, 1（両端の整数）の目盛りは一番長く
+                    tickY1 = 55;
+                    tickY2 = 105;
+                } else if (i % 5 === 0) {
+                    // 5個目の目盛りは少し長く
+                    tickY1 = 60;
+                    tickY2 = 100;
+                } else {
+                    // 通常の目盛り
+                    tickY1 = 70;
+                    tickY2 = 90;
+                }
+
+                tick.setAttribute('x1', xPos.toString());
+                tick.setAttribute('y1', tickY1.toString());
+                tick.setAttribute('x2', xPos.toString());
+                tick.setAttribute('y2', tickY2.toString());
+                tick.setAttribute('stroke', '#000');
+                tick.setAttribute('stroke-width', '3');
                 svg.appendChild(tick);
             }
 
