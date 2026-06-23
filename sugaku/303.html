@@ -487,13 +487,27 @@
             const inputMethod = "計算機入力";
             const resultStr = isCorrect ? "正解" : "不正解";
             
-            const csvLine = `"${problemType}","${problemContent}","${userAnsStr}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+            // view.htmlでの日付分割対応のため、日付文字列(YYYY/MM/DD)を生成
+            const yyyy = problemStartTime.getFullYear();
+            const mm = String(problemStartTime.getMonth() + 1).padStart(2, '0');
+            const dd = String(problemStartTime.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}/${mm}/${dd}`;
+            
+            // CSVフォーマットの先頭に日付を追加
+            const csvLine = `"${dateStr}","${problemType}","${problemContent}","${userAnsStr}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
             
             if (window.webkit && window.webkit.messageHandlers.appBridge) {
                 window.webkit.messageHandlers.appBridge.postMessage({
                     action: "saveCSV",
                     csvLine: csvLine
                 });
+            } else {
+                // ブラウザ単体での動作確認用にLocalStorageへ保存
+                const storageKey = "hissan2x2_history";
+                let history = localStorage.getItem(storageKey) || "";
+                history += csvLine;
+                localStorage.setItem(storageKey, history);
+                console.log("LocalStorageに保存しました: " + csvLine);
             }
 
             const judge = document.getElementById('judge-overlay');
