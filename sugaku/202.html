@@ -283,6 +283,7 @@
     <div id="start-screen" class="start-screen">
         <h1>20までのたし算（マス目）</h1>
         <button id="start-btn" class="start-btn">スタート</button>
+        <BR><BR><a href="index.html" class="menu-btn" style="margin-top: 20px; background-color: #95a5a6;">メニューへ戻る</a>
     </div>
 
     <div id="main-content" style="display: none;">
@@ -439,6 +440,9 @@
         let sourceCell = null;
 
         function circleTouchStart(e) {
+            // 計算機パネルが開いている場合はコマのドラッグを開始しない（干渉防止）
+            if (calcContainer.style.display === 'flex') return;
+
             if (e.target.classList.contains('circle') && !e.target.classList.contains('dragging')) {
                 draggingCircle = e.target;
                 sourceCell = draggingCircle.parentElement;
@@ -467,36 +471,35 @@
         function circleTouchEnd(e) {
             if (!draggingCircle) return;
             
-            draggingCircle.style.display = 'none'; 
             let clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
             let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            
+            // draggingCircle は pointer-events: none が適用されているため、そのまま下の要素を取得可能
             let elem = document.elementFromPoint(clientX, clientY);
-            draggingCircle.style.display = 'block';
             
             // ドロップされた場所のテンフレームを取得
             let targetFrame = elem ? elem.closest('.ten-frame') : null;
+            let placed = false;
             
             if (targetFrame) {
                 // ターゲットのフレーム内で、一番最初の空きマスを探す
                 let emptyCell = Array.from(targetFrame.querySelectorAll('.cell')).find(c => !c.hasChildNodes());
                 
                 if (emptyCell) {
-                    draggingCircle.classList.remove('dragging');
-                    draggingCircle.style.left = '';
-                    draggingCircle.style.top = '';
                     emptyCell.appendChild(draggingCircle);
-                } else {
-                    draggingCircle.classList.remove('dragging');
-                    draggingCircle.style.left = '';
-                    draggingCircle.style.top = '';
-                    sourceCell.appendChild(draggingCircle);
+                    placed = true;
                 }
-            } else {
-                draggingCircle.classList.remove('dragging');
-                draggingCircle.style.left = '';
-                draggingCircle.style.top = '';
+            }
+            
+            // 空きマスが見つからなかった場合、またはフレーム外で離した場合は元のマスへ戻す
+            if (!placed && sourceCell) {
                 sourceCell.appendChild(draggingCircle);
             }
+            
+            // スタイルのリセット
+            draggingCircle.classList.remove('dragging');
+            draggingCircle.style.left = '';
+            draggingCircle.style.top = '';
             
             // --- 移動完了後、両方のフレームのコマを左上から順番に隙間なく並べ直す自動整列処理 ---
             document.querySelectorAll('.ten-frame').forEach(frame => {

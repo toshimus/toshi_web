@@ -287,6 +287,7 @@
     <div id="start-screen" class="start-screen">
         <h1>10までの引き算（マス目）</h1>
         <button id="start-btn" class="start-btn">スタート</button>
+        <BR><BR><a href="index.html" class="menu-btn" style="margin-top: 20px; background-color: #95a5a6;">メニューへ戻る</a>
     </div>
 
     <div id="main-content" style="display: none;">
@@ -444,6 +445,9 @@
         let touchStartY = 0;
 
         function circleTouchStart(e) {
+            // 計算機パネルが開いている場合はコマのドラッグを開始しない（干渉防止）
+            if (calcContainer.style.display === 'flex') return;
+
             if (e.target.classList.contains('circle') && !e.target.classList.contains('dragging')) {
                 draggingCircle = e.target;
                 sourceCell = draggingCircle.parentElement;
@@ -472,11 +476,11 @@
         function circleTouchEnd(e) {
             if (!draggingCircle) return;
             
-            draggingCircle.style.display = 'none'; 
             let clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
             let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            
+            // draggingCircle には pointer-events: none が適用されているためそのまま要素を取得可能
             let elem = document.elementFromPoint(clientX, clientY);
-            draggingCircle.style.display = 'block';
             
             // FLIP (First) : 現在のすべてのコマの位置を記録
             const allCells = Array.from(document.querySelectorAll('.frames-container .cell'));
@@ -510,14 +514,18 @@
             } else {
                 // ドロップ処理
                 let targetFrame = elem ? elem.closest('.ten-frame') : null;
+                let placed = false;
+                
                 if (targetFrame) {
                     let emptyCell = Array.from(targetFrame.querySelectorAll('.cell')).find(c => !c.hasChildNodes());
                     if (emptyCell) {
                         emptyCell.appendChild(draggingCircle);
-                    } else {
-                        sourceCell.appendChild(draggingCircle);
+                        placed = true;
                     }
-                } else {
+                }
+                
+                // 空きマスが見つからなかった場合、またはフレーム外で離した場合は元の場所へ戻す
+                if (!placed && sourceCell) {
                     sourceCell.appendChild(draggingCircle);
                 }
             }
