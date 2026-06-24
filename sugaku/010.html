@@ -174,28 +174,35 @@
         box-shadow: none;
     }
     
+    /* 判定ボタンを青色の立体パターンに変更 */
     .check-btn {
         padding: 0 30px;
-        height: 80px;
-        font-size: 1.5rem;
-        cursor: pointer;
-        border: 2px solid #00bfff;
-        background-color: #00bfff;
-        color: #fff;
+        height: 60px;
+        font-size: 1.6rem;
         font-weight: bold;
-        border-radius: 12px;
+        cursor: pointer;
+        border: none;
+        background-color: #00bfff;
+        color: #ffffff;
+        border-radius: 10px;
+        font-family: inherit;
         outline: none;
-        box-shadow: 0 5px 0 #0088cc;
+        box-shadow: 0 4px 0 #0088cc;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
     .check-btn:active {
-        transform: translateY(5px);
+        transform: translateY(4px);
         box-shadow: none;
     }
     .check-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: translateY(4px);
+        box-shadow: none;
     }
     
     .hint-text {
@@ -575,7 +582,7 @@
                 const overlay = document.getElementById('judge-overlay');
 
                 if (isCorrect) {
-                    overlay.textContent = '正解！';
+                    overlay.textContent = 'せいかい！';
                     overlay.className = 'judge-overlay show';
                     if (soundCheckbox && soundCheckbox.checked) {
                         okSound.currentTime = 0;
