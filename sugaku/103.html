@@ -854,11 +854,22 @@
                 if (isNaN(uFinalN) || isNaN(uFinalD) || isNaN(uSumN1) || isNaN(uSumN2) || isNaN(uSumD)) return; 
 
                 // 正解の計算
+                //const correctFinalN = prob.n1 + prob.n2;
+                //const correctFinalD = prob.d;
+                //const needsWhole = (correctFinalN === correctFinalD);
+                
+                //let lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
+
+
+                // 正解の計算
                 const correctFinalN = prob.n1 + prob.n2;
                 const correctFinalD = prob.d;
                 const needsWhole = (correctFinalN === correctFinalD);
                 
-                let lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
+                // 約分を考慮し、クロス乗算で値が等しいか判定します
+                let lastCorrect = (uFinalN * correctFinalD === correctFinalN * uFinalD);
+
+
                 let uFinalWhole = null;
 
                 // 1 になる場合の追加判定

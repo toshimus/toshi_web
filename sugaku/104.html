@@ -1084,11 +1084,21 @@
 
                 if (isNaN(uFinalN) || isNaN(uFinalD)) return; 
 
+                //const correctFinalN = (prob.n1 * prob.M_target) + prob.n2;
+                //const correctFinalD = prob.d2;
+                //const needsSimplification = (correctFinalN === correctFinalD);
+                
+                //let lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
+
+
                 const correctFinalN = (prob.n1 * prob.M_target) + prob.n2;
                 const correctFinalD = prob.d2;
                 const needsSimplification = (correctFinalN === correctFinalD);
                 
-                let lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
+                // 約分を考慮し、クロス乗算で値が等しいか判定します
+                let lastCorrect = (uFinalN * correctFinalD === correctFinalN * uFinalD);
+
+
                 let uFinalWhole = null;
 
                 if (needsSimplification) {

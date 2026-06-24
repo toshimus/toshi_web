@@ -361,8 +361,13 @@
                 const denVal = boxDen.textContent;
                 if(numVal === "" || denVal === "") return;
                 
-                const isCorrect = (parseInt(denVal) === prob.den && parseInt(numVal) === (prob.n1 - prob.n2));
-                
+                //const isCorrect = (parseInt(denVal) === prob.den && parseInt(numVal) === (prob.n1 - prob.n2));
+
+
+                // 約分を考慮し、クロス乗算で値が等しいか判定します
+                const isCorrect = (parseInt(numVal) * prob.den === (prob.n1 - prob.n2) * parseInt(denVal));
+
+
                 const endTime = new Date();
                 const problemType = `分数のひき算`;
                 const problemContent = `${prob.n1}/${prob.den} - ${prob.n2}/${prob.den}`;

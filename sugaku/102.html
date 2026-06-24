@@ -839,9 +839,15 @@
                 }
 
                 // 1を分数に直した形が合っているか
-                const stepCorrect = (uStepD === prob.den && uStepN === prob.den);
+                //const stepCorrect = (uStepD === prob.den && uStepN === prob.den);
                 // 最終回答が合っているか
-                let finalCorrect = (uFinalD === prob.den && uFinalN === correctFinalN);
+                //let finalCorrect = (uFinalD === prob.den && uFinalN === correctFinalN);
+
+                // 1を分数に直した形が合っているか
+                const stepCorrect = (uStepD === prob.den && uStepN === prob.den);
+                // 最終回答が合っているか (約分を考慮し、クロス乗算で値が等しいか判定します)
+                let finalCorrect = (uFinalN * prob.den === correctFinalN * uFinalD);
+
                 
                 if (needsWhole) {
                     if (uFinalWhole !== 1) finalCorrect = false;

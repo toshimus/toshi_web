@@ -370,7 +370,12 @@
                 const denVal = boxDen.textContent;
                 if(numVal === "" || denVal === "") return;
                 
-                const isCorrect = (parseInt(denVal) === prob.den && parseInt(numVal) === (prob.den - prob.num));
+                //const isCorrect = (parseInt(denVal) === prob.den && parseInt(numVal) === (prob.den - prob.num));
+                
+                
+                // 約分を考慮し、クロス乗算で値が等しいか判定します
+                const isCorrect = (parseInt(numVal) * prob.den === (prob.den - prob.num) * parseInt(denVal));
+                
                 
                 const endTime = new Date();
                 const problemType = `1－分数のひき算`;
