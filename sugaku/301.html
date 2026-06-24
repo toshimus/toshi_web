@@ -263,7 +263,20 @@
     .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
     .menu-btn { background-color: #95a5a6; color: #fff; }
     
-    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    //.top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    /* 既存の .top-nav を少し修正 */
+    .top-nav { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 10px; 
+    }
+    
+    /* 💡追加：ボタンを並べるためのラッパー */
+    .button-group {
+        display: flex;
+        gap: 10px;
+    }
     .toggle-group { display: flex; gap: 15px; }
     .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
     .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
@@ -299,13 +312,17 @@
         </div>
     </div>
 
-    <div id="main-content" style="display: none;">
+<div id="main-content" style="display: none;">
         <div class="top-nav">
             <div class="toggle-group">
                 <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
                 <label class="settings-toggle"><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
             </div>
-            <a href="index.html" class="back-btn">メニューへ戻る</a>
+            
+            <div class="button-group">
+                <button class="back-btn" onclick="location.reload()">一覧に戻る</button>
+                <a href="index.html" class="back-btn">メニューへ戻る</a>
+            </div>
         </div>
         
         <div id="status-bar" class="status-bar"></div>

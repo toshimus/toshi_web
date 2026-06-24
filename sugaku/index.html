@@ -248,24 +248,48 @@
         </div>
     </div>
 
-    <script>
+<script>
         // タブ切り替えのJavaScript
         const tabs = document.querySelectorAll('.category-btn');
         const contents = document.querySelectorAll('.category-content');
 
+        // 💡追加: 最後に選択されたタブをLocalStorageに保存/読み込みする処理
+        const STORAGE_KEY = 'selected_category_index';
+
+        function activateTab(targetId) {
+            tabs.forEach(t => {
+                if (t.getAttribute('data-target') === targetId) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+            contents.forEach(c => {
+                if (c.id === targetId) {
+                    c.classList.add('active');
+                } else {
+                    c.classList.remove('active');
+                }
+            });
+            // 選択状態を保存
+            localStorage.setItem(STORAGE_KEY, targetId);
+        }
+
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                // すべてのタブのactiveクラスを外す
-                tabs.forEach(t => t.classList.remove('active'));
-                // すべてのコンテンツを非表示にする
-                contents.forEach(c => c.classList.remove('active'));
-                
-                // クリックされたタブをactiveにする
-                tab.classList.add('active');
-                // 対応するコンテンツを表示する
-                const targetId = tab.getAttribute('data-target');
-                document.getElementById(targetId).classList.add('active');
+                activateTab(tab.getAttribute('data-target'));
             });
+        });
+
+        // 💡追加: ページ読み込み時に前回の状態を復元
+        window.addEventListener('DOMContentLoaded', () => {
+            const lastSelected = localStorage.getItem(STORAGE_KEY);
+            if (lastSelected && document.getElementById(lastSelected)) {
+                activateTab(lastSelected);
+            } else {
+                // 初回アクセス時は「たし算」
+                activateTab('addition');
+            }
         });
     </script>
 </body>
