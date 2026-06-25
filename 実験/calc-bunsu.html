@@ -22,7 +22,7 @@
     /* 計算機本体のコンテナ（横長に拡張） */
     .calculator {
         width: 100%;
-        max-width: 700px;
+        max-width: 800px;
         background-color: #2c3e50;
         border-radius: 20px;
         padding: 25px;
@@ -33,15 +33,15 @@
     /* ディスプレイ画面 */
     .screen-container {
         width: 100%;
-        height: 120px;
+        height: 140px; /* 縦幅を少し拡張 */
         background-color: #ecf0f1;
         border-radius: 12px;
         margin-bottom: 25px;
-        padding: 10px 15px;
+        padding: 10px 20px;
         box-sizing: border-box;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
+        justify-content: flex-start; /* 左寄せベースでスクロール */
         overflow-x: auto;
         box-shadow: inset 0 4px 8px rgba(0,0,0,0.1);
         border: 2px solid #bdc3c7;
@@ -50,10 +50,11 @@
     .screen-content {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px; /* 隙間を少し広く */
         font-size: 2.5rem;
         color: #333;
         white-space: nowrap;
+        margin-left: auto; /* コンテンツが少ない時は右寄せに見せるための工夫 */
     }
 
     /* 通常の数字、演算子のスタイル */
@@ -86,7 +87,7 @@
         width: 100%;
         height: 3px;
         background-color: #333;
-        margin: 2px 0;
+        margin: 4px 0;
     }
 
     .frac-den {
@@ -111,6 +112,8 @@
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 15px;
+        max-width: 600px; /* キーパッドは操作しやすい幅に維持 */
+        margin: 0 auto;
     }
 
     /* ボタンの共通スタイル */
@@ -211,7 +214,7 @@
 <body>
 
     <div class="calculator">
-        <div class="screen-container">
+        <div class="screen-container" id="screen-container">
             <div id="screen" class="screen-content"></div>
         </div>
 
@@ -262,43 +265,15 @@
             return Math.abs(a * b) / gcd(a, b);
         }
 
-        // 分数の四則演算（通分を伴う教科書的アプローチ）
-        function addFractions(f1, f2) {
-            const d = lcm(f1.d, f2.d);
-            const n1 = f1.n * (d / f1.d);
-            const n2 = f2.n * (d / f2.d);
-            return { n: n1 + n2, d: d };
-        }
-
-        function subFractions(f1, f2) {
-            const d = lcm(f1.d, f2.d);
-            const n1 = f1.n * (d / f1.d);
-            const n2 = f2.n * (d / f2.d);
-            return { n: n1 - n2, d: d };
-        }
-
-        function mulFractions(f1, f2) {
-            return { n: f1.n * f2.n, d: f1.d * f2.d };
-        }
-
-        function divFractions(f1, f2) {
-            // 割り算の際は、符号を維持しつつ分母分子を反転
-            let newN = f1.n * f2.d;
-            let newD = f1.d * f2.n;
-            if (newD < 0) {
-                newN = -newN;
-                newD = -newD;
-            }
-            return { n: newN, d: newD };
-        }
-
         // --- 状態管理 ---
-        let tokens = []; // 確定した数値や演算子を格納 {t: 'val', n: 1, d: 2} または {t: 'op', v: '+'}
-        let currentInput = { type: 'none' }; // 'none', 'number', 'fraction'
-        let isResult = false; // 現在画面に表示されているのが計算結果かどうか
-        let finalResult = null; // イコールを押した後の計算結果を保持
+        let tokens = []; // 確定した式を格納
+        let currentInput = { type: 'none' }; 
+        let isResult = false; 
+        let finalResult = null; // 最終解答
+        let calculationSteps = []; // 途中経過のステップを格納
 
         const screenEl = document.getElementById('screen');
+        const screenContainer = document.getElementById('screen-container');
         const msgOverlay = document.getElementById('msg-overlay');
 
         function showMessage(text, isError = false) {
@@ -309,45 +284,199 @@
             }, 1500);
         }
 
+        // --- 途中経過を計算し、全ステップの配列を返すエンジン ---
+        function evaluateWithSteps(exprTokens) {
+            // ディープコピーを作成して処理
+            let currentExpr = exprTokens.map(t => ({...t}));
+            let steps = [];
+
+            // 先頭にマイナスがある場合は 0 - X の形に補正
+            if (currentExpr.length > 0 && currentExpr[0].t === 'op') {
+                if (currentExpr[0].v === '-') {
+                    currentExpr.unshift({t: 'val', n: 0, d: 1});
+                } else {
+                    currentExpr.shift(); 
+                }
+            }
+
+            // 【パス1】 掛け算・割り算の処理
+            let i = 0;
+            while (i < currentExpr.length) {
+                const t = currentExpr[i];
+                if (t.t === 'op' && (t.v === '×' || t.v === '÷')) {
+                    let prev = currentExpr[i - 1];
+                    let next = currentExpr[i + 1];
+
+                    // 割り算は逆数にして掛け算に変換し、一旦ステップとして記録
+                    if (t.v === '÷') {
+                        if (next.n === 0) throw new Error("0で割ることはできません");
+                        let newN = next.d;
+                        let newD = next.n;
+                        if (newD < 0) { newN = -newN; newD = -newD; } 
+                        
+                        currentExpr[i].v = '×';
+                        currentExpr[i + 1] = { t: 'val', n: newN, d: newD };
+                        steps.push(currentExpr.map(x => ({...x})));
+                        next = currentExpr[i + 1]; 
+                    }
+
+                    // 結合ステップの作成（例： 1×3 / 2×4 ）
+                    const nextNStr = next.n < 0 ? `(${next.n})` : next.n;
+                    const nextDStr = next.d < 0 ? `(${next.d})` : next.d;
+                    const combined = { 
+                        t: 'combined', 
+                        nStr: `${prev.n} × ${nextNStr}`, 
+                        dStr: `${prev.d} × ${nextDStr}` 
+                    };
+                    
+                    currentExpr.splice(i - 1, 3, combined);
+                    steps.push(currentExpr.map(x => ({...x})));
+
+                    // 計算結果に置換
+                    const res = { t: 'val', n: prev.n * next.n, d: prev.d * next.d };
+                    currentExpr.splice(i - 1, 1, res);
+                    if (currentExpr.length > 1) {
+                        steps.push(currentExpr.map(x => ({...x})));
+                    }
+                    i = i - 1; // 配列が縮んだのでインデックスを戻す
+                } else {
+                    i++;
+                }
+            }
+
+            // 【パス2】 足し算・引き算の処理
+            i = 0;
+            while (i < currentExpr.length) {
+                const t = currentExpr[i];
+                if (t.t === 'op' && (t.v === '+' || t.v === '-')) {
+                    let prev = currentExpr[i - 1];
+                    let next = currentExpr[i + 1];
+                    
+                    const cd = lcm(prev.d, next.d);
+                    
+                    // 通分が必要な場合は通分してステップとして記録
+                    if (prev.d !== cd || next.d !== cd) {
+                        currentExpr[i - 1] = { t: 'val', n: prev.n * (cd / prev.d), d: cd };
+                        currentExpr[i + 1] = { t: 'val', n: next.n * (cd / next.d), d: cd };
+                        steps.push(currentExpr.map(x => ({...x})));
+                        
+                        prev = currentExpr[i - 1];
+                        next = currentExpr[i + 1];
+                    }
+
+                    // 結合ステップの作成（例： 3 + 2 / 6 ）
+                    const nextNStr = next.n < 0 ? `(${next.n})` : next.n;
+                    const op = currentExpr[i].v;
+                    const combined = { 
+                        t: 'combined', 
+                        nStr: `${prev.n} ${op} ${nextNStr}`, 
+                        dStr: `${cd}` 
+                    };
+                    
+                    currentExpr.splice(i - 1, 3, combined);
+                    steps.push(currentExpr.map(x => ({...x})));
+
+                    // 計算結果に置換
+                    const resN = op === '+' ? (prev.n + next.n) : (prev.n - next.n);
+                    const res = { t: 'val', n: resN, d: cd };
+                    currentExpr.splice(i - 1, 1, res);
+                    if (currentExpr.length > 1) {
+                        steps.push(currentExpr.map(x => ({...x})));
+                    }
+                    i = i - 1;
+                } else {
+                    i++;
+                }
+            }
+
+            return {
+                finalResult: currentExpr[0] || { n: 0, d: 1 },
+                steps: steps
+            };
+        }
+
         // --- レンダリング（画面描画） ---
         function renderDisplay() {
             screenEl.innerHTML = '';
             
-            // 確定済みのトークン（計算式）を描画
-            tokens.forEach(tok => {
+            // 確定済みの元の計算式を描画
+            renderTokenArray(tokens, screenEl);
+
+            // 現在入力中の要素を描画
+            if (!isResult) {
+                if (currentInput.type === 'number') {
+                    screenEl.appendChild(createValElement(currentInput.val, 1, true));
+                } else if (currentInput.type === 'fraction') {
+                    screenEl.appendChild(createFracElement(currentInput.n, currentInput.d, currentInput.active === 'n', currentInput.active === 'd'));
+                }
+            }
+
+            // 「＝」と途中経過、最終結果を描画
+            if (isResult && finalResult) {
+                // 途中経過ステップを順に描画
+                calculationSteps.forEach(stepArray => {
+                    const eqEl = document.createElement('div');
+                    eqEl.className = 'operator';
+                    eqEl.textContent = '=';
+                    screenEl.appendChild(eqEl);
+                    renderTokenArray(stepArray, screenEl);
+                });
+
+                // 最後に最終的な答えを描画
+                const eqElFinal = document.createElement('div');
+                eqElFinal.className = 'operator';
+                eqElFinal.textContent = '=';
+                screenEl.appendChild(eqElFinal);
+                screenEl.appendChild(createValElement(finalResult.n, finalResult.d));
+            }
+
+            // 入力や計算が進むにつれて自動で右にスクロール
+            setTimeout(() => {
+                screenContainer.scrollLeft = screenContainer.scrollWidth;
+            }, 10);
+        }
+
+        // トークン配列を画面に追加する補助関数
+        function renderTokenArray(tokArray, container) {
+            tokArray.forEach(tok => {
                 if (tok.t === 'val') {
-                    screenEl.appendChild(createValElement(tok.n, tok.d));
+                    container.appendChild(createValElement(tok.n, tok.d));
                 } else if (tok.t === 'op') {
                     const opEl = document.createElement('div');
                     opEl.className = 'operator';
                     opEl.textContent = tok.v;
-                    screenEl.appendChild(opEl);
+                    container.appendChild(opEl);
+                } else if (tok.t === 'combined') {
+                    container.appendChild(createCombinedElement(tok.nStr, tok.dStr));
                 }
             });
-
-            // 現在入力中の要素を描画
-            if (currentInput.type === 'number') {
-                screenEl.appendChild(createValElement(currentInput.val, 1, true));
-            } else if (currentInput.type === 'fraction') {
-                screenEl.appendChild(createFracElement(currentInput.n, currentInput.d, currentInput.active === 'n', currentInput.active === 'd'));
-            }
-
-            // 「＝」と計算結果を描画
-            if (isResult && finalResult) {
-                const eqEl = document.createElement('div');
-                eqEl.className = 'operator';
-                eqEl.textContent = '=';
-                screenEl.appendChild(eqEl);
-                screenEl.appendChild(createValElement(finalResult.n, finalResult.d));
-            }
-
-            // 右端にスクロールして常に入力中部分または結果を見せる
-            screenEl.scrollLeft = screenEl.scrollWidth;
         }
 
-        // 数値要素の生成（整数なら通常テキスト、分数なら分数レイアウトを生成）
+        // 結合要素（途中経過用の特別な分数表現）の生成
+        function createCombinedElement(nStr, dStr) {
+            const container = document.createElement('div');
+            container.className = 'fraction-display';
+
+            const numDiv = document.createElement('div');
+            numDiv.className = 'frac-num';
+            numDiv.textContent = nStr;
+
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'frac-line';
+
+            const denDiv = document.createElement('div');
+            denDiv.className = 'frac-den';
+            denDiv.textContent = dStr;
+
+            container.appendChild(numDiv);
+            container.appendChild(lineDiv);
+            container.appendChild(denDiv);
+
+            return container;
+        }
+
+        // 数値要素の生成
         function createValElement(n, d, isTyping = false) {
-            // 分母が1の場合は整数として表示
             if (d === 1 && !isTyping && typeof n === 'number') {
                  const div = document.createElement('div');
                  div.className = 'whole-number';
@@ -383,7 +512,6 @@
             container.appendChild(lineDiv);
             container.appendChild(denDiv);
 
-            // マイナスの分数処理（負の符号を分数の前に表示）
             if (typeof n === 'number' && typeof d === 'number' && (n < 0 || d < 0)) {
                 const isNeg = (n < 0) ^ (d < 0);
                 numDiv.textContent = Math.abs(n);
@@ -401,7 +529,6 @@
                     return wrapper;
                 }
             }
-
             return container;
         }
 
@@ -415,7 +542,7 @@
             } else if (currentInput.type === 'fraction') {
                 const num = currentInput.n === '' ? 0 : parseInt(currentInput.n, 10);
                 let den = currentInput.d === '' ? 1 : parseInt(currentInput.d, 10);
-                if (den === 0) den = 1; // ゼロ除算防止
+                if (den === 0) den = 1; 
                 tokens.push({ t: 'val', n: num, d: den });
             }
             currentInput = { type: 'none' };
@@ -424,7 +551,7 @@
         // 数字ボタン押下
         window.pressDigit = function(digit) {
             if (isResult) {
-                pressClear(); // 結果表示中に数字を押すと完全リセットして新規入力
+                pressClear(); // 結果表示中に数字を押すと完全リセット
             }
 
             if (currentInput.type === 'none') {
@@ -441,21 +568,20 @@
             renderDisplay();
         };
 
-        // 分のボタン押下（モード切り替え）
+        // 「分の」ボタン押下（モード切り替え）
         window.pressFraction = function() {
             if (isResult) {
                 const res = finalResult;
                 pressClear();
-                // 計算結果からの再開時は分子をアクティブにする
+                // 答えから計算を再開する場合は、分子のアクティブ状態から始める
                 currentInput = { type: 'fraction', n: res.n.toString(), d: res.d.toString(), active: 'n' };
             } else if (currentInput.type === 'none') {
-                // 何もない状態から「分の」を押した場合は、分母から入力させる
+                // 何もない状態から押した場合は、分母から入力させる
                 currentInput = { type: 'fraction', n: '', d: '', active: 'd' };
             } else if (currentInput.type === 'number') {
-                // すでに数字が入力されている場合は、それを「分母」としてセットし、「分子」をアクティブにする
+                // 数字入力後に押した場合は、それを「分母」とし、「分子」をアクティブにする
                 currentInput = { type: 'fraction', n: '', d: currentInput.val, active: 'n' };
             } else if (currentInput.type === 'fraction') {
-                // 分子・分母の入力フォーカス切り替え
                 currentInput.active = currentInput.active === 'n' ? 'd' : 'n';
             }
             renderDisplay();
@@ -464,9 +590,10 @@
         // 演算子ボタン押下
         window.pressOperator = function(op) {
             if (isResult) {
-                // 結果表示中に演算子を押した場合は、式を結果の数値からリスタートして演算を継続
+                // 結果表示中に演算子を押した場合は、答えから式をリスタート
                 tokens = [finalResult];
                 finalResult = null;
+                calculationSteps = [];
                 isResult = false; 
             }
             
@@ -475,7 +602,7 @@
             if (tokens.length > 0) {
                 const lastToken = tokens[tokens.length - 1];
                 if (lastToken.t === 'op') {
-                    lastToken.v = op; // 連続で押した場合は上書き
+                    lastToken.v = op; // 連続押下は上書き
                 } else {
                     tokens.push({ t: 'op', v: op });
                 }
@@ -486,9 +613,10 @@
         // 削除（バックスペース）ボタン押下
         window.pressBackspace = function() {
             if (isResult) {
-                // 結果表示中に削除を押すと、計算式だけを残して再編集可能にする
+                // 結果表示中に削除を押すと、途中経過と答えが消えて元の式に戻る
                 isResult = false;
                 finalResult = null;
+                calculationSteps = [];
                 renderDisplay();
                 return;
             }
@@ -502,12 +630,11 @@
                 } else {
                     currentInput.d = currentInput.d.slice(0, -1);
                 }
-                // 分子も分母も空になれば入力状態をリセット
                 if (currentInput.n === '' && currentInput.d === '') {
                     currentInput = { type: 'none' };
                 }
             } else if (currentInput.type === 'none' && tokens.length > 0) {
-                tokens.pop(); // 確定したトークンを削除
+                tokens.pop();
             }
             renderDisplay();
         };
@@ -518,6 +645,7 @@
             currentInput = { type: 'none' };
             isResult = false;
             finalResult = null;
+            calculationSteps = [];
             renderDisplay();
         };
 
@@ -531,6 +659,9 @@
             const g = gcd(finalResult.n, finalResult.d);
             
             if (g > 1) {
+                // 約分前の答えを途中経過に記録し、答えを更新して追加表示させる
+                calculationSteps.push([{t: 'val', n: finalResult.n, d: finalResult.d}]);
+                
                 finalResult.n /= g;
                 finalResult.d /= g;
                 showMessage("約分しました！");
@@ -545,15 +676,15 @@
             commitInput();
             if (tokens.length === 0) return;
 
-            // 演算子で終わっている場合は削除
             if (tokens[tokens.length - 1].t === 'op') {
                 tokens.pop();
             }
 
             try {
-                const result = evaluateExpression(tokens);
-                // 式自体はtokensに残し、結果を別途保持する
-                finalResult = { t: 'val', n: result.n, d: result.d };
+                // 途中経過アルゴリズムを呼び出し
+                const evalData = evaluateWithSteps(tokens);
+                calculationSteps = evalData.steps;
+                finalResult = { t: 'val', n: evalData.finalResult.n, d: evalData.finalResult.d };
                 isResult = true;
                 renderDisplay();
             } catch (e) {
@@ -561,49 +692,6 @@
                 pressClear();
             }
         };
-
-        // 数式のパースと計算（掛け算・割り算を優先）
-        function evaluateExpression(exprTokens) {
-            if (exprTokens.length === 0) return { n: 0, d: 1 };
-            if (exprTokens.length === 1) return exprTokens[0];
-
-            // パス1: 掛け算・割り算の処理
-            let pass1 = [];
-            let i = 0;
-            while (i < exprTokens.length) {
-                const t = exprTokens[i];
-                if (t.t === 'op' && (t.v === '×' || t.v === '÷')) {
-                    const prev = pass1.pop();
-                    const next = exprTokens[i + 1];
-                    if (t.v === '÷' && next.n === 0) throw new Error("Division by zero");
-                    const res = t.v === '×' ? mulFractions(prev, next) : divFractions(prev, next);
-                    pass1.push({ t: 'val', n: res.n, d: res.d });
-                    i += 2;
-                } else {
-                    pass1.push(t);
-                    i++;
-                }
-            }
-
-            // パス2: 足し算・引き算の処理
-            let pass2 = [];
-            i = 0;
-            while (i < pass1.length) {
-                const t = pass1[i];
-                if (t.t === 'op' && (t.v === '+' || t.v === '-')) {
-                    const prev = pass2.pop();
-                    const next = pass1[i + 1];
-                    const res = t.v === '+' ? addFractions(prev, next) : subFractions(prev, next);
-                    pass2.push({ t: 'val', n: res.n, d: res.d });
-                    i += 2;
-                } else {
-                    pass2.push(t);
-                    i++;
-                }
-            }
-
-            return pass2[0];
-        }
 
         // 初期描画
         renderDisplay();
