@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ボタンのサンプル</title>
+    <style>
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <button type="button" id="myButton">ボタンを押してください</button>
+
+    <script>
+        const button = document.getElementById('myButton');
+        
+        button.addEventListener('click', function() {
+            alert('ボタンがクリックされました。日本語の動作も正常です。');
+        });
+    </script>
+
+</body>
+</html>

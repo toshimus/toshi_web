@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>画面サイズ表示ツール（4:3スケール版）</title>
+    <style>
+        /* 画面全体（黒いレターボックス領域） */
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 外枠：デバイスサイズに合わせて伸縮する */
+        #canvas-wrapper {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 内部の仮想キャンバス（1024x768 固定） */
+        .app-body {
+            width: 1024px;
+            height: 768px;
+            background-color: #222; /* 黒背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform-origin: center center;
+            box-sizing: border-box;
+        }
+
+        #size-display {
+            font-size: 3rem;
+            font-weight: bold;
+            padding: 20px;
+            border: 4px solid #0f0;
+            border-radius: 10px;
+            color: #0f0;
+            font-family: monospace; /* BASICらしさを出すフォント */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-wrapper">
+        <div class="app-body">
+            <div id="size-display">幅: 0px / 高さ: 0px</div>
+        </div>
+    </div>
+
+    <script>
+        // 仮想キャンバスの自動スケール処理
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const appBody = document.querySelector('.app-body');
+            
+            // 物理画面と論理画面（1024x768）の比率を比較
+            const scaleX = wrapper.clientWidth / 1024;
+            const scaleY = wrapper.clientHeight / 768;
+            const currentScale = Math.min(scaleX, scaleY);
+            
+            // スケール適用
+            appBody.style.transform = `scale(${currentScale})`;
+        }
+
+        // サイズを表示する関数
+        const display = document.getElementById('size-display');
+        function updateSize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            display.textContent = `幅: ${width}px / 高さ: ${height}px`;
+        }
+
+        // リサイズ時の処理
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            updateSize();
+        });
+
+        // 初回実行
+        resizeCanvas();
+        updateSize();
+    </script>
+</body>
+</html>

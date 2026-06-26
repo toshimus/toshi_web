@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ボタンのサンプル</title>
+    <style>
+        /* 画面全体を高さ100vhで指定し、中央に配置します */
+        body, html {
+            margin: 0;
+            height: 100%;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center; /* 水平方向の中央揃え */
+            align-items: center;     /* 垂直方向の中央揃え */
+            height: 100%;            /* 画面全体の高さを確保 */
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <button type="button" id="myButton">ボタンを押してください</button>
+    </div>
+
+    <script>
+        const button = document.getElementById('myButton');
+        
+        button.addEventListener('click', function() {
+            alert('ボタンが中央に配置され、クリックイベントも機能しています。');
+        });
+    </script>
+
+</body>
+</html>
