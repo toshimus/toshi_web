@@ -19,6 +19,10 @@
             overflow: hidden;
             overscroll-behavior: none;
             touch-action: none;
+
+            /* 文字選択を禁止する（ここを追加！） */
+            -webkit-user-select: none; /* Safari/iPad用 */
+            user-select: none;
         }
 
         /* 2. 白い島（作業用エリア） */
