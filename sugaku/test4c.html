@@ -18,34 +18,38 @@
         align-items: center;
     }
 
-    /* 4:3 固定のキャンバス領域（iPad基準） */
+    /* デバイスサイズに合わせて伸縮するラッパー */
     #canvas-wrapper {
         width: 100vw;
         height: 100vh;
-        max-width: calc(100vh * 4 / 3);
-        max-height: calc(100vw * 3 / 4);
-        background-color: #ffffff;
-        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         overflow: hidden;
-        box-shadow: 0 0 20px rgba(0,0,0,0.8);
     }
 
-    /* キャンバス内の基本スタイル */
+    /* 内部の仮想キャンバス（BASICでいう固定解像度の画面: 1024x768） */
     .app-body {
-        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-        width: 100%;
-        height: 100%;
+        width: 1024px;   /* 論理的な横幅（固定） */
+        height: 768px;   /* 論理的な縦幅（固定・4:3） */
+        background-color: #ffffff;
+        position: relative;
+        transform-origin: center center; /* 中央を基準に拡縮 */
         padding: 20px;
+        box-sizing: border-box;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         color: #333;
         touch-action: none;
-        box-sizing: border-box;
         user-select: none;
         -webkit-user-select: none;
     }
     
     /* スタート画面のスタイル */
     .start-screen {
-        position: absolute; /* キャンバス基準に修正 */
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
@@ -56,6 +60,7 @@
         justify-content: center;
         align-items: center;
         z-index: 10000;
+        border-radius: 10px;
     }
     .start-screen h1 {
         font-size: 3rem;
@@ -104,7 +109,6 @@
     /* === Gridレイアウトに変更した行のスタイル === */
     .grid-row {
         display: grid;
-        /* 筆算の最大5桁分（80px x 5） + ヒントテキスト用（auto）の6列構成 */
         grid-template-columns: repeat(5, 80px) auto;
         gap: 5px;
         place-items: center;
@@ -166,7 +170,7 @@
         box-shadow: none;
     }
     .judge-overlay {
-        position: absolute; /* キャンバス基準に修正 */
+        position: absolute; 
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%) scale(0.7);
@@ -242,10 +246,8 @@
         touch-action: manipulation;
     }
 
-    /* ==========================================
-       計算機パネルとオーバーレイのスタイル追加
-       ========================================== */
-    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: absolute; /* キャンバス基準に修正 */ top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
+    /* 計算機パネルとオーバーレイ */
+    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
     .pieces-container:active { cursor: grabbing; }
     
     .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
@@ -254,7 +256,7 @@
     .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
     .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
     
-    .overlay { display: none; position: absolute; /* キャンバス基準に修正 */ top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+    .overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; border-radius: 10px; }
 </style>
 </head>
 <body>
@@ -298,6 +300,21 @@
     </div>
 
     <script>
+        // === 仮想キャンバスの自動スケール処理（追加部分） ===
+        let currentScale = 1;
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const appBody = document.querySelector('.app-body');
+            // 物理画面と論理画面（1024x768）の比率を計算し、画面に収まる最適なスケールを算出
+            const scaleX = wrapper.clientWidth / 1024;
+            const scaleY = wrapper.clientHeight / 768;
+            currentScale = Math.min(scaleX, scaleY);
+            appBody.style.transform = `scale(${currentScale})`;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // 初期化実行
+        // ===============================================
+
         // 音声ファイル（mp3）のセットアップ
         const okSound = new Audio('ok.mp3');
         const ngSound = new Audio('ng.mp3');
@@ -405,8 +422,12 @@
             e.preventDefault();
             let clientX = e.touches ? e.touches[0].clientX : e.clientX;
             let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            let dx = clientX - dragStartX;
-            let dy = clientY - dragStartY;
+            
+            // === 修正ポイント：スケール補正 ===
+            // 画面が縮小されている分、ドラッグ移動量を currentScale で割って論理座標に変換します
+            let dx = (clientX - dragStartX) / currentScale;
+            let dy = (clientY - dragStartY) / currentScale;
+            
             calcContainer.style.left = (initialLeft + dx) + 'px';
             calcContainer.style.top = (initialTop + dy) + 'px';
         }
@@ -438,14 +459,12 @@
             appContainer.innerHTML = '';
             problemStartTime = new Date();
 
-            // ランダムに2桁×2桁の問題を生成（10〜99）
             const currentNum1 = Math.floor(Math.random() * 90) + 10;
             const currentNum2 = Math.floor(Math.random() * 90) + 10;
 
             const num1Str = currentNum1.toString();
             const num2Str = currentNum2.toString();
             
-            // 正解の計算
             const expectedFinalAns = currentNum1 * currentNum2;
 
             const answerArea = document.createElement('div');
@@ -456,7 +475,6 @@
             mathContainer.style.flexDirection = 'column';
             mathContainer.style.alignItems = 'flex-start';
 
-            // 空白マスの生成（高さ調整可能）
             const createEmpty = (h = 80) => {
                 const div = document.createElement('div');
                 div.style.width = '80px';
@@ -490,14 +508,12 @@
                 return zone;
             };
 
-            // 繰り上がりメモ用の小さな枠を格納するコンテナ
             const createSmallBoxContainer = (id) => {
                 const container = document.createElement('div');
                 container.style.width = '80px';
                 container.style.height = '45px';
                 container.style.display = 'flex';
-                // 枠の左上に寄せて配置
-                container.style.justifyContent = 'flex-end'; // 'flex-start';（左寄せ）
+                container.style.justifyContent = 'flex-end'; 
                 container.style.alignItems = 'center';
                 container.style.paddingLeft = '5px';
 
@@ -514,7 +530,6 @@
                 return container;
             };
 
-            // 区切り線: 全5桁分の幅を基準にして指定した桁数分を右揃えで引く
             const createLine = (digits) => {
                 const line = document.createElement('div');
                 const width = (80 * digits) + (5 * (digits - 1));
@@ -529,27 +544,21 @@
                 return line;
             };
 
-            // === 修正ポイント：行の生成をGridレイアウトクラスに変更 ===
             const createRow = () => {
                 const row = document.createElement('div');
                 row.className = 'grid-row';
                 return row;
             };
 
-            // 全5桁（Col1=万の位, Col2=千の位, Col3=百の位, Col4=十の位, Col5=一の位）の構造で作成
-
-            // --- 1段目: 2桁の数（Col 4, 5 に配置） ---
             const r1 = createRow();
             r1.appendChild(createEmpty()); r1.appendChild(createEmpty()); r1.appendChild(createEmpty());
             r1.appendChild(createText(num1Str[0])); r1.appendChild(createText(num1Str[1]));
 
-            // --- 2段目: × 2桁の数（Col 3 に×、Col 4, 5 に数） ---
             const r2 = createRow();
             r2.appendChild(createEmpty()); r2.appendChild(createEmpty());
             r2.appendChild(createText('×', false, '#333', '5rem'));
             r2.appendChild(createText(num2Str[0])); r2.appendChild(createText(num2Str[1]));
 
-            // --- 3段目: □ □ <-- num2(1の位) × num1(1の位) ---
             const r3 = createRow();
             r3.appendChild(createEmpty()); r3.appendChild(createEmpty()); r3.appendChild(createEmpty());
             const box1 = createDropZone('ans-box1');
@@ -557,7 +566,6 @@
             r3.appendChild(box1); r3.appendChild(box2);
             r3.appendChild(createText(`<-- ${num2Str[1]}×${num1Str[1]}`, true));
 
-            // --- 4段目: □ □ 0 <-- num2(1の位) × num1(10の位) ---
             const r4 = createRow();
             r4.appendChild(createEmpty()); r4.appendChild(createEmpty());
             const box3 = createDropZone('ans-box3');
@@ -566,7 +574,6 @@
             r4.appendChild(createText('0', false, '#bbb'));
             r4.appendChild(createText(`<-- ${num2Str[1]}×${num1Str[0]}`, true));
 
-            // --- 5段目: □ □ 0 <-- num2(10の位) × num1(1の位) ---
             const r5 = createRow();
             r5.appendChild(createEmpty()); r5.appendChild(createEmpty());
             const box5 = createDropZone('ans-box5');
@@ -575,7 +582,6 @@
             r5.appendChild(createText('0', false, '#bbb'));
             r5.appendChild(createText(`<-- ${num2Str[0]}×${num1Str[1]}`, true));
 
-            // --- 6段目: □ □ 0 0 <-- num2(10の位) × num1(10の位) ---
             const r6 = createRow();
             r6.appendChild(createEmpty());
             const box7 = createDropZone('ans-box7');
@@ -585,15 +591,13 @@
             r6.appendChild(createText('0', false, '#bbb'));
             r6.appendChild(createText(`<-- ${num2Str[0]}×${num1Str[0]}`, true));
 
-            // --- 繰り上がりメモ行（Col2=千の位, Col3=百の位, Col4=十の位 に赤い補助枠） ---
             const r_carry = createRow();
-            r_carry.appendChild(createEmpty(45)); // 万の位用空白（高さ合わせ）
-            r_carry.appendChild(createSmallBoxContainer('carry-box1')); // 千の位
-            r_carry.appendChild(createSmallBoxContainer('carry-box2')); // 百の位
-            r_carry.appendChild(createSmallBoxContainer('carry-box3')); // 十の位
-            r_carry.appendChild(createSmallBoxContainer(null));         // 一の位は繰り上がりなし
+            r_carry.appendChild(createEmpty(45)); 
+            r_carry.appendChild(createSmallBoxContainer('carry-box1')); 
+            r_carry.appendChild(createSmallBoxContainer('carry-box2')); 
+            r_carry.appendChild(createSmallBoxContainer('carry-box3')); 
+            r_carry.appendChild(createSmallBoxContainer(null));         
 
-            // --- 7段目: □ □ □ □ (最終的な答え、最大4桁) ---
             const r7 = createRow();
             r7.appendChild(createEmpty());
             const box9 = createDropZone('ans-box9');
@@ -602,17 +606,16 @@
             const box12 = createDropZone('ans-box12');
             r7.appendChild(box9); r7.appendChild(box10); r7.appendChild(box11); r7.appendChild(box12);
 
-            // コンテナに組み立て
             mathContainer.appendChild(r1);
             mathContainer.appendChild(r2);
-            mathContainer.appendChild(createLine(4)); // 1つ目の横線は4桁分
+            mathContainer.appendChild(createLine(4)); 
             mathContainer.appendChild(r3);
             mathContainer.appendChild(r4);
             mathContainer.appendChild(r5);
             mathContainer.appendChild(r6);
-            mathContainer.appendChild(createLine(4)); // 2つ目の横線も4桁分
-            mathContainer.appendChild(r_carry);       // 横線の下に繰り上がりメモを配置
-            mathContainer.appendChild(r7);            // その下に最終答え
+            mathContainer.appendChild(createLine(4)); 
+            mathContainer.appendChild(r_carry);       
+            mathContainer.appendChild(r7);            
 
             const checkBtn = document.createElement('button');
             checkBtn.className = 'check-btn';
@@ -622,24 +625,19 @@
             answerArea.appendChild(checkBtn);
             appContainer.appendChild(answerArea);
 
-            // 判定ロジックおよびiPad連動（CSV出力）
             checkBtn.addEventListener('click', () => {
-                // ボタンが「次の問題へ」の時は再描画して処理終了
                 if (checkBtn.textContent === '次の問題へ') {
                     renderProblem();
                     return;
                 }
 
-                // 最終的な答えの4つの枠（box9〜12）で判定します。補助枠（carry-box）は判定に含めません。
                 let u9 = parseInt(document.getElementById('ans-box9').textContent, 10);
                 let u10 = parseInt(document.getElementById('ans-box10').textContent, 10);
                 let u11 = parseInt(document.getElementById('ans-box11').textContent, 10);
                 let u12 = parseInt(document.getElementById('ans-box12').textContent, 10);
                 
-                // 4枠すべてが空欄なら処理を中断
                 if (isNaN(u9) && isNaN(u10) && isNaN(u11) && isNaN(u12)) return;
 
-                // 未入力の枠は 0 として扱う（答えが3桁の際、千の位を空欄にしても判定できるようにするため）
                 u9 = isNaN(u9) ? 0 : u9;
                 u10 = isNaN(u10) ? 0 : u10;
                 u11 = isNaN(u11) ? 0 : u11;
@@ -675,12 +673,10 @@
                         okSound.play().catch(e => console.log(e));
                     }
                     
-                    // ボタンを「次の問題へ」に変更し、色を緑色にする
                     checkBtn.textContent = '次の問題へ';
                     checkBtn.style.backgroundColor = '#2ecc71';
                     checkBtn.style.boxShadow = '0 4px 0 #27ae60';
                     
-                    // 正解後、不要になった入力枠のクリア処理（補助枠のクリアも含む）
                     setTimeout(() => {
                         judgeOverlay.classList.remove('show');
                         const carry1 = document.getElementById('carry-box1');
@@ -707,7 +703,6 @@
             });
         }
 
-        // --- スタートボタンのイベントリスナー ---
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
