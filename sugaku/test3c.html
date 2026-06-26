@@ -18,27 +18,31 @@
         align-items: center;
     }
     
-    /* 4:3 固定のキャンバス領域（iPad基準） */
+    /* デバイスサイズに合わせて伸縮するラッパー */
     #canvas-wrapper {
         width: 100vw;
         height: 100vh;
-        max-width: calc(100vh * 4 / 3);
-        max-height: calc(100vw * 3 / 4);
-        background-color: #ffffff;
-        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         overflow: hidden;
-        box-shadow: 0 0 20px rgba(0,0,0,0.8);
     }
 
-    /* キャンバス内の基本スタイル */
+    /* 内部の仮想キャンバス（固定解像度の画面: 1024x768） */
     .app-body {
-        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-        width: 100%;
-        height: 100%;
+        width: 1024px;   /* 論理的な横幅（固定） */
+        height: 768px;   /* 論理的な縦幅（固定・4:3） */
+        background-color: #ffffff;
+        position: relative;
+        transform-origin: center center; /* 中央を基準に拡縮 */
         padding: 20px;
+        box-sizing: border-box;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         color: #333;
         touch-action: none;
-        box-sizing: border-box;
         user-select: none;
         -webkit-user-select: none;
     }
@@ -56,6 +60,7 @@
         justify-content: center;
         align-items: center;
         z-index: 10000;
+        border-radius: 10px;
     }
     .start-screen h1 {
         font-size: 3rem;
@@ -166,7 +171,7 @@
     }
     
     .judge-overlay {
-        position: absolute; /* キャンバス基準に修正 */
+        position: absolute; 
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%) scale(0.7);
@@ -252,7 +257,7 @@
     .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
     .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
     
-    .overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+    .overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; border-radius: 10px; }
 </style>
 </head>
 <body>
@@ -296,6 +301,21 @@
     </div>
 
     <script>
+        // === 仮想キャンバスの自動スケール処理（追加部分） ===
+        let currentScale = 1;
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const appBody = document.querySelector('.app-body');
+            // 物理画面と論理画面（1024x768）の比率を計算し、画面に収まる最適なスケールを算出
+            const scaleX = wrapper.clientWidth / 1024;
+            const scaleY = wrapper.clientHeight / 768;
+            currentScale = Math.min(scaleX, scaleY);
+            appBody.style.transform = `scale(${currentScale})`;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // 初期化実行
+        // ===============================================
+
         // 音声ファイル（mp3）のセットアップ
         const okSound = new Audio('ok.mp3');
         const ngSound = new Audio('ng.mp3');
@@ -403,8 +423,11 @@
             e.preventDefault();
             let clientX = e.touches ? e.touches[0].clientX : e.clientX;
             let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            let dx = clientX - dragStartX;
-            let dy = clientY - dragStartY;
+            
+            // === 修正ポイント：スケール補正 ===
+            let dx = (clientX - dragStartX) / currentScale;
+            let dy = (clientY - dragStartY) / currentScale;
+            
             calcContainer.style.left = (initialLeft + dx) + 'px';
             calcContainer.style.top = (initialTop + dy) + 'px';
         }
@@ -521,7 +544,6 @@
                 return line;
             };
 
-            // === 修正ポイント：行の生成をGridレイアウトクラスに変更 ===
             const createRow = () => {
                 const row = document.createElement('div');
                 row.className = 'grid-row';
@@ -636,6 +658,10 @@
                     
                     setTimeout(() => {
                         judgeOverlay.classList.remove('show');
+                        const carry1 = document.getElementById('carry-box1');
+                        const carry2 = document.getElementById('carry-box2');
+                        if (carry1) carry1.textContent = '';
+                        if (carry2) carry2.textContent = '';
                     }, 1200);
                 } else {
                     judgeOverlay.textContent = 'おしい！';
