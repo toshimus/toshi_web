@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>お買い物計算（買えるかな？）</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f7f6;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    /* スタート画面のスタイル */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
+    /* 上部ステータスバー */
+    .status-bar {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #555;
+    }
+
+    /* メインレイアウト（左右分割） */
+    .layout-container {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        gap: 20px;
+        /* 子要素が縦に引き伸ばされるのを防ぐ */
+        align-items: flex-start;
+    }
+
+    /* 左側：問題エリア */
+    .problem-area {
+        flex: 1.2;
+        display: flex;
+        flex-direction: column;
+        background-color: #fff;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .money-info {
+        background-color: #fff3cd;
+        border: 2px solid #ffeeba;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .money-info span {
+        display: block;
+        font-size: 1.2rem;
+        color: #856404;
+    }
+    .money-info .amount {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #d35400;
+        margin-top: 5px;
+    }
+
+    .items-list {
+        background-color: #e8f4f8;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        flex-grow: 1;
+    }
+    .items-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        text-align: center;
+        color: #2980b9;
+    }
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.8rem;
+        font-weight: bold;
+        padding: 8px 15px;
+        border-bottom: 2px dashed #bdc3c7;
+    }
+    .item-row:last-child {
+        border-bottom: none;
+    }
+
+    /* 2択ボタン */
+    .choices-area {
+        display: flex;
+        gap: 15px;
+    }
+    .choice-btn {
+        flex: 1;
+        height: 80px;
+        font-size: 2rem;
+        font-weight: bold;
+        color: #fff;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .btn-buy {
+        background-color: #2ecc71;
+        box-shadow: 0 6px 0 #27ae60;
+    }
+    .btn-buy:active {
+        transform: translateY(6px);
+        box-shadow: none;
+    }
+    .btn-cant-buy {
+        background-color: #e74c3c;
+        box-shadow: 0 6px 0 #c0392b;
+    }
+    .btn-cant-buy:active {
+        transform: translateY(6px);
+        box-shadow: none;
+    }
+    .choice-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: translateY(6px);
+        box-shadow: none;
+    }
+
+    /* 右側：計算機（メモ機能） */
+    .calculator-area {
+        flex: 0.8;
+        background-color: #2c3e50;
+        border-radius: 15px;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    .calc-title {
+        color: #ecf0f1;
+        font-size: 1rem;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .calc-display {
+        background-color: #ecf0f1;
+        border-radius: 8px;
+        height: 60px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 0 15px;
+        font-size: 2.2rem;
+        font-weight: bold;
+        color: #333;
+        overflow: hidden;
+    }
+    .calc-keys {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+    .calc-btn {
+        height: 60px; /* 計算機が縦長になりすぎないよう固定高さを指定 */
+        background-color: #bdc3c7;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+        cursor: pointer;
+        box-shadow: 0 4px 0 #95a5a6;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .calc-btn:active {
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+    .calc-btn.operator {
+        background-color: #f1c40f;
+        box-shadow: 0 4px 0 #d4ac0d;
+        color: #fff;
+    }
+    .calc-btn.clear {
+        background-color: #e74c3c;
+        box-shadow: 0 4px 0 #c0392b;
+        color: #fff;
+    }
+    .calc-btn.equal {
+        background-color: #3498db;
+        box-shadow: 0 4px 0 #2980b9;
+        color: #fff;
+        grid-column: span 2; 
+    }
+
+    /* 判定表示とクリアメッセージ */
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent;
+        color: #ff3333;
+        font-size: 6rem;
+        font-weight: bold;
+        padding: 30px 60px;
+        -webkit-text-stroke: 3px #000;
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
+        white-space: nowrap;
+    }
+    .judge-overlay.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1.0);
+    }
+    .judge-overlay.incorrect {
+        color: #3366ff;
+    }
+
+    .clear-message {
+        text-align: center;
+        margin-top: 20px;
+        padding: 25px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        border: 2px solid #a0c4ff;
+    }
+    .clear-message h2 {
+        font-size: 1.8rem;
+        color: #d9534f;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+    .final-result-details {
+        font-size: 1.3rem;
+        color: #333;
+        line-height: 1.8;
+    }
+    .menu-btn, .retry-btn {
+        margin-top: 20px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        outline: none;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
+    .menu-btn { background-color: #95a5a6; color: #fff; }
+
+    /* 上部ナビゲーション */
+    .top-nav {
+        display: flex;
+        justify-content: space-between; 
+        align-items: center;            
+        margin-bottom: 10px;
+    }
+    .toggle-group {
+        display: flex;
+        gap: 15px;
+    }
+    .settings-toggle {
+        font-size: 1.1rem;
+        color: #555;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
+    .back-btn {
+        padding: 8px 15px;
+        background-color: #ecf0f1;
+        border: 1px solid #bdc3c7;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #2c3e50;
+        font-size: 0.9rem;
+    }
+
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>お買い物計算</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
+        <BR><BR><a href="index.html" class="menu-btn" style="margin-top: 20px; background-color: #95a5a6;">メニューへ戻る</a>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle">
+                    <input type="checkbox" id="speech-checkbox" checked>
+                    スピーチON
+                </label>
+                <label class="settings-toggle">
+                    <input type="checkbox" id="sound-checkbox" checked>
+                    効果音ON
+                </label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        
+        <div class="layout-container" id="app">
+            <div class="problem-area" id="problem-area">
+                </div>
+
+            <div class="calculator-area">
+                <div class="calc-title">📝 計算メモ</div>
+                <div class="calc-display" id="calc-display">0</div>
+                <div class="calc-keys">
+                    <button class="calc-btn" onclick="inputCalc('7')">7</button>
+                    <button class="calc-btn" onclick="inputCalc('8')">8</button>
+                    <button class="calc-btn" onclick="inputCalc('9')">9</button>
+                    <button class="calc-btn operator" onclick="setOp('+')">＋</button>
+
+                    <button class="calc-btn" onclick="inputCalc('4')">4</button>
+                    <button class="calc-btn" onclick="inputCalc('5')">5</button>
+                    <button class="calc-btn" onclick="inputCalc('6')">6</button>
+                    <button class="calc-btn operator" onclick="setOp('-')">－</button>
+
+                    <button class="calc-btn" onclick="inputCalc('1')">1</button>
+                    <button class="calc-btn" onclick="inputCalc('2')">2</button>
+                    <button class="calc-btn" onclick="inputCalc('3')">3</button>
+                    <button class="calc-btn clear" onclick="clearCalc()">C</button>
+
+                    <button class="calc-btn" onclick="inputCalc('0')">0</button>
+                    <button class="calc-btn" onclick="inputCalc('00')">00</button>
+                    <button class="calc-btn equal" onclick="calculate()">＝</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="judge-overlay" class="judge-overlay"></div>
+    </div>
+
+    <script>
+        // --- 音声セットアップ ---
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // --- 右側の計算機（メモ）の実装ロジック ---
+        let calcDisplayValue = '0';
+        let calcFirstOperand = null;
+        let calcOperator = null;
+        let calcWaitingForSecond = false;
+        const calcScreen = document.getElementById('calc-display');
+
+        function updateCalcScreen() {
+            calcScreen.textContent = calcDisplayValue;
+        }
+
+        function inputCalc(digit) {
+            if (calcWaitingForSecond) {
+                calcDisplayValue = digit;
+                calcWaitingForSecond = false;
+            } else {
+                calcDisplayValue = calcDisplayValue === '0' ? digit : calcDisplayValue + digit;
+            }
+            updateCalcScreen();
+        }
+
+        function setOp(nextOperator) {
+            const inputValue = parseFloat(calcDisplayValue);
+            if (calcOperator && calcWaitingForSecond) {
+                calcOperator = nextOperator;
+                return;
+            }
+            if (calcFirstOperand == null && !isNaN(inputValue)) {
+                calcFirstOperand = inputValue;
+            } else if (calcOperator) {
+                const result = performCalculation(calcFirstOperand, inputValue, calcOperator);
+                calcDisplayValue = String(result);
+                calcFirstOperand = result;
+            }
+            calcWaitingForSecond = true;
+            calcOperator = nextOperator;
+            updateCalcScreen();
+        }
+
+        function performCalculation(first, second, op) {
+            if (op === '+') return first + second;
+            if (op === '-') return first - second;
+            return second;
+        }
+
+        function calculate() {
+            if (calcOperator === null || calcWaitingForSecond) return;
+            const inputValue = parseFloat(calcDisplayValue);
+            const result = performCalculation(calcFirstOperand, inputValue, calcOperator);
+            calcDisplayValue = String(result);
+            calcFirstOperand = null;
+            calcOperator = null;
+            calcWaitingForSecond = true;
+            updateCalcScreen();
+        }
+
+        function clearCalc() {
+            calcDisplayValue = '0';
+            calcFirstOperand = null;
+            calcOperator = null;
+            calcWaitingForSecond = false;
+            updateCalcScreen();
+        }
+
+
+        // --- 問題生成と進行ロジック ---
+        const problems = [];
+        
+        // 1,000〜100,000円のスケールで問題を作成
+        for (let i = 0; i < 10; i++) {
+            let scale = Math.random();
+            let targetTotal, diff;
+            
+            // 難易度（スケール）を分散させる
+            if (scale < 0.4) {
+                // 小規模 (300 ~ 3000)
+                targetTotal = Math.floor(Math.random() * 271) * 10 + 300; 
+                diff = (Math.floor(Math.random() * 4) + 1) * 10; // 差額: 10, 20, 30, 40
+            } else if (scale < 0.7) {
+                // 中規模 (3000 ~ 10000)
+                targetTotal = Math.floor(Math.random() * 701) * 10 + 3000; 
+                diff = (Math.floor(Math.random() * 9) + 1) * 10; // 差額: 10 ~ 90
+            } else {
+                // 大規模 (10000 ~ 100000)
+                targetTotal = Math.floor(Math.random() * 9001) * 10 + 10000; 
+                diff = (Math.floor(Math.random() * 9) + 1) * 100; // 差額: 100 ~ 900
+            }
+            
+            // 買えるか買えないか (50%の確率)
+            let canBuy = Math.random() < 0.5;
+            
+            let pocketMoney;
+            if (canBuy) {
+                pocketMoney = targetTotal + diff; // 所持金の方が多い
+            } else {
+                pocketMoney = targetTotal - diff; // 所持金の方が少ない
+            }
+            
+            // マイナスにならないよう補正
+            if (pocketMoney < 100) pocketMoney = 100;
+
+            // targetTotal を 3つの商品に分割 (全て10円単位)
+            let item1 = Math.floor(targetTotal * (0.3 + Math.random() * 0.2) / 10) * 10;
+            let item2 = Math.floor(targetTotal * (0.2 + Math.random() * 0.2) / 10) * 10;
+            let item3 = targetTotal - item1 - item2;
+            
+            // 安全策: 0円以下の商品ができないよう微調整
+            if(item3 <= 0) {
+                item1 -= diff; item2 -= diff; item3 += diff * 2;
+                if(item3 <= 0) item3 = 10;
+            }
+
+            // 最終的に買えるかどうかの再計算（念のため）
+            let actualTotal = item1 + item2 + item3;
+            let finalCanBuy = pocketMoney >= actualTotal;
+
+            problems.push({ 
+                pocketMoney: pocketMoney,
+                item1: item1,
+                item2: item2,
+                item3: item3,
+                totalCost: actualTotal,
+                answer: finalCanBuy 
+            });
+        }
+
+        let currentIndex = 0;
+        let mistakeCount = 0;
+        const problemArea = document.getElementById('problem-area');
+        
+        let problemStartTime = new Date();
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        function renderProblem() {
+            problemArea.innerHTML = '';
+            // 計算機を自動でクリア
+            clearCalc();
+            problemStartTime = new Date();
+
+            if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                
+                // リザルト画面への切り替え (計算機も消すため親コンテナを書き換え)
+                const appContainer = document.getElementById('app');
+                appContainer.style.display = 'block'; // フレックスを解除して中央配置へ
+                appContainer.innerHTML = '';
+                
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全10問クリアしました！</h2>`;
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>正解した問題： <strong>10</strong> 問</div>`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                
+                speak("ぜんもんくりあです。おつかれさまでした。");
+                return;
+            }
+
+            const prob = problems[currentIndex];
+
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
+
+            // 読み上げテキストの生成（ご指定の通り「じょじきん」で発音させます）
+            const readText = `じょじきんは、${prob.pocketMoney}円です。${prob.item1}円、${prob.item2}円、${prob.item3}円の、３つの品物は、買えるでしょうか？`;
+
+            // 問題提示音と読み上げ
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0;
+                qSound.play().catch(e => console.log("自動再生制限:", e));
+            }
+            speak(readText);
+
+            // DOM構築 (左側の問題エリア)
+            const moneyInfo = document.createElement('div');
+            moneyInfo.className = 'money-info';
+            // 表示もご指定の通り「じょじきん」に変更
+            moneyInfo.innerHTML = `<span>じょじきん</span><div class="amount">${prob.pocketMoney} 円</div>`;
+
+            const itemsList = document.createElement('div');
+            itemsList.className = 'items-list';
+            itemsList.innerHTML = `
+                <div class="items-title">買いたい品物</div>
+                <div class="item-row"><span>品物 1</span><span>${prob.item1} 円</span></div>
+                <div class="item-row"><span>品物 2</span><span>${prob.item2} 円</span></div>
+                <div class="item-row"><span>品物 3</span><span>${prob.item3} 円</span></div>
+            `;
+
+            const choicesArea = document.createElement('div');
+            choicesArea.className = 'choices-area';
+
+            const btnBuy = document.createElement('button');
+            btnBuy.className = 'choice-btn btn-buy';
+            btnBuy.textContent = '買える 〇';
+
+            const btnCantBuy = document.createElement('button');
+            btnCantBuy.className = 'choice-btn btn-cant-buy';
+            btnCantBuy.textContent = '買えない ×';
+
+            choicesArea.appendChild(btnBuy);
+            choicesArea.appendChild(btnCantBuy);
+
+            problemArea.appendChild(moneyInfo);
+            problemArea.appendChild(itemsList);
+            problemArea.appendChild(choicesArea);
+
+            // 回答判定処理
+            function handleAnswer(userChoiceBoolean) {
+                btnBuy.disabled = true;
+                btnCantBuy.disabled = true;
+
+                const isCorrect = (userChoiceBoolean === prob.answer);
+                
+                const endTime = new Date();
+                const problemType = "お買い物計算";
+                const problemContent = `所持金${prob.pocketMoney}円/商品(${prob.item1}+${prob.item2}+${prob.item3})`;
+                const userAnswer = userChoiceBoolean ? "買える" : "買えない";
+                const inputMethod = "2択ボタン(計算メモ有)";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
+                const judgeOverlay = document.getElementById('judge-overlay');
+
+                if (isCorrect) {
+                    judgeOverlay.textContent = 'せいかい！';
+                    judgeOverlay.className = 'judge-overlay show';
+                    
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0;
+                        okSound.play();
+                    }
+                    
+                    setTimeout(() => {
+                        judgeOverlay.classList.remove('show');
+                    }, 1200);
+                    
+                    setTimeout(() => {
+                        currentIndex++;
+                        renderProblem();
+                    }, 1500);
+                } else {
+                    judgeOverlay.textContent = 'おしい！';
+                    judgeOverlay.className = 'judge-overlay incorrect show';
+                    mistakeCount++;
+                    
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0;
+                        ngSound.play();
+                    }
+                    
+                    setTimeout(() => {
+                        judgeOverlay.classList.remove('show');
+                        btnBuy.disabled = false;
+                        btnCantBuy.disabled = false;
+                    }, 1200);
+                }
+            }
+
+            btnBuy.addEventListener('click', () => handleAnswer(true));
+            btnCantBuy.addEventListener('click', () => handleAnswer(false));
+        }
+
+        // --- スタートボタン ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>正負の数の大小</title>
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        color: #333;
+        touch-action: none;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    /* スタート画面のスタイル */
+    .start-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
+    .start-btn {
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+
+    /* 上部ステータスバーと問題文のスタイル */
+    .status-bar {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .question-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 40px;
+        margin-top: 20px;
+        text-align: center;
+        color: #2c3e50;
+    }
+
+    .problem-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+        width: 100%;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* 2択ボタンのスタイル */
+    .choices-area {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 20px;
+        width: 100%;
+    }
+    .choice-btn {
+        flex: 1;
+        max-width: 250px;
+        height: 150px;
+        font-size: 4rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
+        transition: transform 0.1s, box-shadow 0.1s;
+        -webkit-tap-highlight-color: transparent;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .choice-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+    .choice-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: translateY(8px);
+        box-shadow: none;
+    }
+    
+    .judge-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0;
+        visibility: hidden;
+        background-color: transparent;
+        color: #ff3333;
+        font-size: 6rem;
+        font-weight: bold;
+        padding: 30px 60px;
+        -webkit-text-stroke: 3px #000;
+        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
+        white-space: nowrap;
+    }
+    .judge-overlay.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1.0);
+    }
+    .judge-overlay.incorrect {
+        color: #3366ff;
+    }
+    
+    .clear-message {
+        text-align: center;
+        margin-top: 20px;
+        padding: 25px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        border: 2px solid #a0c4ff;
+    }
+    .clear-message h2 {
+        font-size: 1.8rem;
+        color: #d9534f;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+    .final-result-details {
+        font-size: 1.3rem;
+        color: #333;
+        line-height: 1.8;
+    }
+    .menu-btn, .retry-btn {
+        margin-top: 20px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        outline: none;
+        touch-action: manipulation;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .retry-btn {
+        background-color: #a0c4ff;
+        color: #fff;
+        margin-right: 15px;
+    }
+    .menu-btn {
+        background-color: #95a5a6;
+        color: #fff;
+    }
+    
+    .top-nav {
+        display: flex;
+        justify-content: space-between; 
+        align-items: center;            
+        margin-bottom: 10px;
+    }
+    .toggle-group {
+        display: flex;
+        gap: 15px;
+    }
+    .settings-toggle {
+        font-size: 1.1rem;
+        color: #555;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .settings-toggle input {
+        transform: scale(1.3);
+        margin-right: 8px;
+        cursor: pointer;
+    }
+    .back-btn {
+        padding: 8px 15px;
+        background-color: #ecf0f1;
+        border: 1px solid #bdc3c7;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #2c3e50;
+        font-size: 0.9rem;
+        touch-action: manipulation;
+    }
+</style>
+</head>
+<body>
+
+    <div id="start-screen" class="start-screen">
+        <h1>正負の数の大小</h1>
+        <button id="start-btn" class="start-btn">スタート</button>
+        <BR><BR><a href="index.html" class="menu-btn" style="margin-top: 20px; background-color: #95a5a6;">メニューへ戻る</a>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div class="top-nav">
+            <div class="toggle-group">
+                <label class="settings-toggle">
+                    <input type="checkbox" id="speech-checkbox" checked>
+                    スピーチON
+                </label>
+                <label class="settings-toggle">
+                    <input type="checkbox" id="sound-checkbox" checked>
+                    効果音ON
+                </label>
+            </div>
+            <a href="index.html" class="back-btn">メニューへ戻る</a>
+        </div>
+        
+        <div id="status-bar" class="status-bar"></div>
+        <h1 class="question-title" id="q-title"></h1>
+        
+        <div id="app"></div>
+        
+        <div id="judge-overlay" class="judge-overlay"></div>
+    </div>
+
+    <script>
+        // 音声ファイル（mp3）のセットアップ
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
+
+        // 数字と符号を全角に変換するヘルパー関数
+        function toZenkaku(num) {
+            return num.toString().replace(/[0-9-]/g, function(s) {
+                if (s === '-') return '－';
+                return String.fromCharCode(s.charCodeAt(0) + 0xFEE0);
+            });
+        }
+
+        // 音声読み上げ用の関数（Web Speech API）
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) {
+                return; 
+            }
+            
+            window.speechSynthesis.cancel(); 
+            
+            // 全角マイナスの読み上げを自然にするための置換処理
+            let spokenText = text.replace(/－/g, 'マイナス');
+            
+            const utterance = new SpeechSynthesisUtterance(spokenText);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        /* ==========================================
+           問題ロジック（正負の大小関係・2択）
+           ========================================== */
+        const problems = [];
+        let prevProblem = "";
+        
+        // 問題のランダム生成（10問）
+        for (let i = 0; i < 10; i++) {
+            let num1, num2;
+            do {
+                // 30%の確率でどちらかの数値を意図的に0にする
+                if (Math.random() < 0.3) {
+                    num1 = 0;
+                    num2 = Math.floor(Math.random() * 21) - 10; // -10 から 10
+                } else {
+                    num1 = Math.floor(Math.random() * 21) - 10;
+                    num2 = Math.floor(Math.random() * 21) - 10;
+                }
+            } while (num1 === num2); // 同じ数字になるのを防ぐ
+
+            // 左右の配置をランダムにする
+            if (Math.random() < 0.5) {
+                let temp = num1; 
+                num1 = num2; 
+                num2 = temp;
+            }
+
+            // 「大きい」を問うか「小さい」を問うかをランダムに決定
+            const askGreater = Math.random() < 0.5;
+            const targetWord = askGreater ? '大きい' : '小さい';
+            
+            // 全角に変換して問題文を作成
+            const zNum1 = toZenkaku(num1);
+            const zNum2 = toZenkaku(num2);
+            const problemText = `${zNum1} と ${zNum2} では、どちらが${targetWord}でしょう？`;
+            
+            let answerValue;
+            if (askGreater) {
+                answerValue = Math.max(num1, num2);
+            } else {
+                answerValue = Math.min(num1, num2);
+            }
+
+            problems.push({ 
+                num1: num1, 
+                num2: num2, 
+                text: problemText, 
+                answer: answerValue 
+            });
+        }
+
+        let currentIndex = 0;
+        let mistakeCount = 0;
+        const appContainer = document.getElementById('app');
+        
+        let problemStartTime = new Date();
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+            problemStartTime = new Date();
+
+            if (currentIndex >= problems.length) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.querySelector('.question-title').style.display = 'none';
+                
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全10問クリアしました！</h2>`;
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>正解した問題： <strong>10</strong> 問</div>`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                
+                speak("ぜんもんくりあです。おつかれさまでした。");
+                return;
+            }
+
+            const prob = problems[currentIndex];
+
+            document.getElementById('status-bar').style.display = 'block';
+            document.querySelector('.question-title').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
+            document.getElementById('q-title').textContent = '・ ' + prob.text;
+
+            // 問題提示音の再生と問題文の読み上げ
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0;
+                qSound.play().catch(e => console.log("ブラウザの自動再生制限により保留されました:", e));
+            }
+            speak(prob.text);
+
+            const container = document.createElement('div');
+            container.className = 'problem-container';
+
+            // 2択ボタンのエリア
+            const choicesArea = document.createElement('div');
+            choicesArea.className = 'choices-area';
+
+            const btnLeft = document.createElement('button');
+            btnLeft.className = 'choice-btn';
+            btnLeft.textContent = toZenkaku(prob.num1);
+
+            const btnRight = document.createElement('button');
+            btnRight.className = 'choice-btn';
+            btnRight.textContent = toZenkaku(prob.num2);
+
+            choicesArea.appendChild(btnLeft);
+            choicesArea.appendChild(btnRight);
+            container.appendChild(choicesArea);
+            
+            appContainer.appendChild(container);
+
+            // 回答判定処理の共通関数
+            function handleAnswer(userChoiceValue, btnElement) {
+                // 連打防止のため両方のボタンを無効化
+                btnLeft.disabled = true;
+                btnRight.disabled = true;
+
+                const isCorrect = (userChoiceValue === prob.answer);
+                
+                const endTime = new Date();
+                const problemType = "正負の数の大小";
+                const problemContent = prob.text;
+                // CSVにも全角で記録します
+                const userAnswer = toZenkaku(userChoiceValue);
+                const inputMethod = "2択ボタン";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                // CSV保存のためのアプリ連携ブリッジ
+                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                }
+
+                const judgeOverlay = document.getElementById('judge-overlay');
+
+                if (isCorrect) {
+                    judgeOverlay.textContent = 'せいかい！';
+                    judgeOverlay.className = 'judge-overlay show';
+                    
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0;
+                        okSound.play();
+                    }
+                    
+                    setTimeout(() => {
+                        judgeOverlay.classList.remove('show');
+                    }, 1200);
+                    
+                    setTimeout(() => {
+                        currentIndex++;
+                        renderProblem();
+                    }, 1500);
+                } else {
+                    judgeOverlay.textContent = 'おしい！';
+                    judgeOverlay.className = 'judge-overlay incorrect show';
+                    mistakeCount++;
+                    
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0;
+                        ngSound.play();
+                    }
+                    
+                    setTimeout(() => {
+                        judgeOverlay.classList.remove('show');
+                        // 間違えた場合はボタンの無効化を解除して再挑戦させる
+                        btnLeft.disabled = false;
+                        btnRight.disabled = false;
+                    }, 1200);
+                }
+            }
+
+            // ボタンへのイベントリスナー追加
+            btnLeft.addEventListener('click', () => {
+                handleAnswer(prob.num1, btnLeft);
+            });
+            btnRight.addEventListener('click', () => {
+                handleAnswer(prob.num2, btnRight);
+            });
+        }
+
+        // --- スタートボタンのイベントリスナー ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
+    </script>
+</body>
+</html>

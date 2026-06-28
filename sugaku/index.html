@@ -36,7 +36,7 @@
         flex-direction: row;
         width: 100%;
         max-width: 1000px;
-        gap: 15px; /* 隙間を少し詰める */
+        gap: 15px;
     }
 
     /* 左側のメニュータブ */
@@ -44,7 +44,7 @@
         width: 220px;
         display: flex;
         flex-direction: column;
-        gap: 8px; /* ボタン同士の隙間を詰める */
+        gap: 8px;
         flex-shrink: 0;
     }
 
@@ -88,7 +88,7 @@
     .category-content {
         display: none;
         flex-direction: column;
-        gap: 8px; /* 各項目の隙間を詰めてスクロールを防止 */
+        gap: 8px;
         animation: fadeIn 0.3s ease-in-out;
     }
 
@@ -104,7 +104,7 @@
     /* 個別リンクのボタン */
     .menu-button {
         display: block;
-        padding: 10px 15px; /* 上下のパディングを減らして高さを抑える */
+        padding: 10px 15px;
         font-size: 1.05rem;
         font-weight: bold;
         text-align: left;
@@ -120,7 +120,7 @@
         transform: translateY(4px);
     }
     
-    /* 分数について (1〜10) */
+    /* ボタンのカラー定義 */
     .btn-001 { background-color: #3498db; }
     .btn-002 { background-color: #2ecc71; }
     .btn-003 { background-color: #e67e22; }
@@ -132,7 +132,6 @@
     .btn-009 { background-color: #e84393; }
     .btn-010 { background-color: #00cec9; }
 
-    /* 分数の計算 (11〜16) */
     .btn-101 { background-color: #4834d4; }
     .btn-102 { background-color: #eb4d4b; }
     .btn-103 { background-color: #6ab04c; }
@@ -140,7 +139,6 @@
     .btn-105 { background-color: #9c88ff; }
     .btn-106 { background-color: #e1b12c; }
 
-    /* たし算・ひき算 (17〜26) */
     .btn-201 { background-color: #fd79a8; }
     .btn-202 { background-color: #74b9ff; }
     .btn-203 { background-color: #55efc4; color: #2d3436; }
@@ -152,15 +150,19 @@
     .btn-209 { background-color: #6c5ce7; }
     .btn-210 { background-color: #b2bec3; color: #2d3436; }
 
-    /* かけ算 (301〜) */
     .btn-301 { background-color: #ff9f43; }
     .btn-302 { background-color: #ee5253; }
     .btn-303 { background-color: #0abde3; }
     
+    /* 正負の数 (401〜403) */
+    .btn-401 { background-color: #8e44ad; }
+    .btn-402 { background-color: #d35400; }
+    .btn-403 { background-color: #2c3e50; }
+    
     /* スマホ向けレスポンシブデザイン */
     @media (max-width: 768px) {
         html, body {
-            overflow: auto; /* スマホ等では縦に並ぶためスクロールを許可 */
+            overflow: auto;
         }
         .main-wrapper {
             flex-direction: column;
@@ -176,13 +178,6 @@
             padding: 10px;
             font-size: 1rem;
         }
-        .content-area {
-            padding: 15px;
-        }
-        .menu-button {
-            font-size: 1rem;
-            padding: 10px 10px;
-        }
     }
 </style>
 </head>
@@ -197,6 +192,7 @@
             <div class="category-btn" data-target="multiplication">かけ算</div>
             <div class="category-btn" data-target="fraction-intro">分数について</div>
             <div class="category-btn" data-target="fraction-calc">分数の計算</div>
+            <div class="category-btn" data-target="positive-negative">正負の数</div>
         </div>
 
         <div class="content-area">
@@ -244,6 +240,12 @@
                 <a href="105.html" class="menu-button btn-105">分数のひき算（１－分数）</a>
                 <a href="106.html" class="menu-button btn-106">分母が同じ分数のひき算</a>
             </div>
+            
+            <div id="positive-negative" class="category-content">
+                <a href="401.html" class="menu-button btn-401">正負の数の計算（数直線）</a>
+                <a href="402.html" class="menu-button btn-402">正負の数の大小</a>
+                <a href="403.html" class="menu-button btn-403">お買い物計算（じょじきん）</a>
+            </div>
 
         </div>
     </div>
@@ -253,7 +255,6 @@
         const tabs = document.querySelectorAll('.category-btn');
         const contents = document.querySelectorAll('.category-content');
 
-        // 💡追加: 最後に選択されたタブをLocalStorageに保存/読み込みする処理
         const STORAGE_KEY = 'selected_category_index';
 
         function activateTab(targetId) {
@@ -271,7 +272,6 @@
                     c.classList.remove('active');
                 }
             });
-            // 選択状態を保存
             localStorage.setItem(STORAGE_KEY, targetId);
         }
 
@@ -281,13 +281,11 @@
             });
         });
 
-        // 💡追加: ページ読み込み時に前回の状態を復元
         window.addEventListener('DOMContentLoaded', () => {
             const lastSelected = localStorage.getItem(STORAGE_KEY);
             if (lastSelected && document.getElementById(lastSelected)) {
                 activateTab(lastSelected);
             } else {
-                // 初回アクセス時は「たし算」
                 activateTab('addition');
             }
         });
