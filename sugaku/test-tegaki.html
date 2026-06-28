@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>手書き数字認識</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+    <style>
+        canvas { border: 2px solid #333; cursor: crosshair; background-color: black; }
+    </style>
+</head>
+<body>
+    <h3>手書き数字を入力（0-9）</h3>
+    <canvas id="canvas" width="280" height="280"></canvas>
+    <br>
+    <button id="predictBtn" disabled onclick="predict()">判定する</button>
+    <button onclick="clearCanvas()">クリア</button>
+    <p id="result">状態: モデル読み込み中...</p>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const resultText = document.getElementById('result');
+        const predictBtn = document.getElementById('predictBtn');
+        let drawing = false;
+        let model;
+
+        // 初期化：背景を黒に
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // モデルロード
+        async function loadModel() {
+            try {
+                // モデルURLはGoogleのサンプルを使用
+                model = await tf.loadLayersModel('https://storage.googleapis.com/tfjs-models/tfjs/mnist_cnn_v1/model.json');
+                resultText.innerText = "状態: 準備完了";
+                predictBtn.disabled = false;
+            } catch (err) {
+                resultText.innerText = "エラー: モデルの読み込みに失敗しました。";
+                console.error(err);
+            }
+        }
+        loadModel();
+
+        // 描画処理
+        canvas.onmousedown = () => drawing = true;
+        canvas.onmouseup = () => drawing = false;
+        canvas.onmousemove = (e) => {
+            if (!drawing) return;
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(e.offsetX, e.offsetY, 10, 0, Math.PI * 2);
+            ctx.fill();
+        };
+
+        function clearCanvas() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        async function predict() {
+            if (!model) return;
+
+            // 予測処理
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 28;
+            tempCanvas.height = 28;
+            tempCanvas.getContext('2d').drawImage(canvas, 0, 0, 280, 280, 0, 0, 28, 28);
+            
+            const imgData = tempCanvas.getContext('2d').getImageData(0, 0, 28, 28);
+            
+            tf.tidy(() => {
+                const input = tf.browser.fromPixels(imgData, 1)
+                    .reshape([1, 28, 28, 1])
+                    .div(255.0);
+                const prediction = model.predict(input);
+                const result = prediction.argMax(1).dataSync()[0];
+                resultText.innerText = `判定結果: ${result}`;
+            });
+        }
+    </script>
+</body>
+</html>
