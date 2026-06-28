@@ -101,8 +101,9 @@
     .number-line-base {
         position: absolute;
         top: 50%;
-        left: 20px;
-        right: 20px;
+        /* ▼ ここを小さくすると、数直線の線が左右に伸びます */
+        left: 10px;
+        right: 10px;
         height: 4px;
         background-color: #333;
         transform: translateY(-50%);
@@ -110,8 +111,9 @@
     .tick-container {
         position: absolute;
         top: 0;
-        left: 20px;
-        right: 20px;
+        /* ▼ ここを上と同じ値に合わせる必要があります */
+        left: 10px;
+        right: 10px;
         height: 100%;
     }
     .tick-wrapper {
@@ -145,7 +147,7 @@
         height: 28px;
         line-height: 24px; /* ボーダー幅を考慮 */
         text-align: center;
-        font-size: 0.9rem;
+        font-size: 1.5rem;
         color: #333;
         font-weight: bold;
         border-radius: 50%;
@@ -409,6 +411,7 @@
         const okSound = new Audio('ok.mp3');
         const ngSound = new Audio('ng.mp3');
         const qSound = new Audio('q.mp3');
+        const komaSound = new Audio('koma.m4a');
 
         // 音声読み上げ用の関数（Web Speech API）
         function speak(text) {
@@ -702,9 +705,12 @@
                 e.stopPropagation();
             }
 
+            // 再生制御用の変数（ドラッグ外で定義）
+            let lastIndex = -1;
+
             function doMarkerDrag(e) {
                 if (!isDraggingMarker) return;
-                e.preventDefault(); // スクロール防止
+                e.preventDefault(); 
                 
                 let clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const rect = tickContainer.getBoundingClientRect();
@@ -713,15 +719,26 @@
                 if (x < 0) x = 0;
                 if (x > rect.width) x = rect.width;
                 
-                // 最も近い目盛りにスナップ（吸着）
                 const step = rect.width / totalTicks;
                 let index = Math.round(x / step);
+                
+                // インデックスが変わった時だけ音を鳴らす
+                if (index !== lastIndex) {
+                    const soundCheckbox = document.getElementById('sound-checkbox');
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        komaSound.currentTime = 0; // 再生位置を最初に戻す
+                        komaSound.play().catch(e => {});
+                    }
+                    lastIndex = index;
+                }
                 
                 dragMarker.style.left = ((index / totalTicks) * 100) + '%';
             }
 
+            // ドラッグ終了時にインデックスをリセット
             function stopMarkerDrag() {
                 isDraggingMarker = false;
+                lastIndex = -1; // リセット
             }
 
             dragMarker.addEventListener('mousedown', startMarkerDrag);
