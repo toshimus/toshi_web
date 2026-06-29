@@ -158,6 +158,9 @@
     .btn-401 { background-color: #8e44ad; }
     .btn-402 { background-color: #d35400; }
     .btn-403 { background-color: #2c3e50; }
+
+    /* 便利ツール (501) */
+    .btn-501 { background-color: #7f8c8d; }
     
     /* スマホ向けレスポンシブデザイン */
     @media (max-width: 768px) {
@@ -187,6 +190,7 @@
     
     <div class="main-wrapper">
         <div class="sidebar">
+            <div class="category-btn" data-target="tools">便利ツール</div>
             <div class="category-btn active" data-target="addition">たし算</div>
             <div class="category-btn" data-target="subtraction">ひき算</div>
             <div class="category-btn" data-target="multiplication">かけ算</div>
@@ -197,6 +201,10 @@
 
         <div class="content-area">
             
+            <div id="tools" class="category-content">
+                <a href="dentaku.html" class="menu-button btn-501">電卓</a>
+            </div>
+
             <div id="addition" class="category-content active">
                 <a href="201.html" class="menu-button btn-201">合計が10までのたし算</a>
                 <a href="202.html" class="menu-button btn-202">20までのたし算（繰り上がり）</a>
