@@ -95,13 +95,12 @@
     .number-line-container {
         position: relative;
         width: 100%;
-        height: 100px;
+        height: 160px;
         margin: 20px 0 30px 0;
     }
     .number-line-base {
         position: absolute;
-        top: 50%;
-        /* ▼ ここを小さくすると、数直線の線が左右に伸びます */
+        top: 120px; 
         left: 4px;
         right: 4px;
         height: 4px;
@@ -110,18 +109,17 @@
     }
     .tick-container {
         position: absolute;
-        top: 0;
-        /* ▼ ここを上と同じ値に合わせる必要があります */
+        top: 70px;
         left: 4px;
         right: 4px;
-        height: 100%;
+        height: 100px;
     }
     .tick-wrapper {
         position: absolute;
-        top: 0;
+        top: 50%;
         height: 100%;
-        width: 30px; /* タップ範囲を確保 */
-        transform: translateX(-50%);
+        width: 30px; 
+        transform: translate(-50%, -50%);
         cursor: pointer;
     }
     .tick-mark {
@@ -133,7 +131,6 @@
         background-color: #333;
         transform: translate(-50%, -50%);
     }
-    /* 0の目盛りのみ強調 */
     .tick-wrapper.zero .tick-mark {
         height: 30px;
         width: 4px;
@@ -145,7 +142,7 @@
         left: 50%;
         width: 28px;
         height: 28px;
-        line-height: 24px; /* ボーダー幅を考慮 */
+        line-height: 24px;
         text-align: center;
         font-size: 1.8rem;
         color: #333;
@@ -155,33 +152,38 @@
         box-sizing: border-box;
         transition: all 0.2s ease;
     }
-    /* 選択された数値のスタイル（〇をつける） */
     .tick-label.circled {
         border: 2px solid #e74c3c;
         color: #e74c3c;
         background-color: #fff0f0;
     }
 
-    /* ドラッグマーカー（●）のスタイル修正 */
+    /* ドラッグマーカー（青丸）のスタイル修正：内部テキストの中央配置 */
     .drag-marker {
         position: absolute;
-        top: 50%;
-        /* leftはJSで制御 */
-        width: 26px;
-        height: 26px;
+        top: 10px;
+        width: 54px;
+        height: 54px;
         background-color: #3498db;
-        border: 2px solid #fff;
+        border: 3px solid #fff;
         border-radius: 50%;
         transform: translate(-50%, -50%);
         cursor: grab;
         z-index: 10;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.4);
         touch-action: none;
-        display: none; /* 初期状態は非表示 */
+        display: none; /* JSでflexに変更して表示 */
+        
+        /* 内部の距離数値を中央に表示するための設定 */
+        color: #ffffff;
+        font-size: 1.6rem;
+        font-weight: bold;
+        align-items: center;
+        justify-content: center;
     }
     .drag-marker:active {
         cursor: grabbing;
-        transform: translate(-50%, -50%) scale(1.2);
+        transform: translate(-50%, -50%) scale(1.1);
     }
     
     .answer-area {
@@ -195,7 +197,6 @@
         margin-right: 20px;
     }
     
-    /* ドロップゾーン（□の枠） */
     .drop-zone {
         width: 80px;
         height: 60px;
@@ -353,13 +354,9 @@
         touch-action: manipulation;
     }
 
-    /* ==========================================
-       計算機パネルとオーバーレイのスタイル追加
-       ========================================== */
     .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
     .pieces-container:active { cursor: grabbing; }
     
-    /* 電卓ディスプレイのスタイル追加 */
     .calc-display { flex: 1 1 100%; height: 50px; background-color: #fff; border: 2px inset #bdc3c7; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: flex-end; align-items: center; padding: 0 15px; font-size: 2.2rem; font-weight: bold; box-sizing: border-box; color: #2c3e50; pointer-events: none; }
     
     .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
@@ -407,13 +404,11 @@
     </div>
 
     <script>
-        // 音声ファイル（mp3）のセットアップ
         const okSound = new Audio('ok.mp3');
         const ngSound = new Audio('ng.mp3');
         const qSound = new Audio('q.mp3');
         const komaSound = new Audio('koma.m4a');
 
-        // 音声読み上げ用の関数（Web Speech API）
         function speak(text) {
             const speechCheckbox = document.getElementById('speech-checkbox');
             if (speechCheckbox && !speechCheckbox.checked) {
@@ -428,14 +423,10 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        /* ==========================================
-           計算機パネルの構築とロジック（電卓ディスプレイ搭載）
-           ========================================== */
         const overlay = document.getElementById('overlay');
         const calcContainer = document.getElementById('calc-container');
         let activeInputBox = null;
 
-        // 電卓ディスプレイの作成と追加
         const calcDisplay = document.createElement('div');
         calcDisplay.className = 'calc-display';
         calcDisplay.textContent = '';
@@ -473,10 +464,8 @@
                 piece.classList.add('confirm-btn');
                 piece.addEventListener('click', () => {
                     if (activeInputBox) {
-                        // ディスプレイの値を解答欄へ転送
                         activeInputBox.textContent = calcDisplay.textContent;
                         
-                        // 音声読み上げロジック（簡易的）
                         let valText = activeInputBox.textContent;
                         if (valText !== "" && valText !== "-") {
                             let readText = valText.replace('-', 'マイナス');
@@ -489,7 +478,6 @@
                     }
                 });
             } else {
-                // 0〜9の数字ボタン
                 piece.addEventListener('click', () => {
                     calcDisplay.textContent += key;
                 });
@@ -503,12 +491,10 @@
             activeInputBox = null;
         });
 
-        /* 計算機パネルのドラッグ移動ロジック */
         let isDragging = false;
         let dragStartX, dragStartY, initialLeft, initialTop;
 
         function startDrag(e) {
-            // ディスプレイやボタンを触った時はドラッグさせない
             if (e.target.classList.contains('piece') || e.target.classList.contains('calc-display')) return;
             isDragging = true;
             let clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -542,20 +528,15 @@
         document.addEventListener('touchmove', doDrag, { passive: false });
         document.addEventListener('touchend', stopDrag);
 
-
-        /* ==========================================
-           問題ロジック（正負の数）
-           ========================================== */
         const problems = [];
         let prevProblem = "";
         let prevAnswer = null;
         
-        // 問題のランダム生成（連続・重複回避、答えは-10〜10）
         for (let i = 0; i < 10; i++) {
             let baseNum, diffNum, isGreater, answer, problemText;
             do {
-                baseNum = Math.floor(Math.random() * 19) - 9; // -9 から 9
-                diffNum = Math.floor(Math.random() * 9) + 1;  // 1 から 9
+                baseNum = Math.floor(Math.random() * 19) - 9;
+                diffNum = Math.floor(Math.random() * 9) + 1; 
                 isGreater = Math.random() < 0.5;
                 
                 if (isGreater) {
@@ -615,7 +596,6 @@
                 return;
             }
 
-            // 問題提示音の再生
             const soundCheckbox = document.getElementById('sound-checkbox');
             if (soundCheckbox && soundCheckbox.checked) {
                 qSound.currentTime = 0;
@@ -635,7 +615,6 @@
             const mainArea = document.createElement('div');
             mainArea.className = 'problem-main';
 
-            // 数直線の構築
             const numberLineContainer = document.createElement('div');
             numberLineContainer.className = 'number-line-container';
             
@@ -646,18 +625,19 @@
             const tickContainer = document.createElement('div');
             tickContainer.className = 'tick-container';
             
-            // ドラッグ可能なマーカー（●）
             const dragMarker = document.createElement('div');
             dragMarker.className = 'drag-marker';
             
             const minScale = -10;
             const maxScale = 10;
             const totalTicks = maxScale - minScale;
+
+            // 基準となる数値を保持する変数
+            let selectedBaseValue = null;
             
             for (let i = minScale; i <= maxScale; i++) {
                 const tickWrapper = document.createElement('div');
                 tickWrapper.className = 'tick-wrapper';
-                // パーセント計算で絶対位置を設定 (レイアウトズレ防止)
                 const positionPct = ((i - minScale) / totalTicks) * 100;
                 tickWrapper.style.left = positionPct + '%';
                 
@@ -670,18 +650,21 @@
                 tickLabel.className = 'tick-label';
                 tickLabel.textContent = i;
                 
-                // 目盛りクリックで数値を〇で囲み、そこにドラッグマーカーを表示
-                tickWrapper.addEventListener('click', () => {
-                    // 全てのラベルから丸を外す
+                // 目盛りクリック時の処理
+                tickWrapper.addEventListener('click', (e) => {
+                    e.stopPropagation();
+
                     const allLabels = tickContainer.querySelectorAll('.tick-label');
                     allLabels.forEach(lbl => lbl.classList.remove('circled'));
                     
-                    // クリックした数値に〇をつける
                     tickLabel.classList.add('circled');
                     
-                    // ドラッグマーカーをこの位置に表示する
+                    // クリックした座標を基準値として記憶
+                    selectedBaseValue = i;
+                    
                     dragMarker.style.left = positionPct + '%';
-                    dragMarker.style.display = 'block';
+                    dragMarker.style.display = 'flex'; // textを中央配置するためにflexを使用
+                    dragMarker.textContent = '0'; // 初期位置は差分0
                 });
                 
                 tickWrapper.appendChild(tickMark);
@@ -689,15 +672,14 @@
                 tickContainer.appendChild(tickWrapper);
             }
             
-            // dragMarkerをtickContainer内に追加し、座標系を統一
             tickContainer.appendChild(dragMarker);
             
-            numberLineContainer.appendChild(tickContainer);
+            // 注: 誤操作防止のため、数直線背景クリックによる移動イベントは削除しました。
             
+            numberLineContainer.appendChild(tickContainer);
             mainArea.appendChild(numberLineContainer);
             container.appendChild(mainArea);
 
-            // ドラッグマーカーのイベント設定
             let isDraggingMarker = false;
 
             function startMarkerDrag(e) {
@@ -705,7 +687,6 @@
                 e.stopPropagation();
             }
 
-            // 再生制御用の変数（ドラッグ外で定義）
             let lastIndex = -1;
 
             function doMarkerDrag(e) {
@@ -722,23 +703,27 @@
                 const step = rect.width / totalTicks;
                 let index = Math.round(x / step);
                 
-                // インデックスが変わった時だけ音を鳴らす
                 if (index !== lastIndex) {
-                    const soundCheckbox = document.getElementById('sound-checkbox');
                     if (soundCheckbox && soundCheckbox.checked) {
-                        komaSound.currentTime = 0; // 再生位置を最初に戻す
-                        komaSound.play().catch(e => {});
+                        komaSound.currentTime = 0;
+                        komaSound.play().catch(err => {});
                     }
                     lastIndex = index;
+
+                    // ドラッグ中の青丸の数値（距離）を計算して表示
+                    if (selectedBaseValue !== null) {
+                        let currentVal = minScale + index;
+                        let diff = currentVal - selectedBaseValue;
+                        dragMarker.textContent = diff;
+                    }
                 }
                 
                 dragMarker.style.left = ((index / totalTicks) * 100) + '%';
             }
 
-            // ドラッグ終了時にインデックスをリセット
             function stopMarkerDrag() {
                 isDraggingMarker = false;
-                lastIndex = -1; // リセット
+                lastIndex = -1;
             }
 
             dragMarker.addEventListener('mousedown', startMarkerDrag);
@@ -749,7 +734,6 @@
             document.addEventListener('touchmove', doMarkerDrag, { passive: false });
             document.addEventListener('touchend', stopMarkerDrag);
 
-            // 回答入力エリア
             const answerArea = document.createElement('div');
             answerArea.className = 'answer-area';
 
@@ -757,12 +741,10 @@
             answerLabel.className = 'answer-label';
             answerLabel.textContent = 'こたえ：';
 
-            // 解答ドロップゾーン（計算機呼び出し）
             const ansZone = document.createElement('div');
             ansZone.className = 'drop-zone';
             ansZone.id = 'ans-box';
             ansZone.addEventListener('click', () => { 
-                // 電卓を開くたびにディスプレイをクリア
                 calcDisplay.textContent = '';
                 
                 activeInputBox = ansZone;
@@ -780,7 +762,6 @@
 
             container.appendChild(answerArea);
 
-            // 計算機入力用のヒントテキスト
             const hintText = document.createElement('div');
             hintText.className = 'hint-text';
             hintText.innerHTML = '枠をタップして、計算機で数字を入力してください';
@@ -850,7 +831,6 @@
             });
         }
 
-        // --- スタートボタンのイベントリスナー ---
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
