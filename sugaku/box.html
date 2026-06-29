@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4:3 Grid Interface - Light Yellow</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: gray;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .box-container {
+            width: min(90vw, calc(90vh * 4 / 3));
+            height: min(90vh, calc(90vw * 3 / 4));
+            background-color: white;
+            display: grid;
+            grid-template-columns: repeat(32, 1fr);
+            grid-template-rows: repeat(24, 1fr);
+            position: relative;
+        }
+
+        .sidebar {
+            width: 10vw;
+            background-color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+
+        #add-button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .grid-cell { border: 0.1px solid rgba(0, 0, 0, 0.1); }
+
+        .draggable {
+            position: absolute;
+            width: calc(100% / 32 * 2);
+            height: calc(100% / 24 * 2);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 薄黄色で統一された9割サイズの角丸箱 */
+        .rect {
+            width: 90%;
+            height: 90%;
+            background-color: #FFF9C4; /* 薄黄色 */
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            color: #555;
+            font-weight: bold;
+            font-family: sans-serif;
+            user-select: none;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="box-container" id="container"></div>
+    </div>
+
+    <div class="sidebar">
+        <button id="add-button">追加</button>
+    </div>
+
+    <script>
+        const container = document.getElementById('container');
+        let count = 0;
+
+        for (let i = 0; i < 32 * 24; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('grid-cell');
+            container.appendChild(cell);
+        }
+
+        function createDraggable() {
+            count++;
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('draggable');
+            
+            const rect = document.createElement('div');
+            rect.classList.add('rect');
+            rect.textContent = count;
+            
+            wrapper.appendChild(rect);
+            container.appendChild(wrapper);
+
+            let isDragging = false;
+            
+            wrapper.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                rect.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const cRect = container.getBoundingClientRect();
+                let x = e.clientX - cRect.left - (wrapper.offsetWidth / 2);
+                let y = e.clientY - cRect.top - (wrapper.offsetHeight / 2);
+                
+                let gridX = Math.round(x / (cRect.width / 32));
+                let gridY = Math.round(y / (cRect.height / 24));
+                
+                gridX = Math.max(0, Math.min(gridX, 32 - 2));
+                gridY = Math.max(0, Math.min(gridY, 24 - 2));
+                
+                wrapper.style.left = `calc(${gridX} * (100% / 32))`;
+                wrapper.style.top = `calc(${gridY} * (100% / 24))`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                rect.style.cursor = 'grab';
+            });
+        }
+
+        document.getElementById('add-button').addEventListener('click', createDraggable);
+        window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable(); });
+    </script>
+</body>
+</html>
