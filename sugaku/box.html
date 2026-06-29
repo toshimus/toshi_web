@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>4:3 Grid Interface - Extended</title>
     <style>
+        :root {
+            /* 1グリッドセルの高さと幅を算出して変数化し、フォントサイズの基準に利用します */
+            --grid-cell-h: calc(min(90vh, calc(90vw * 3 / 4)) / 24);
+            --grid-cell-w: calc(min(90vw, calc(90vh * 4 / 3)) / 32);
+        }
+
         body, html {
             margin: 0;
             padding: 0;
@@ -80,15 +86,11 @@
             position: absolute;
             width: 14px;
             height: 14px;
-            background-color: #333;
+            background-color: #333; /* 4隅の■ */
             border: 2px solid #fff;
             box-sizing: border-box;
             z-index: 20;
-            display: none;
-        }
-
-        .wrapper-selected .resize-handle {
-            display: block;
+            display: block; /* 編集モード中は常に表示 */
         }
 
         .handle-tl { top: -7px; left: -7px; cursor: nwse-resize; }
@@ -108,6 +110,7 @@
             cursor: grab;
             color: #555;
             font-weight: bold;
+            font-size: calc(var(--grid-cell-h) * 1.2); /* 画面サイズに追従 */
             font-family: sans-serif;
             user-select: none;
             -webkit-user-select: none;
@@ -127,7 +130,7 @@
             cursor: grab;
             color: #333;
             font-weight: bold;
-            font-size: 2rem;
+            font-size: calc(var(--grid-cell-h) * 1.2); /* 画面サイズに追従 */
             font-family: sans-serif;
             user-select: none;
             -webkit-user-select: none;
@@ -143,7 +146,7 @@
             cursor: grab;
             color: #333;
             font-weight: bold;
-            font-size: 2rem;
+            font-size: calc(var(--grid-cell-h) * 1.2); /* 画面サイズに追従 */
             font-family: sans-serif;
             user-select: none;
             -webkit-user-select: none;
@@ -159,24 +162,7 @@
             cursor: grab;
             color: #27ae60;
             font-weight: bold;
-            font-size: 2rem;
-            font-family: sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        /* 変数のスタイル (斜体解除・色変更) */
-        .var-rect {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: grab;
-            color: #e74c3c;
-            font-weight: bold;
-            font-size: 2rem;
-            font-style: normal;
+            font-size: calc(var(--grid-cell-h) * 1.2); /* 画面サイズに追従 */
             font-family: sans-serif;
             user-select: none;
             -webkit-user-select: none;
@@ -194,7 +180,7 @@
             cursor: pointer;
             color: white;
             font-weight: bold;
-            font-size: 1.5rem;
+            font-size: calc(var(--grid-cell-h) * 0.9); /* 画面サイズに追従 */
             font-family: sans-serif;
             user-select: none;
             -webkit-user-select: none;
@@ -308,6 +294,47 @@
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
         }
+
+        /* 実行モード時のスタイル制御 */
+        body.run-mode .edit-only {
+            display: none !important;
+        }
+        body.run-mode .draggable {
+            cursor: default !important;
+        }
+        body.run-mode .ans-rect, 
+        body.run-mode .check-rect {
+            cursor: pointer !important;
+        }
+        body.run-mode .wrapper-selected {
+            outline: none !important;
+        }
+        body.run-mode .resize-handle {
+            display: none !important;
+        }
+        body.run-mode .draggable[data-type="formula"] {
+            display: none !important;
+        }
+
+        /* 変数設定用のスタイル */
+        .var-setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .var-setting-input {
+            width: 60px;
+            font-size: 1.2rem;
+            text-align: right;
+            padding: 4px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -317,38 +344,37 @@
     </div>
 
     <div class="sidebar">
-        <button id="add-box-btn">箱追加</button>
-        <button id="add-ans-btn">解答欄追加</button>
-        <button id="add-formula-btn">計算式追加</button>
-        <button id="add-text-btn">文字追加</button>
-        <button id="add-var-btn">変数追加</button>
-        <button id="add-check-btn" style="background-color: #e67e22;">できた追加</button>
-        <button id="run-btn" style="background-color: #2ecc71;">実行</button>
-        <button id="save-btn" style="background-color: #9b59b6;">保存</button>
-        <button id="load-btn" style="background-color: #34495e;">読込</button>
+        <button id="add-box-btn" class="edit-only">箱追加</button>
+        <button id="add-ans-btn" class="edit-only">解答欄追加</button>
+        <button id="add-formula-btn" class="edit-only">計算式追加</button>
+        <button id="add-text-btn" class="edit-only">文字追加</button>
+        <button id="var-settings-btn" class="edit-only" style="background-color: #8e44ad;">変数設定</button>
+        <button id="add-check-btn" class="edit-only" style="background-color: #e67e22;">できた追加</button>
+        
+        <button id="run-btn" style="background-color: #2ecc71;">実行モードへ</button>
+        
+        <button id="save-btn" class="edit-only" style="background-color: #9b59b6;">保存</button>
+        <button id="load-btn" class="edit-only" style="background-color: #34495e;">読込</button>
     </div>
 
     <input type="file" id="load-file" style="display:none;" accept=".json">
 
     <div class="overlay" id="overlay"></div>
-    <div class="pieces-container" id="calc-container"></div>
     
-    <div class="pieces-container" id="var-prop-container" style="max-width: 300px; cursor: default;">
-        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">変数プロパティ設定</h3>
-        <div style="display:flex; justify-content:space-between; align-items:center; width: 100%; margin-bottom: 15px; font-weight:bold; color:#333;">
-            <label style="font-size: 1.2rem;">最小値:</label>
-            <input type="number" id="var-min" value="1" style="width: 80px; font-size: 1.2rem; text-align:right; padding: 5px;">
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; width: 100%; margin-bottom: 25px; font-weight:bold; color:#333;">
-            <label style="font-size: 1.2rem;">最大値:</label>
-            <input type="number" id="var-max" value="9" style="width: 80px; font-size: 1.2rem; text-align:right; padding: 5px;">
-        </div>
-        <button id="save-var-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9;">設定を保存</button>
+    <div class="pieces-container" id="calc-container"></div>
+
+    <div class="pieces-container" id="var-settings-container" style="max-width: 400px; cursor: default; overflow-y: auto; max-height: 80vh;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">変数の乱数範囲設定</h3>
+        <div id="var-list-container" style="width: 100%; margin-bottom: 20px;"></div>
+        <button id="save-var-settings-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9;">設定を保存</button>
     </div>
 
     <script>
         const container = document.getElementById('container');
         let count = 0;
+        let isEditMode = true;
+        let currentVarValues = {}; // 実行モード中に保持する変数名と値のマップ
+        let variableRanges = {};   // { "[x1]": { min: 1, max: 9 }, ... }
 
         // グリッド背景の生成
         for (let i = 0; i < 32 * 24; i++) {
@@ -362,9 +388,7 @@
            ========================================== */
         const overlay = document.getElementById('overlay');
         const calcContainer = document.getElementById('calc-container');
-        const varPropContainer = document.getElementById('var-prop-container');
         let activeInputBox = null;
-        let activeVarWrapper = null;
 
         const numPad = document.createElement('div');
         numPad.className = 'num-pad';
@@ -388,21 +412,9 @@
 
         overlay.addEventListener('click', () => {
             calcContainer.style.display = 'none';
-            varPropContainer.style.display = 'none';
+            document.getElementById('var-settings-container').style.display = 'none';
             overlay.style.display = 'none';
             activeInputBox = null;
-            activeVarWrapper = null;
-        });
-
-        // 変数プロパティ保存処理
-        document.getElementById('save-var-prop-btn').addEventListener('click', () => {
-            if (activeVarWrapper) {
-                activeVarWrapper.dataset.min = document.getElementById('var-min').value;
-                activeVarWrapper.dataset.max = document.getElementById('var-max').value;
-            }
-            varPropContainer.style.display = 'none';
-            overlay.style.display = 'none';
-            activeVarWrapper = null;
         });
 
         // 電卓パネル自体のドラッグ機能
@@ -410,13 +422,13 @@
         let calcDragStartX, calcDragStartY, calcInitialLeft, calcInitialTop;
 
         function startCalcDrag(e) {
-            if (e.target.classList.contains('piece')) return;
+            if (e.target.classList.contains('piece') || e.target.tagName.toLowerCase() === 'input') return;
             isCalcDragging = true;
             let clientX = e.touches ? e.touches[0].clientX : e.clientX;
             let clientY = e.touches ? e.touches[0].clientY : e.clientY;
             calcDragStartX = clientX;
             calcDragStartY = clientY;
-            let style = window.getComputedStyle(calcContainer);
+            let style = window.getComputedStyle(e.currentTarget);
             calcInitialLeft = parseFloat(style.left);
             calcInitialTop = parseFloat(style.top);
         }
@@ -428,8 +440,11 @@
             let clientY = e.touches ? e.touches[0].clientY : e.clientY;
             let dx = clientX - calcDragStartX;
             let dy = clientY - calcDragStartY;
-            calcContainer.style.left = (calcInitialLeft + dx) + 'px';
-            calcContainer.style.top = (calcInitialTop + dy) + 'px';
+            let target = document.getElementById('var-settings-container').style.display === 'flex' 
+                            ? document.getElementById('var-settings-container') 
+                            : calcContainer;
+            target.style.left = (calcInitialLeft + dx) + 'px';
+            target.style.top = (calcInitialTop + dy) + 'px';
         }
 
         function stopCalcDrag() {
@@ -437,9 +452,12 @@
         }
 
         calcContainer.addEventListener('mousedown', startCalcDrag);
+        document.getElementById('var-settings-container').addEventListener('mousedown', startCalcDrag);
         document.addEventListener('mousemove', doCalcDrag, { passive: false });
         document.addEventListener('mouseup', stopCalcDrag);
+        
         calcContainer.addEventListener('touchstart', startCalcDrag, { passive: false });
+        document.getElementById('var-settings-container').addEventListener('touchstart', startCalcDrag, { passive: false });
         document.addEventListener('touchmove', doCalcDrag, { passive: false });
         document.addEventListener('touchend', stopCalcDrag);
 
@@ -454,6 +472,7 @@
 
         const handleResizeMove = (e) => {
             if (!activeResizeWrapper) return;
+            if (!isEditMode) return; 
             e.preventDefault();
             
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -541,49 +560,57 @@
 
         // 判定実行関数
         function runValidation() {
-            const wrappers = container.querySelectorAll('.draggable');
-            
-            // 現在の変数マップ（変数名 -> 現在の値）を作成
-            const varValues = {};
-            wrappers.forEach(w => {
-                if (w.dataset.type === 'var') {
-                    const varName = w.dataset.varName;
-                    const el = w.querySelector('.var-rect');
-                    if (varName && el) {
-                        varValues[varName] = el.textContent;
-                    }
-                }
-            });
-
             const answers = Array.from(container.querySelectorAll('.draggable[data-type="answer"]'));
             const formulas = Array.from(container.querySelectorAll('.draggable[data-type="formula"]'));
 
             let allCorrect = true;
             let hasCheckable = false;
+            let expectedAnswers = {};
 
-            // 配置された「計算式」ブロックを利用した判定
-            if (formulas.length > 0) {
-                hasCheckable = true;
-                for (let i = 0; i < Math.max(answers.length, formulas.length); i++) {
-                    let wAns = answers[i];
-                    let wForm = formulas[i];
+            // 1. 各計算式ブロックから正解値を算出 ([q1]=[x1]+[x2] の形式)
+            formulas.forEach(wForm => {
+                const formulaStr = wForm.querySelector('.formula-rect').textContent;
+                const parts = formulaStr.split('=');
+                
+                if (parts.length === 2) {
+                    const ansId = parts[0].trim();
+                    let expr = parts[1].trim();
                     
-                    if (!wAns || !wForm) {
-                        allCorrect = false;
-                        continue;
-                    }
-
-                    const formulaStr = wForm.querySelector('.formula-rect').textContent;
-                    const el = wAns.querySelector('.ans-rect');
-                    
-                    let replacedFormula = formulaStr;
-                    for (const [name, val] of Object.entries(varValues)) {
-                        replacedFormula = replacedFormula.split(name).join(val);
+                    // 変数を現在のランダム値で置換
+                    for (const [name, val] of Object.entries(currentVarValues)) {
+                        expr = expr.split(name).join(val);
                     }
 
                     try {
+                        expectedAnswers[ansId] = new Function(`return (${expr})`)();
+                        hasCheckable = true;
+                    } catch (e) {
+                        console.error(`式の解析に失敗しました: ${formulaStr}`, e);
+                    }
+                }
+            });
+
+            // 2. 各解答欄の入力値と期待値を比較
+            answers.forEach(wAns => {
+                const ansId = wAns.dataset.answerId;
+                const el = wAns.querySelector('.ans-rect');
+                const userAns = parseFloat(el.textContent);
+
+                // 新仕様：IDが一致する正解が存在する場合
+                if (ansId && expectedAnswers.hasOwnProperty(ansId)) {
+                    if (isNaN(userAns) || userAns !== expectedAnswers[ansId]) {
+                        allCorrect = false;
+                    }
+                }
+                // 後方互換：古いフォーマット（解答欄自体に直接数式を持っている場合）
+                else if (wAns.dataset.formula) {
+                    hasCheckable = true;
+                    let replacedFormula = wAns.dataset.formula;
+                    for (const [name, val] of Object.entries(currentVarValues)) {
+                        replacedFormula = replacedFormula.split(name).join(val);
+                    }
+                    try {
                         const calcResult = new Function(`return (${replacedFormula})`)();
-                        const userAns = parseFloat(el.textContent);
                         if (isNaN(userAns) || calcResult !== userAns) {
                             allCorrect = false;
                         }
@@ -591,30 +618,7 @@
                         allCorrect = false;
                     }
                 }
-            } 
-            // 旧仕様（解答欄に直接式を設定した場合）の後方互換
-            else {
-                answers.forEach(w => {
-                    const formulaStr = w.dataset.formula;
-                    if (formulaStr) {
-                        hasCheckable = true;
-                        const el = w.querySelector('.ans-rect');
-                        let replacedFormula = formulaStr;
-                        for (const [name, val] of Object.entries(varValues)) {
-                            replacedFormula = replacedFormula.split(name).join(val);
-                        }
-                        try {
-                            const calcResult = new Function(`return (${replacedFormula})`)();
-                            const userAns = parseFloat(el.textContent);
-                            if (isNaN(userAns) || calcResult !== userAns) {
-                                allCorrect = false;
-                            }
-                        } catch (e) {
-                            allCorrect = false;
-                        }
-                    }
-                });
-            }
+            });
 
             if (!hasCheckable) {
                 showToast("判定式がありません");
@@ -637,7 +641,7 @@
             wrapper.classList.add('draggable');
             wrapper.dataset.type = type;
             
-            // サイズと位置の初期化 (保存データがあればそれを適用)
+            // サイズと位置の初期化
             const wCells = itemData ? itemData.wCells : 2;
             const hCells = itemData ? itemData.hCells : 2;
             const gridX = itemData ? itemData.gridX : 0;
@@ -668,22 +672,31 @@
 
             } else if (type === 'answer') {
                 el.classList.add('ans-rect');
+                let defaultId = '';
+                
                 if (itemData) {
-                    el.textContent = itemData.content;
-                    wrapper.dataset.formula = itemData.formula || '';
+                    defaultId = itemData.answerId || itemData.content || '';
+                    wrapper.dataset.formula = itemData.formula || ''; // 後方互換維持
                 } else {
+                    const input = prompt("この解答欄のIDを指定してください (例: [q1]):");
+                    if (input !== null) defaultId = input.trim();
                     wrapper.dataset.formula = '';
                 }
+                
+                wrapper.dataset.answerId = defaultId;
+                el.textContent = defaultId; // 編集モード中はIDを表示
 
-                // 後方互換・直接設定用のダブルクリック
+                // ダブルクリックでプロパティ(ID指定)画面を表示
                 el.addEventListener('dblclick', (e) => {
+                    if (!isEditMode) return; 
                     e.stopPropagation();
-                    calcContainer.style.display = 'none';
-                    overlay.style.display = 'none';
-                    activeInputBox = null;
-                    const currentFormula = wrapper.dataset.formula || "";
-                    const newFormula = prompt("判定用の計算式を入力してください (例: x + 5):", currentFormula);
-                    if (newFormula !== null) wrapper.dataset.formula = newFormula.trim();
+                    
+                    const currentId = wrapper.dataset.answerId || "";
+                    const newId = prompt("この解答欄のIDを指定してください (例: [q1]):", currentId);
+                    if (newId !== null) {
+                        wrapper.dataset.answerId = newId.trim();
+                        el.textContent = wrapper.dataset.answerId;
+                    }
                 });
 
             } else if (type === 'formula') {
@@ -691,13 +704,14 @@
                 if (itemData) {
                     txt = itemData.content;
                 } else {
-                    txt = prompt("判定・表示用の計算式を入力してください (例: x + y):");
+                    txt = prompt("判定・表示用の計算式を入力してください (例: [q1]=[x1]+[x2]):");
                     if (txt === null || txt.trim() === "") return;
                 }
                 el.classList.add('formula-rect');
                 el.textContent = txt;
                 
                 el.addEventListener('dblclick', (e) => {
+                    if (!isEditMode) return; 
                     e.stopPropagation();
                     const newTxt = prompt("計算式を編集してください:", el.textContent);
                     if (newTxt !== null && newTxt.trim() !== "") el.textContent = newTxt;
@@ -708,35 +722,23 @@
                 if (itemData) {
                     txt = itemData.content;
                 } else {
-                    txt = prompt("追加する文字を入力してください:");
+                    txt = prompt("追加する文字を入力してください (例: [x1]＋[x2]＝):");
                     if (txt === null || txt.trim() === "") return;
                 }
                 el.classList.add('text-rect');
                 el.textContent = txt;
+                wrapper.dataset.originalContent = txt; 
                 
                 el.addEventListener('dblclick', (e) => {
+                    if (!isEditMode) return; 
                     e.stopPropagation();
-                    const newTxt = prompt("文字を編集してください:", el.textContent);
-                    if (newTxt !== null && newTxt.trim() !== "") el.textContent = newTxt;
+                    const currentTxt = wrapper.dataset.originalContent || el.textContent;
+                    const newTxt = prompt("文字を編集してください:", currentTxt);
+                    if (newTxt !== null && newTxt.trim() !== "") {
+                        el.textContent = newTxt;
+                        wrapper.dataset.originalContent = newTxt;
+                    }
                 });
-
-            } else if (type === 'var') {
-                let v = '';
-                if (itemData) {
-                    v = itemData.varName || itemData.content;
-                    wrapper.dataset.varName = v;
-                    wrapper.dataset.min = itemData.min || 1;
-                    wrapper.dataset.max = itemData.max || 9;
-                    el.textContent = itemData.content;
-                } else {
-                    v = prompt("追加する変数を入力してください (例: x, y):");
-                    if (v === null || v.trim() === "") return;
-                    el.textContent = v;
-                    wrapper.dataset.varName = v;
-                    wrapper.dataset.min = 1;
-                    wrapper.dataset.max = 9;
-                }
-                el.classList.add('var-rect');
 
             } else if (type === 'check') {
                 el.classList.add('check-rect');
@@ -752,6 +754,7 @@
                 h.classList.add('resize-handle', `handle-${pos}`);
                 
                 const startResize = (e) => {
+                    if (!isEditMode) return; 
                     e.stopPropagation();
                     activeResizeWrapper = wrapper;
                     activeHandlePos = pos;
@@ -775,9 +778,11 @@
             let startX, startY;
             
             const dragStart = (e) => {
+                if (!isEditMode && type !== 'answer' && type !== 'check') return; 
+                
                 isDragging = true;
                 hasMoved = false;
-                if (type !== 'check') el.style.cursor = 'grabbing'; // できたボタン以外
+                if (type !== 'check' && isEditMode) el.style.cursor = 'grabbing';
 
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -790,6 +795,7 @@
 
             const handleMove = (e) => {
                 if (!isDragging) return;
+                if (!isEditMode) return; 
                 if (activeResizeWrapper) return; 
                 
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -827,24 +833,19 @@
             const dragEnd = (e) => {
                 if (!isDragging) return;
                 isDragging = false;
-                if (type !== 'check') el.style.cursor = 'grab';
+                if (type !== 'check' && isEditMode) el.style.cursor = 'grab';
 
                 if (!hasMoved) {
-                    if (type === 'answer') {
+                    if (type === 'answer' && !isEditMode) {
+                        // 実行モード時のみ電卓を表示
                         activeInputBox = el;
                         calcContainer.style.display = 'flex';
                         overlay.style.display = 'block';
-                    } else if (type === 'text' || type === 'formula') {
+                    } else if (type !== 'check' && isEditMode) {
+                        // 編集モード時は選択（青枠）のみ
                         document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
                         wrapper.classList.add('wrapper-selected');
-                    } else if (type === 'var') {
-                        activeVarWrapper = wrapper;
-                        document.getElementById('var-min').value = wrapper.dataset.min || 1;
-                        document.getElementById('var-max').value = wrapper.dataset.max || 9;
-                        varPropContainer.style.display = 'flex';
-                        overlay.style.display = 'block';
                     } else if (type === 'check') {
-                        // 画面上の「できた」ボタンをクリックで判定実行
                         runValidation();
                     }
                 }
@@ -859,30 +860,174 @@
         document.getElementById('add-ans-btn').addEventListener('click', () => createDraggable('answer'));
         document.getElementById('add-formula-btn').addEventListener('click', () => createDraggable('formula'));
         document.getElementById('add-text-btn').addEventListener('click', () => createDraggable('text'));
-        document.getElementById('add-var-btn').addEventListener('click', () => createDraggable('var'));
         document.getElementById('add-check-btn').addEventListener('click', () => createDraggable('check'));
-        
-        // 実行ボタンイベント (変数をランダムな数字に書き換え)
-        document.getElementById('run-btn').addEventListener('click', () => {
-            const wrappers = container.querySelectorAll('.draggable');
-            wrappers.forEach(wrapper => {
-                if (wrapper.dataset.type === 'var') {
-                    const el = wrapper.querySelector('.var-rect');
-                    if (el) {
-                        const min = parseInt(wrapper.dataset.min) || 1;
-                        const max = parseInt(wrapper.dataset.max) || 9;
-                        const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
-                        el.textContent = randomNum;
-                    }
+
+        /* ==========================================
+           変数設定機能 (Min/Maxの設定)
+           ========================================== */
+        document.getElementById('var-settings-btn').addEventListener('click', () => {
+            const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+            const knownAnswerIds = new Set();
+            answerWrappers.forEach(w => {
+                if (w.dataset.answerId) knownAnswerIds.add(w.dataset.answerId);
+            });
+
+            const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+            const foundVars = new Set();
+            textWrappers.forEach(wrapper => {
+                const content = wrapper.dataset.originalContent || wrapper.querySelector('.text-rect').textContent;
+                const matches = content.match(/\[[^\]]+\]/g);
+                if (matches) {
+                    matches.forEach(varName => {
+                        if (!knownAnswerIds.has(varName)) {
+                            foundVars.add(varName);
+                        }
+                    });
                 }
             });
+
+            const listContainer = document.getElementById('var-list-container');
+            listContainer.innerHTML = ''; 
+
+            if (foundVars.size === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; color:#555; font-weight:bold;">テキスト内に設定可能な変数が見つかりません。</p>';
+            } else {
+                foundVars.forEach(v => {
+                    const range = variableRanges[v] || { min: 1, max: 9 };
+                    const row = document.createElement('div');
+                    row.className = 'var-setting-row';
+                    row.innerHTML = `
+                        <strong style="font-size: 1.2rem; color:#333; width: 80px;">${v}</strong>
+                        <div>
+                            <label style="font-weight:bold; color:#555;">Min: <input type="number" class="var-min-input var-setting-input" data-var="${v}" value="${range.min}"></label>
+                            <span style="margin: 0 5px; color:#555; font-weight:bold;">-</span>
+                            <label style="font-weight:bold; color:#555;">Max: <input type="number" class="var-max-input var-setting-input" data-var="${v}" value="${range.max}"></label>
+                        </div>
+                    `;
+                    listContainer.appendChild(row);
+                });
+            }
+
+            document.getElementById('var-settings-container').style.display = 'flex';
+            document.getElementById('overlay').style.display = 'block';
+        });
+
+        document.getElementById('save-var-settings-btn').addEventListener('click', () => {
+            const listContainer = document.getElementById('var-list-container');
+            const minInputs = listContainer.querySelectorAll('.var-min-input');
+            const maxInputs = listContainer.querySelectorAll('.var-max-input');
+            
+            minInputs.forEach((minInput, index) => {
+                const v = minInput.dataset.var;
+                const maxInput = maxInputs[index];
+                variableRanges[v] = {
+                    min: parseInt(minInput.value) || 1,
+                    max: parseInt(maxInput.value) || 9
+                };
+            });
+
+            document.getElementById('var-settings-container').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        });
+        
+        // モード切り替え及び変数の抽出・ランダム化処理
+        document.getElementById('run-btn').addEventListener('click', () => {
+            const runBtn = document.getElementById('run-btn');
+            isEditMode = !isEditMode;
+
+            if (isEditMode) {
+                // 編集モードへ復帰
+                document.body.classList.remove('run-mode');
+                runBtn.textContent = '実行モードへ';
+                runBtn.style.backgroundColor = '#2ecc71'; 
+
+                // 全てのテキスト表記をオリジナル（[x1]など）に復元
+                const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+                textWrappers.forEach(wrapper => {
+                    const el = wrapper.querySelector('.text-rect');
+                    if (el && wrapper.dataset.originalContent) {
+                        el.textContent = wrapper.dataset.originalContent;
+                    }
+                });
+
+                // 解答欄にIDを再表示
+                const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+                answerWrappers.forEach(wrapper => {
+                    const el = wrapper.querySelector('.ans-rect');
+                    if (el) el.textContent = wrapper.dataset.answerId || '';
+                });
+
+                currentVarValues = {};
+            } else {
+                // 実行モードへ移行
+                document.body.classList.add('run-mode');
+                runBtn.textContent = '編集モードへ戻る';
+                runBtn.style.backgroundColor = '#e74c3c'; 
+                
+                document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+
+                currentVarValues = {};
+                
+                // 解答欄のID一覧を取得（変数置換から除外するため）
+                const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+                const knownAnswerIds = new Set();
+                answerWrappers.forEach(w => {
+                    if (w.dataset.answerId) knownAnswerIds.add(w.dataset.answerId);
+                });
+
+                const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+                
+                // 1. テキストブロック内から [変数名] を一括抽出して数値を割り当て (範囲設定を適用)
+                textWrappers.forEach(wrapper => {
+                    const el = wrapper.querySelector('.text-rect');
+                    if (el) {
+                        if (!wrapper.dataset.originalContent) {
+                            wrapper.dataset.originalContent = el.textContent;
+                        }
+                        const content = wrapper.dataset.originalContent;
+                        const matches = content.match(/\[[^\]]+\]/g);
+                        if (matches) {
+                            matches.forEach(varName => {
+                                // 解答欄IDとして使われているものは変数（ランダム値）化しない
+                                if (!knownAnswerIds.has(varName) && !(varName in currentVarValues)) {
+                                    const range = variableRanges[varName] || { min: 1, max: 9 };
+                                    const min = range.min;
+                                    const max = range.max;
+                                    currentVarValues[varName] = Math.floor(Math.random() * (max - min + 1)) + min;
+                                }
+                            });
+                        }
+                    }
+                });
+
+                // 2. 表示テキスト内の変数を数値へ置換
+                textWrappers.forEach(wrapper => {
+                    const el = wrapper.querySelector('.text-rect');
+                    if (el && wrapper.dataset.originalContent) {
+                        let replacedText = wrapper.dataset.originalContent;
+                        for (const [varName, val] of Object.entries(currentVarValues)) {
+                            replacedText = replacedText.split(varName).join(val);
+                        }
+                        el.textContent = replacedText;
+                    }
+                });
+
+                // 3. 解答欄の初期化（入力を空にする）
+                answerWrappers.forEach(wrapper => {
+                    const el = wrapper.querySelector('.ans-rect');
+                    if (el) el.textContent = ''; 
+                });
+            }
         });
 
         // 保存ボタンイベント (JSON出力)
         document.getElementById('save-btn').addEventListener('click', () => {
             const data = [];
-            const wrappers = container.querySelectorAll('.draggable');
             
+            // 変数設定を保存
+            data.push({ type: 'config', variableRanges: variableRanges });
+            
+            const wrappers = container.querySelectorAll('.draggable');
             wrappers.forEach(wrapper => {
                 const type = wrapper.dataset.type;
                 const el = wrapper.querySelector('div');
@@ -893,15 +1038,13 @@
                     gridY: parseInt(wrapper.dataset.gridY) || 0,
                     wCells: parseInt(wrapper.dataset.wCells) || 2,
                     hCells: parseInt(wrapper.dataset.hCells) || 2,
-                    content: el ? el.textContent : ''
+                    content: type === 'text' ? (wrapper.dataset.originalContent || (el ? el.textContent : '')) : (el ? el.textContent : '')
                 };
                 
-                if (type === 'var') {
-                    itemData.varName = wrapper.dataset.varName || itemData.content;
-                    itemData.min = parseInt(wrapper.dataset.min) || 1;
-                    itemData.max = parseInt(wrapper.dataset.max) || 9;
-                } else if (type === 'answer') {
-                    itemData.formula = wrapper.dataset.formula || '';
+                if (type === 'answer') {
+                    itemData.answerId = wrapper.dataset.answerId || '';
+                    itemData.formula = wrapper.dataset.formula || ''; // 後方互換
+                    itemData.content = ''; // 保存時には解答欄の中身はクリアしておく
                 }
                 
                 data.push(itemData);
@@ -919,7 +1062,7 @@
             URL.revokeObjectURL(url);
         });
 
-        // 読込ボタンイベント (JSON読み込みトリガー)
+        // 読込ボタンイベント
         document.getElementById('load-btn').addEventListener('click', () => {
             document.getElementById('load-file').click();
         });
@@ -933,14 +1076,17 @@
             reader.onload = function(evt) {
                 try {
                     const data = JSON.parse(evt.target.result);
-                    
                     container.querySelectorAll('.draggable').forEach(w => w.remove());
                     count = 0; 
+                    variableRanges = {}; // 読み込み時にクリア
                     
                     data.forEach(item => {
-                        createDraggable(item.type, item);
+                        if (item.type === 'config') {
+                            variableRanges = item.variableRanges || {};
+                        } else {
+                            createDraggable(item.type, item);
+                        }
                     });
-                    
                 } catch (err) {
                     alert("JSONファイルの読み込み、またはパースに失敗しました。");
                 }
@@ -949,7 +1095,6 @@
             reader.readAsText(file);
         });
         
-        // F1キーはデフォルトの箱追加とする
         window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable('box'); });
     </script>
 </body>
