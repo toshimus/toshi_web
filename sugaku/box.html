@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>4:3 Grid Interface - Responsive</title>
+    <title>4:3 Grid Interface - Extended</title>
     <style>
         body, html {
             margin: 0;
@@ -39,35 +39,68 @@
             background-color: #333;
             display: flex;
             align-items: center;
+            gap: 10px;
         }
 
-        #add-button {
-            padding: 10px 20px;
+        .sidebar button {
+            padding: 12px 15px;
             cursor: pointer;
             touch-action: manipulation;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+            width: 80%;
+        }
+        
+        .sidebar button:active {
+            transform: translateY(2px);
         }
 
         .grid-cell { border: 0.1px solid rgba(0, 0, 0, 0.1); }
 
         .draggable {
             position: absolute;
-            width: calc(100% / 32 * 2);
-            height: calc(100% / 24 * 2);
             z-index: 10;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* 薄黄色で統一された9割サイズの角丸箱 */
+        /* 選択時の枠とハンドル */
+        .wrapper-selected {
+            outline: 2px dashed #3498db;
+            outline-offset: 2px;
+            z-index: 15 !important;
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background-color: #333;
+            border: 2px solid #fff;
+            box-sizing: border-box;
+            z-index: 20;
+            display: none;
+        }
+
+        .wrapper-selected .resize-handle {
+            display: block;
+        }
+
+        .handle-tl { top: -7px; left: -7px; cursor: nwse-resize; }
+        .handle-tr { top: -7px; right: -7px; cursor: nesw-resize; }
+        .handle-bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
+        .handle-br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+        /* 箱のスタイル */
         .rect {
             width: 90%;
             height: 90%;
-            background-color: #44FFFF; /* 薄黄色 */
-            /* グリッド1マスの長さをLとすると、この要素の幅は1.8L (2Lの90%)。
-               1/16Lの半径にするため、1.8L / (1/16L) = 28.8。
-               よって自身の100%に対して28.8で割ることで、正確にLの1/16の丸みになります。
-            */
+            background-color: #44FFFF; 
             border-radius: calc(100% / 8);
             display: flex;
             justify-content: center;
@@ -81,32 +114,199 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         }
 
-        /* メディアクエリ：横向き (Landscape) のレイアウト */
+        /* 解答欄のスタイル */
+        .ans-rect {
+            width: 90%;
+            height: 90%;
+            border: 3px dashed #3498db;
+            background-color: #f0f8ff;
+            border-radius: calc(100% / 8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            color: #333;
+            font-weight: bold;
+            font-size: 2rem;
+            font-family: sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 文字のスタイル */
+        .text-rect {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            color: #333;
+            font-weight: bold;
+            font-size: 2rem;
+            font-family: sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 計算式のスタイル */
+        .formula-rect {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 2rem;
+            font-family: sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 変数のスタイル (斜体解除・色変更) */
+        .var-rect {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 2rem;
+            font-style: normal;
+            font-family: sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 配置型「できた」ボタンのスタイル */
+        .check-rect {
+            width: 90%;
+            height: 90%;
+            background-color: #e67e22;
+            border-radius: calc(100% / 8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            font-family: sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        .check-rect:active { transform: translateY(2px); }
+
+        /* メディアクエリ：横向き (Landscape) */
         @media (orientation: landscape) {
-            body {
-                flex-direction: row;
-            }
+            body { flex-direction: row; }
             .sidebar {
                 width: 10vw;
                 height: 100%;
                 flex-direction: column;
                 padding-top: 20px;
                 justify-content: flex-start;
+                overflow-y: auto;
             }
+            .sidebar button { width: 80%; margin-bottom: 5px; }
         }
 
-        /* メディアクエリ：縦向き (Portrait) のレイアウト */
+        /* メディアクエリ：縦向き (Portrait) */
         @media (orientation: portrait) {
-            body {
-                flex-direction: column;
-            }
+            body { flex-direction: column; }
             .sidebar {
                 width: 100%;
-                height: 10vh; /* 下部に配置してスペースを確保 */
+                height: 12vh; 
                 flex-direction: row;
                 padding-top: 0;
                 justify-content: center;
+                overflow-x: auto;
             }
+            .sidebar button { width: auto; padding: 10px; font-size: 0.9rem; flex-shrink: 0; }
+        }
+
+        /* パネル関連のスタイル */
+        .pieces-container { 
+            display: none; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            padding: 20px; 
+            background-color: #ecf0f1; 
+            border-radius: 12px; 
+            width: 95%;
+            max-width: 800px; 
+            box-sizing: border-box; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+            z-index: 1000; 
+            cursor: grab; 
+        }
+        .pieces-container:active { cursor: grabbing; }
+
+        .num-pad {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+
+        .piece { 
+            height: 60px; 
+            border: 2px solid #2c3e50; 
+            background-color: #f1c40f; 
+            border-radius: 10px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 1.6rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            color: #2c3e50; 
+            box-shadow: 0 4px 0 #d4ac0d; 
+            touch-action: manipulation; 
+            box-sizing: border-box; 
+        }
+        .piece:active { transform: translateY(4px); box-shadow: none; }
+        
+        @media (max-width: 600px) {
+            .num-pad { gap: 5px; }
+            .piece { height: 50px; font-size: 1.2rem; }
+        }
+
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+
+        /* 判定メッセージのトーストスタイル */
+        .toast-msg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 20px 50px;
+            border-radius: 15px;
+            font-size: 3rem;
+            font-weight: bold;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .toast-msg.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
         }
     </style>
 </head>
@@ -117,36 +317,472 @@
     </div>
 
     <div class="sidebar">
-        <button id="add-button">追加</button>
+        <button id="add-box-btn">箱追加</button>
+        <button id="add-ans-btn">解答欄追加</button>
+        <button id="add-formula-btn">計算式追加</button>
+        <button id="add-text-btn">文字追加</button>
+        <button id="add-var-btn">変数追加</button>
+        <button id="add-check-btn" style="background-color: #e67e22;">できた追加</button>
+        <button id="run-btn" style="background-color: #2ecc71;">実行</button>
+        <button id="save-btn" style="background-color: #9b59b6;">保存</button>
+        <button id="load-btn" style="background-color: #34495e;">読込</button>
+    </div>
+
+    <input type="file" id="load-file" style="display:none;" accept=".json">
+
+    <div class="overlay" id="overlay"></div>
+    <div class="pieces-container" id="calc-container"></div>
+    
+    <div class="pieces-container" id="var-prop-container" style="max-width: 300px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">変数プロパティ設定</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; width: 100%; margin-bottom: 15px; font-weight:bold; color:#333;">
+            <label style="font-size: 1.2rem;">最小値:</label>
+            <input type="number" id="var-min" value="1" style="width: 80px; font-size: 1.2rem; text-align:right; padding: 5px;">
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; width: 100%; margin-bottom: 25px; font-weight:bold; color:#333;">
+            <label style="font-size: 1.2rem;">最大値:</label>
+            <input type="number" id="var-max" value="9" style="width: 80px; font-size: 1.2rem; text-align:right; padding: 5px;">
+        </div>
+        <button id="save-var-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9;">設定を保存</button>
     </div>
 
     <script>
         const container = document.getElementById('container');
         let count = 0;
 
+        // グリッド背景の生成
         for (let i = 0; i < 32 * 24; i++) {
             const cell = document.createElement('div');
             cell.classList.add('grid-cell');
             container.appendChild(cell);
         }
 
-        function createDraggable() {
-            count++;
+        /* ==========================================
+           電卓パネル (0〜20) の構築とロジック
+           ========================================== */
+        const overlay = document.getElementById('overlay');
+        const calcContainer = document.getElementById('calc-container');
+        const varPropContainer = document.getElementById('var-prop-container');
+        let activeInputBox = null;
+        let activeVarWrapper = null;
+
+        const numPad = document.createElement('div');
+        numPad.className = 'num-pad';
+
+        for (let i = 0; i <= 20; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.textContent = i;
+            
+            piece.addEventListener('click', () => {
+                if (activeInputBox) {
+                    activeInputBox.textContent = i;
+                    calcContainer.style.display = 'none';
+                    overlay.style.display = 'none';
+                    activeInputBox = null;
+                }
+            });
+            numPad.appendChild(piece);
+        }
+        calcContainer.appendChild(numPad);
+
+        overlay.addEventListener('click', () => {
+            calcContainer.style.display = 'none';
+            varPropContainer.style.display = 'none';
+            overlay.style.display = 'none';
+            activeInputBox = null;
+            activeVarWrapper = null;
+        });
+
+        // 変数プロパティ保存処理
+        document.getElementById('save-var-prop-btn').addEventListener('click', () => {
+            if (activeVarWrapper) {
+                activeVarWrapper.dataset.min = document.getElementById('var-min').value;
+                activeVarWrapper.dataset.max = document.getElementById('var-max').value;
+            }
+            varPropContainer.style.display = 'none';
+            overlay.style.display = 'none';
+            activeVarWrapper = null;
+        });
+
+        // 電卓パネル自体のドラッグ機能
+        let isCalcDragging = false;
+        let calcDragStartX, calcDragStartY, calcInitialLeft, calcInitialTop;
+
+        function startCalcDrag(e) {
+            if (e.target.classList.contains('piece')) return;
+            isCalcDragging = true;
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            calcDragStartX = clientX;
+            calcDragStartY = clientY;
+            let style = window.getComputedStyle(calcContainer);
+            calcInitialLeft = parseFloat(style.left);
+            calcInitialTop = parseFloat(style.top);
+        }
+
+        function doCalcDrag(e) {
+            if (!isCalcDragging) return;
+            e.preventDefault();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            let dx = clientX - calcDragStartX;
+            let dy = clientY - calcDragStartY;
+            calcContainer.style.left = (calcInitialLeft + dx) + 'px';
+            calcContainer.style.top = (calcInitialTop + dy) + 'px';
+        }
+
+        function stopCalcDrag() {
+            isCalcDragging = false;
+        }
+
+        calcContainer.addEventListener('mousedown', startCalcDrag);
+        document.addEventListener('mousemove', doCalcDrag, { passive: false });
+        document.addEventListener('mouseup', stopCalcDrag);
+        calcContainer.addEventListener('touchstart', startCalcDrag, { passive: false });
+        document.addEventListener('touchmove', doCalcDrag, { passive: false });
+        document.addEventListener('touchend', stopCalcDrag);
+
+
+        /* ==========================================
+           グローバルリサイズ機能のロジック
+           ========================================== */
+        let activeResizeWrapper = null;
+        let activeHandlePos = '';
+        let rStartX, rStartY;
+        let rStartWCells, rStartHCells, rStartGridX, rStartGridY;
+
+        const handleResizeMove = (e) => {
+            if (!activeResizeWrapper) return;
+            e.preventDefault();
+            
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const cRect = container.getBoundingClientRect();
+            const cellW = cRect.width / 32;
+            const cellH = cRect.height / 24;
+            
+            const deltaGridX = Math.round((clientX - rStartX) / cellW);
+            const deltaGridY = Math.round((clientY - rStartY) / cellH);
+            
+            let newW = rStartWCells;
+            let newH = rStartHCells;
+            let newX = rStartGridX;
+            let newY = rStartGridY;
+            
+            if (activeHandlePos.includes('r')) newW = rStartWCells + deltaGridX;
+            if (activeHandlePos.includes('l')) {
+                newW = rStartWCells - deltaGridX;
+                newX = rStartGridX + deltaGridX;
+            }
+            if (activeHandlePos.includes('b')) newH = rStartHCells + deltaGridY;
+            if (activeHandlePos.includes('t')) {
+                newH = rStartHCells - deltaGridY;
+                newY = rStartGridY + deltaGridY;
+            }
+            
+            // 最小サイズの制限
+            if (newW < 1) { newX -= (1 - newW); newW = 1; }
+            if (newH < 1) { newY -= (1 - newH); newH = 1; }
+            
+            // グリッド範囲内の制限
+            if (newX < 0) { newW += newX; newX = 0; }
+            if (newY < 0) { newH += newY; newY = 0; }
+            if (newX + newW > 32) newW = 32 - newX;
+            if (newY + newH > 24) newH = 24 - newY;
+            
+            activeResizeWrapper.dataset.wCells = newW;
+            activeResizeWrapper.dataset.hCells = newH;
+            activeResizeWrapper.dataset.gridX = newX;
+            activeResizeWrapper.dataset.gridY = newY;
+            
+            activeResizeWrapper.style.width = `calc(${newW} * (100% / 32))`;
+            activeResizeWrapper.style.height = `calc(${newH} * (100% / 24))`;
+            activeResizeWrapper.style.left = `calc(${newX} * (100% / 32))`;
+            activeResizeWrapper.style.top = `calc(${newY} * (100% / 24))`;
+        };
+
+        const handleResizeEnd = () => {
+            activeResizeWrapper = null;
+        };
+
+        document.addEventListener('mousemove', handleResizeMove, { passive: false });
+        document.addEventListener('touchmove', handleResizeMove, { passive: false });
+        document.addEventListener('mouseup', handleResizeEnd);
+        document.addEventListener('touchend', handleResizeEnd);
+
+        // 外部クリックによる選択解除
+        const deselectAll = (e) => {
+            if (!e.target.closest('.draggable') && !e.target.closest('.resize-handle') && !e.target.closest('.pieces-container') && !e.target.closest('.sidebar')) {
+                document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+            }
+        };
+        document.addEventListener('mousedown', deselectAll);
+        document.addEventListener('touchstart', deselectAll);
+
+
+        /* ==========================================
+           トースト判定演出と判定ロジック
+           ========================================== */
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        document.body.appendChild(toast);
+        let toastTimer = null;
+
+        function showToast(message) {
+            if (toastTimer) clearTimeout(toastTimer);
+            toast.textContent = message;
+            toast.classList.add('show');
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // 判定実行関数
+        function runValidation() {
+            const wrappers = container.querySelectorAll('.draggable');
+            
+            // 現在の変数マップ（変数名 -> 現在の値）を作成
+            const varValues = {};
+            wrappers.forEach(w => {
+                if (w.dataset.type === 'var') {
+                    const varName = w.dataset.varName;
+                    const el = w.querySelector('.var-rect');
+                    if (varName && el) {
+                        varValues[varName] = el.textContent;
+                    }
+                }
+            });
+
+            const answers = Array.from(container.querySelectorAll('.draggable[data-type="answer"]'));
+            const formulas = Array.from(container.querySelectorAll('.draggable[data-type="formula"]'));
+
+            let allCorrect = true;
+            let hasCheckable = false;
+
+            // 配置された「計算式」ブロックを利用した判定
+            if (formulas.length > 0) {
+                hasCheckable = true;
+                for (let i = 0; i < Math.max(answers.length, formulas.length); i++) {
+                    let wAns = answers[i];
+                    let wForm = formulas[i];
+                    
+                    if (!wAns || !wForm) {
+                        allCorrect = false;
+                        continue;
+                    }
+
+                    const formulaStr = wForm.querySelector('.formula-rect').textContent;
+                    const el = wAns.querySelector('.ans-rect');
+                    
+                    let replacedFormula = formulaStr;
+                    for (const [name, val] of Object.entries(varValues)) {
+                        replacedFormula = replacedFormula.split(name).join(val);
+                    }
+
+                    try {
+                        const calcResult = new Function(`return (${replacedFormula})`)();
+                        const userAns = parseFloat(el.textContent);
+                        if (isNaN(userAns) || calcResult !== userAns) {
+                            allCorrect = false;
+                        }
+                    } catch (e) {
+                        allCorrect = false;
+                    }
+                }
+            } 
+            // 旧仕様（解答欄に直接式を設定した場合）の後方互換
+            else {
+                answers.forEach(w => {
+                    const formulaStr = w.dataset.formula;
+                    if (formulaStr) {
+                        hasCheckable = true;
+                        const el = w.querySelector('.ans-rect');
+                        let replacedFormula = formulaStr;
+                        for (const [name, val] of Object.entries(varValues)) {
+                            replacedFormula = replacedFormula.split(name).join(val);
+                        }
+                        try {
+                            const calcResult = new Function(`return (${replacedFormula})`)();
+                            const userAns = parseFloat(el.textContent);
+                            if (isNaN(userAns) || calcResult !== userAns) {
+                                allCorrect = false;
+                            }
+                        } catch (e) {
+                            allCorrect = false;
+                        }
+                    }
+                });
+            }
+
+            if (!hasCheckable) {
+                showToast("判定式がありません");
+                return;
+            }
+
+            if (allCorrect) {
+                showToast("正解！");
+            } else {
+                showToast("おしい！");
+            }
+        }
+
+
+        /* ==========================================
+           ドラッグ可能要素の生成と制御
+           ========================================== */
+        function createDraggable(type, itemData = null) {
             const wrapper = document.createElement('div');
             wrapper.classList.add('draggable');
+            wrapper.dataset.type = type;
             
-            const rect = document.createElement('div');
-            rect.classList.add('rect');
-            rect.textContent = count;
+            // サイズと位置の初期化 (保存データがあればそれを適用)
+            const wCells = itemData ? itemData.wCells : 2;
+            const hCells = itemData ? itemData.hCells : 2;
+            const gridX = itemData ? itemData.gridX : 0;
+            const gridY = itemData ? itemData.gridY : 0;
+
+            wrapper.dataset.wCells = wCells;
+            wrapper.dataset.hCells = hCells;
+            wrapper.dataset.gridX = gridX;
+            wrapper.dataset.gridY = gridY;
             
-            wrapper.appendChild(rect);
+            wrapper.style.width = `calc(${wCells} * (100% / 32))`;
+            wrapper.style.height = `calc(${hCells} * (100% / 24))`;
+            wrapper.style.left = `calc(${gridX} * (100% / 32))`;
+            wrapper.style.top = `calc(${gridY} * (100% / 24))`;
+            
+            const el = document.createElement('div');
+
+            if (type === 'box') {
+                if (itemData) {
+                    el.textContent = itemData.content;
+                    const num = parseInt(itemData.content);
+                    if (!isNaN(num) && num > count) count = num;
+                } else {
+                    count++;
+                    el.textContent = count;
+                }
+                el.classList.add('rect');
+
+            } else if (type === 'answer') {
+                el.classList.add('ans-rect');
+                if (itemData) {
+                    el.textContent = itemData.content;
+                    wrapper.dataset.formula = itemData.formula || '';
+                } else {
+                    wrapper.dataset.formula = '';
+                }
+
+                // 後方互換・直接設定用のダブルクリック
+                el.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    calcContainer.style.display = 'none';
+                    overlay.style.display = 'none';
+                    activeInputBox = null;
+                    const currentFormula = wrapper.dataset.formula || "";
+                    const newFormula = prompt("判定用の計算式を入力してください (例: x + 5):", currentFormula);
+                    if (newFormula !== null) wrapper.dataset.formula = newFormula.trim();
+                });
+
+            } else if (type === 'formula') {
+                let txt = '';
+                if (itemData) {
+                    txt = itemData.content;
+                } else {
+                    txt = prompt("判定・表示用の計算式を入力してください (例: x + y):");
+                    if (txt === null || txt.trim() === "") return;
+                }
+                el.classList.add('formula-rect');
+                el.textContent = txt;
+                
+                el.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const newTxt = prompt("計算式を編集してください:", el.textContent);
+                    if (newTxt !== null && newTxt.trim() !== "") el.textContent = newTxt;
+                });
+
+            } else if (type === 'text') {
+                let txt = '';
+                if (itemData) {
+                    txt = itemData.content;
+                } else {
+                    txt = prompt("追加する文字を入力してください:");
+                    if (txt === null || txt.trim() === "") return;
+                }
+                el.classList.add('text-rect');
+                el.textContent = txt;
+                
+                el.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const newTxt = prompt("文字を編集してください:", el.textContent);
+                    if (newTxt !== null && newTxt.trim() !== "") el.textContent = newTxt;
+                });
+
+            } else if (type === 'var') {
+                let v = '';
+                if (itemData) {
+                    v = itemData.varName || itemData.content;
+                    wrapper.dataset.varName = v;
+                    wrapper.dataset.min = itemData.min || 1;
+                    wrapper.dataset.max = itemData.max || 9;
+                    el.textContent = itemData.content;
+                } else {
+                    v = prompt("追加する変数を入力してください (例: x, y):");
+                    if (v === null || v.trim() === "") return;
+                    el.textContent = v;
+                    wrapper.dataset.varName = v;
+                    wrapper.dataset.min = 1;
+                    wrapper.dataset.max = 9;
+                }
+                el.classList.add('var-rect');
+
+            } else if (type === 'check') {
+                el.classList.add('check-rect');
+                el.textContent = "できた";
+            }
+            
+            wrapper.appendChild(el);
+
+            // リサイズ用ハンドルの追加
+            const handles = ['tl', 'tr', 'bl', 'br'];
+            handles.forEach(pos => {
+                const h = document.createElement('div');
+                h.classList.add('resize-handle', `handle-${pos}`);
+                
+                const startResize = (e) => {
+                    e.stopPropagation();
+                    activeResizeWrapper = wrapper;
+                    activeHandlePos = pos;
+                    rStartX = e.touches ? e.touches[0].clientX : e.clientX;
+                    rStartY = e.touches ? e.touches[0].clientY : e.clientY;
+                    rStartWCells = parseInt(wrapper.dataset.wCells) || 2;
+                    rStartHCells = parseInt(wrapper.dataset.hCells) || 2;
+                    rStartGridX = parseInt(wrapper.dataset.gridX) || 0;
+                    rStartGridY = parseInt(wrapper.dataset.gridY) || 0;
+                };
+                
+                h.addEventListener('mousedown', startResize);
+                h.addEventListener('touchstart', startResize, {passive: false});
+                wrapper.appendChild(h);
+            });
+
             container.appendChild(wrapper);
 
             let isDragging = false;
+            let hasMoved = false;
+            let startX, startY;
             
             const dragStart = (e) => {
                 isDragging = true;
-                rect.style.cursor = 'grabbing';
+                hasMoved = false;
+                if (type !== 'check') el.style.cursor = 'grabbing'; // できたボタン以外
+
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startX = clientX;
+                startY = clientY;
             };
 
             wrapper.addEventListener('mousedown', dragStart);
@@ -154,11 +790,17 @@
 
             const handleMove = (e) => {
                 if (!isDragging) return;
-                if (e.type === 'touchmove') e.preventDefault(); // スクロール防止
+                if (activeResizeWrapper) return; 
                 
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
+                if (Math.abs(clientX - startX) > 5 || Math.abs(clientY - startY) > 5) {
+                    hasMoved = true;
+                }
+
+                if (e.type === 'touchmove') e.preventDefault();
+                
                 const cRect = container.getBoundingClientRect();
                 let x = clientX - cRect.left - (wrapper.offsetWidth / 2);
                 let y = clientY - cRect.top - (wrapper.offsetHeight / 2);
@@ -166,8 +808,14 @@
                 let gridX = Math.round(x / (cRect.width / 32));
                 let gridY = Math.round(y / (cRect.height / 24));
                 
-                gridX = Math.max(0, Math.min(gridX, 32 - 2));
-                gridY = Math.max(0, Math.min(gridY, 24 - 2));
+                let wCells = parseInt(wrapper.dataset.wCells) || 2;
+                let hCells = parseInt(wrapper.dataset.hCells) || 2;
+                
+                gridX = Math.max(0, Math.min(gridX, 32 - wCells));
+                gridY = Math.max(0, Math.min(gridY, 24 - hCells));
+                
+                wrapper.dataset.gridX = gridX;
+                wrapper.dataset.gridY = gridY;
                 
                 wrapper.style.left = `calc(${gridX} * (100% / 32))`;
                 wrapper.style.top = `calc(${gridY} * (100% / 24))`;
@@ -176,17 +824,133 @@
             document.addEventListener('mousemove', handleMove, { passive: false });
             document.addEventListener('touchmove', handleMove, { passive: false });
 
-            const dragEnd = () => {
+            const dragEnd = (e) => {
+                if (!isDragging) return;
                 isDragging = false;
-                rect.style.cursor = 'grab';
+                if (type !== 'check') el.style.cursor = 'grab';
+
+                if (!hasMoved) {
+                    if (type === 'answer') {
+                        activeInputBox = el;
+                        calcContainer.style.display = 'flex';
+                        overlay.style.display = 'block';
+                    } else if (type === 'text' || type === 'formula') {
+                        document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+                        wrapper.classList.add('wrapper-selected');
+                    } else if (type === 'var') {
+                        activeVarWrapper = wrapper;
+                        document.getElementById('var-min').value = wrapper.dataset.min || 1;
+                        document.getElementById('var-max').value = wrapper.dataset.max || 9;
+                        varPropContainer.style.display = 'flex';
+                        overlay.style.display = 'block';
+                    } else if (type === 'check') {
+                        // 画面上の「できた」ボタンをクリックで判定実行
+                        runValidation();
+                    }
+                }
             };
 
             document.addEventListener('mouseup', dragEnd);
             document.addEventListener('touchend', dragEnd);
         }
 
-        document.getElementById('add-button').addEventListener('click', createDraggable);
-        window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable(); });
+        // 各種生成ボタンイベント
+        document.getElementById('add-box-btn').addEventListener('click', () => createDraggable('box'));
+        document.getElementById('add-ans-btn').addEventListener('click', () => createDraggable('answer'));
+        document.getElementById('add-formula-btn').addEventListener('click', () => createDraggable('formula'));
+        document.getElementById('add-text-btn').addEventListener('click', () => createDraggable('text'));
+        document.getElementById('add-var-btn').addEventListener('click', () => createDraggable('var'));
+        document.getElementById('add-check-btn').addEventListener('click', () => createDraggable('check'));
+        
+        // 実行ボタンイベント (変数をランダムな数字に書き換え)
+        document.getElementById('run-btn').addEventListener('click', () => {
+            const wrappers = container.querySelectorAll('.draggable');
+            wrappers.forEach(wrapper => {
+                if (wrapper.dataset.type === 'var') {
+                    const el = wrapper.querySelector('.var-rect');
+                    if (el) {
+                        const min = parseInt(wrapper.dataset.min) || 1;
+                        const max = parseInt(wrapper.dataset.max) || 9;
+                        const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+                        el.textContent = randomNum;
+                    }
+                }
+            });
+        });
+
+        // 保存ボタンイベント (JSON出力)
+        document.getElementById('save-btn').addEventListener('click', () => {
+            const data = [];
+            const wrappers = container.querySelectorAll('.draggable');
+            
+            wrappers.forEach(wrapper => {
+                const type = wrapper.dataset.type;
+                const el = wrapper.querySelector('div');
+                
+                let itemData = {
+                    type: type,
+                    gridX: parseInt(wrapper.dataset.gridX) || 0,
+                    gridY: parseInt(wrapper.dataset.gridY) || 0,
+                    wCells: parseInt(wrapper.dataset.wCells) || 2,
+                    hCells: parseInt(wrapper.dataset.hCells) || 2,
+                    content: el ? el.textContent : ''
+                };
+                
+                if (type === 'var') {
+                    itemData.varName = wrapper.dataset.varName || itemData.content;
+                    itemData.min = parseInt(wrapper.dataset.min) || 1;
+                    itemData.max = parseInt(wrapper.dataset.max) || 9;
+                } else if (type === 'answer') {
+                    itemData.formula = wrapper.dataset.formula || '';
+                }
+                
+                data.push(itemData);
+            });
+            
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'layout.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // 読込ボタンイベント (JSON読み込みトリガー)
+        document.getElementById('load-btn').addEventListener('click', () => {
+            document.getElementById('load-file').click();
+        });
+
+        // ファイル選択時の読込処理
+        document.getElementById('load-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = JSON.parse(evt.target.result);
+                    
+                    container.querySelectorAll('.draggable').forEach(w => w.remove());
+                    count = 0; 
+                    
+                    data.forEach(item => {
+                        createDraggable(item.type, item);
+                    });
+                    
+                } catch (err) {
+                    alert("JSONファイルの読み込み、またはパースに失敗しました。");
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        });
+        
+        // F1キーはデフォルトの箱追加とする
+        window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable('box'); });
     </script>
 </body>
 </html>
