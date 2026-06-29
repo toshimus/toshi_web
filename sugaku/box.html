@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>4:3 Grid Interface - Light Yellow</title>
+    <title>4:3 Grid Interface - Responsive</title>
     <style>
         body, html {
             margin: 0;
@@ -34,13 +34,11 @@
             position: relative;
         }
 
+        /* サイドバーの基本設定 */
         .sidebar {
-            width: 10vw;
             background-color: #333;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            padding-top: 20px;
         }
 
         #add-button {
@@ -81,6 +79,34 @@
             user-select: none;
             -webkit-user-select: none;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* メディアクエリ：横向き (Landscape) のレイアウト */
+        @media (orientation: landscape) {
+            body {
+                flex-direction: row;
+            }
+            .sidebar {
+                width: 10vw;
+                height: 100%;
+                flex-direction: column;
+                padding-top: 20px;
+                justify-content: flex-start;
+            }
+        }
+
+        /* メディアクエリ：縦向き (Portrait) のレイアウト */
+        @media (orientation: portrait) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: 10vh; /* 下部に配置してスペースを確保 */
+                flex-direction: row;
+                padding-top: 0;
+                justify-content: center;
+            }
         }
     </style>
 </head>
