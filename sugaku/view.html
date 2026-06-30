@@ -41,6 +41,7 @@
     button:hover {
         opacity: 0.8;
     }
+    .btn-back { background-color: #95a5a6; }
     .btn-refresh { background-color: #3498db; }
     .btn-clear { background-color: #e74c3c; }
     .btn-export { background-color: #2ecc71; }
@@ -128,6 +129,7 @@
     <h1>LocalStorage ビューアー</h1>
     
     <div class="controls">
+        <button class="btn-back" onclick="location.href='index.html'">⬅ メニューへ戻る</button>
         <button class="btn-refresh" onclick="renderTable()">↻ 最新状態に更新</button>
         <button class="btn-export" onclick="exportSplitByDateCSV()">📥 選択データを日付ごとに分割してCSV書き出し / 共有</button>
         <button class="btn-clear" onclick="clearAll()">⚠ 全て消去</button>
