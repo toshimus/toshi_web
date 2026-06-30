@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LocalStorage ビューアー（日付分割出力対応）</title>
+<title>LocalStorage ビューアー（日付分割出力・iPad対応版）</title>
 <style>
     body { 
         font-family: sans-serif; 
@@ -52,6 +52,7 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
         border-radius: 8px;
         overflow: hidden;
+        margin-bottom: 20px;
     }
     th, td { 
         padding: 12px 15px; 
@@ -79,6 +80,48 @@
         text-align: center;
         width: 5%;
     }
+
+    /* iPad・コピー用に追加したエリアのスタイル */
+    .export-preview-container {
+        display: none;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-top: 20px;
+        border: 2px solid #2ecc71;
+    }
+    .export-preview-container h2 {
+        font-size: 1.2rem;
+        margin-top: 0;
+        color: #27ae60;
+    }
+    .export-preview-item {
+        margin-bottom: 15px;
+    }
+    .export-preview-item label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+        color: #555;
+    }
+    .export-textarea {
+        width: 100%;
+        height: 120px;
+        font-family: monospace;
+        font-size: 0.9rem;
+        box-sizing: border-box;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #fcfcfc;
+    }
+    .btn-copy-individual {
+        background-color: #9b59b6;
+        padding: 6px 12px;
+        font-size: 0.9rem;
+        margin-top: 5px;
+    }
 </style>
 </head>
 <body>
@@ -86,7 +129,7 @@
     
     <div class="controls">
         <button class="btn-refresh" onclick="renderTable()">↻ 最新状態に更新</button>
-        <button class="btn-export" onclick="exportSplitByDateCSV()">📥 選択データを日付ごとに分割してCSV書き出し</button>
+        <button class="btn-export" onclick="exportSplitByDateCSV()">📥 選択データを日付ごとに分割してCSV書き出し / 共有</button>
         <button class="btn-clear" onclick="clearAll()">⚠ 全て消去</button>
     </div>
     
@@ -100,8 +143,16 @@
             </tr>
         </thead>
         <tbody id="storage-body">
-            </tbody>
+        </tbody>
     </table>
+
+    <div id="export-preview-area" class="export-preview-container">
+        <h2>📋 出力データのプレビューとコピー</h2>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+            ※iPadのホーム画面から起動している場合、下の各ボックスからデータをコピーしてメモ帳などに貼り付けることができます。
+        </p>
+        <div id="preview-items-list"></div>
+    </div>
 
     <script>
         const tbody = document.getElementById('storage-body');
@@ -164,7 +215,7 @@
         }
 
         /* データの中身を解析し、日付ごとに分割してCSVとして書き出す処理 */
-        function exportSplitByDateCSV() {
+        async function exportSplitByDateCSV() {
             const checkboxes = document.querySelectorAll('.row-checkbox:checked');
             if (checkboxes.length === 0) {
                 alert('書き出すデータが選択されていません。');
@@ -209,29 +260,81 @@
             });
 
             let exportedFilesCount = 0;
+            const previewArea = document.getElementById('export-preview-area');
+            const listContainer = document.getElementById('preview-items-list');
+            listContainer.innerHTML = ''; // 初期化
 
-            /* グループ化されたデータから個別のCSVファイルを生成し、ダウンロードを実行します */
+            /* スタンドアローン（ホーム画面アプリ）かどうかの判定 */
+            const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+            /* グループ化されたデータから個別のCSVファイルを生成し、処理を実行します */
             for (const dateKey in groupedData) {
                 for (const key in groupedData[dateKey]) {
                     const lines = groupedData[dateKey][key];
                     const csvContent = lines.join('\n') + '\n';
+                    const fileName = `${key}_${dateKey}.csv`;
                     
                     /* BOMを付与してExcelでの文字化けを防ぎます */
                     const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
                     const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const url = window.URL.createObjectURL(blob);
                     
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${key}_${dateKey}.csv`; /* 例: calc_app_history_20260622.csv */
+                    // --- 画面上へのテキスト出力エリアの構築 (フォールバック用兼プレビュー用) ---
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'export-preview-item';
                     
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
+                    const label = document.createElement('label');
+                    label.textContent = `ファイル名候補: ${fileName}`;
+                    
+                    const textarea = document.createElement('textarea');
+                    textarea.className = 'export-textarea';
+                    textarea.readOnly = true;
+                    textarea.value = csvContent;
+                    textarea.id = `textarea-${exportedFilesCount}`;
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'btn-copy-individual';
+                    copyBtn.textContent = 'このデータをコピー';
+                    copyBtn.onclick = () => copyTextData(`textarea-${textarea.id.split('-')[1]}`);
+                    
+                    itemDiv.appendChild(label);
+                    itemDiv.appendChild(textarea);
+                    itemDiv.appendChild(copyBtn);
+                    listContainer.appendChild(itemDiv);
+
+                    // --- 出力アクションの切り替え ---
+                    // iPadのホーム画面以外、かつ通常のダウンロードが動作する環境
+                    if (!isStandalone) {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    } else if (navigator.canShare && navigator.share) {
+                        // iPadのホーム画面（Webクリップ）環境でWeb Share APIが利用可能な場合
+                        try {
+                            const file = new File([blob], fileName, { type: 'text/csv' });
+                            await navigator.share({
+                                files: [file],
+                                title: `${fileName} の共有`,
+                                text: '学習記録データを保存します。'
+                            });
+                        } catch (err) {
+                            console.log('共有シートがキャンセル、または失敗しました: ', err);
+                        }
+                    }
                     
                     exportedFilesCount++;
                 }
+            }
+
+            /* 常にプレビューエリアを表示し、ホーム画面環境でも確実にコピーできるようにします */
+            if (exportedFilesCount > 0) {
+                previewArea.style.display = 'block';
+                // プレビューエリアまでスムーズにスクロールさせます
+                previewArea.scrollIntoView({ behavior: 'smooth' });
             }
 
             /* 処理完了後、チェックを外します */
@@ -239,8 +342,30 @@
             if (checkAllBtn) checkAllBtn.checked = false;
             checkboxes.forEach(cb => cb.checked = false);
 
-            /* 複数ファイルが生成された場合、ブラウザの設定によってはダウンロード許可のポップアップが出ることがあります */
-            alert(`データを解析し、${exportedFilesCount} 個のCSVファイルに分割して書き出しました。`);
+            if (isStandalone) {
+                if (navigator.share) {
+                    alert(`データを解析しました。iOSの共有シート（ファイルに保存など）が順次起動します。\nまた、画面下部にもコピー用のテキストエリアを表示しました。`);
+                } else {
+                    alert(`データを解析しました。iPadの制限に対応するため、画面下部にコピー用のテキストエリアを表示しました。そこからコピーを行ってください。`);
+                }
+            } else {
+                alert(`データを解析し、${exportedFilesCount} 個のCSVファイルに分割して書き出しました。\n画面下部で内容の確認も可能です。`);
+            }
+        }
+
+        /* 指定したテキストエリアの内容をクリップボードにコピーする処理 */
+        function copyTextData(textareaId) {
+            const targetTextarea = document.getElementById(textareaId);
+            if (targetTextarea) {
+                targetTextarea.select();
+                targetTextarea.setSelectionRange(0, 99999); // モバイル向けの選択範囲設定
+                try {
+                    document.execCommand('copy');
+                    alert('クリップボードにCSVデータをコピーしました！\nメモ帳などに貼り付けて保存してください。');
+                } catch (err) {
+                    alert('コピーに失敗しました。手動で選択してコピーしてください。');
+                }
+            }
         }
 
         /* 個別のデータを削除する処理 */
