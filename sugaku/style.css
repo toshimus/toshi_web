@@ -1,0 +1,434 @@
+:root {
+    /* 1グリッドセルの高さと幅を算出して変数化し、フォントサイズの基準に利用します */
+    --grid-cell-h: calc(min(90vh, calc(90vw * 3 / 4)) / 24);
+    --grid-cell-w: calc(min(90vw, calc(90vh * 4 / 3)) / 32);
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: gray;
+    display: flex;
+    overflow: hidden;
+    touch-action: none; /* スワイプなどのデフォルト動作を防止 */
+}
+
+.main-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.box-container {
+    width: min(90vw, calc(90vh * 4 / 3));
+    height: min(90vh, calc(90vw * 3 / 4));
+    background-color: white;
+    display: grid;
+    grid-template-columns: repeat(32, 1fr);
+    grid-template-rows: repeat(24, 1fr);
+    position: relative;
+}
+
+/* サイドバーの基本設定 */
+.sidebar {
+    background-color: #333;
+    display: flex;
+    align-items: center;
+    gap: 5px; /* 項目が増えたため少し詰める */
+}
+
+.sidebar button {
+    padding: 8px 10px; /* パディングを調整 */
+    cursor: pointer;
+    touch-action: manipulation;
+    border: none;
+    border-radius: 5px;
+    background-color: #3498db;
+    color: white;
+    font-weight: bold;
+    font-size: 0.9rem; /* フォントサイズを調整 */
+    width: 80%;
+}
+
+.sidebar button:active {
+    transform: translateY(2px);
+}
+
+.grid-cell { border: 0.1px solid rgba(0, 0, 0, 0.1); }
+
+.draggable {
+    position: absolute;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 直線のラッパー設定 */
+.line-wrapper {
+    z-index: 5; /* 箱や解答欄より少し背面に */
+}
+
+/* 選択時の枠とハンドル */
+.wrapper-selected {
+    outline: 2px dashed #3498db;
+    outline-offset: 2px;
+    z-index: 15 !important;
+}
+
+/* 直線選択時は枠ではなく線自体をハイライトする */
+.draggable[data-type="line"].wrapper-selected {
+    outline: none !important;
+}
+.draggable[data-type="line"].wrapper-selected line {
+    filter: drop-shadow(0 0 5px #3498db);
+}
+
+.resize-handle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background-color: #333; /* 4隅の■ */
+    border: 2px solid #fff;
+    box-sizing: border-box;
+    z-index: 20;
+    display: block; /* 編集モード中は常に表示 */
+}
+
+.handle-tl { top: -7px; left: -7px; cursor: nwse-resize; }
+.handle-tr { top: -7px; right: -7px; cursor: nesw-resize; }
+.handle-bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.handle-br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+/* 直線の始点・終点調整ハンドル */
+.line-handle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background-color: #333;
+    border: 2px solid #fff;
+    box-sizing: border-box;
+    z-index: 20;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    cursor: crosshair;
+    display: block;
+}
+
+/* 箱のスタイル */
+.rect {
+    width: 90%;
+    height: 90%;
+    background-color: #44FFFF; 
+    border-radius: calc(100% / 8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: grab;
+    color: #555;
+    font-weight: bold;
+    font-size: calc(var(--grid-cell-h) * 1.2); /* 画面サイズに追従 */
+    font-family: sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 解答欄のスタイル */
+.ans-rect {
+    width: 90%;
+    height: 90%;
+    border: 3px dashed #3498db;
+    background-color: #f0f8ff;
+    border-radius: calc(100% / 8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: grab;
+    color: #333;
+    font-weight: bold;
+    font-family: sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+
+    /* 編集モード時は文字が箱の中に収まるよう小さくし、あふれを防ぐ */
+    font-size: calc(var(--grid-cell-h) * 0.7); 
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 2px;
+    box-sizing: border-box;
+}
+
+/* 実行モードでは数字メインなので大きく表示 */
+body.run-mode .ans-rect {
+    font-size: calc(var(--grid-cell-h) * 1.2);
+}
+
+/* 文字のスタイル */
+.text-rect {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: grab;
+    color: #333;
+    font-weight: bold;
+    font-size: calc(var(--grid-cell-h) * 1.2); /* 画面サイズに追従 */
+    font-family: sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 変数のみ（[??]）のテキストに対する、解答欄と同様のサイズ調整 */
+.text-rect.single-var-text {
+    font-size: calc(var(--grid-cell-h) * 0.7); 
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 2px;
+    box-sizing: border-box;
+}
+body.run-mode .text-rect.single-var-text {
+    font-size: calc(var(--grid-cell-h) * 1.2);
+}
+
+/* 計算式のスタイル */
+.formula-rect {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: grab;
+    color: #27ae60;
+    font-weight: bold;
+    font-size: calc(var(--grid-cell-h) * 1.2); /* 画面サイズに追従 */
+    font-family: sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 配置型「できた」ボタンのスタイル */
+.check-rect {
+    width: 90%;
+    height: 90%;
+    background-color: #e67e22;
+    border-radius: calc(100% / 8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+    font-size: calc(var(--grid-cell-h) * 0.9); /* 画面サイズに追従 */
+    font-family: sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+}
+.check-rect:active { transform: translateY(2px); }
+
+/* メディアクエリ：横向き (Landscape) */
+@media (orientation: landscape) {
+    body { flex-direction: row; }
+    .sidebar {
+        width: 10vw;
+        height: 100%;
+        flex-direction: column;
+        padding-top: 20px;
+        justify-content: flex-start;
+        overflow-y: auto;
+    }
+    .sidebar button { width: 80%; margin-bottom: 5px; }
+}
+
+/* メディアクエリ：縦向き (Portrait) */
+@media (orientation: portrait) {
+    body { flex-direction: column; }
+    .sidebar {
+        width: 100%;
+        height: 12vh; 
+        flex-direction: row;
+        padding-top: 0;
+        justify-content: center;
+        overflow-x: auto;
+    }
+    .sidebar button { width: auto; padding: 10px; font-size: 0.9rem; flex-shrink: 0; }
+}
+
+/* パネル関連のスタイル */
+.pieces-container { 
+    display: none; 
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center; 
+    padding: 20px; 
+    background-color: #ecf0f1; 
+    border-radius: 12px; 
+    width: 95%;
+    max-width: 800px; 
+    box-sizing: border-box; 
+    position: fixed; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%); 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+    z-index: 1000; 
+    cursor: grab; 
+}
+.pieces-container:active { cursor: grabbing; }
+
+.num-pad {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
+/* 即決モード用のグリッド設定 */
+.num-pad-square {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* 0-9ボタンを正方形にするための調整 */
+.num-pad-square .piece {
+    aspect-ratio: 1 / 1; 
+    height: auto;        
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.standard-pad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
+.calc-display {
+    width: 100%;
+    height: 50px;
+    background: white;
+    border: 2px solid #bdc3c7;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 2rem;
+    font-weight: bold;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 10px;
+    box-sizing: border-box;
+    color: #2c3e50;
+}
+
+.piece { 
+    height: 60px; 
+    border: 2px solid #2c3e50; 
+    background-color: #f1c40f; 
+    border-radius: 10px; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    font-size: 1.6rem; 
+    font-weight: bold; 
+    cursor: pointer; 
+    color: #2c3e50; 
+    box-shadow: 0 4px 0 #d4ac0d; 
+    touch-action: manipulation; 
+    box-sizing: border-box; 
+}
+.piece:active { transform: translateY(4px); box-shadow: none; }
+
+@media (max-width: 600px) {
+    .num-pad { gap: 5px; }
+    .standard-pad { gap: 5px; }
+    .piece { height: 50px; font-size: 1.2rem; }
+}
+
+.overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+
+/* 判定メッセージのトーストスタイル */
+.toast-msg {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 20px 50px;
+    border-radius: 15px;
+    font-size: 3rem;
+    font-weight: bold;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    text-align: center;
+}
+.toast-msg.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* 実行モード時のスタイル制御 */
+body.run-mode .edit-only {
+    display: none !important;
+}
+body.run-mode .draggable {
+    cursor: default !important;
+}
+body.run-mode .ans-rect, 
+body.run-mode .check-rect {
+    cursor: pointer !important;
+}
+body.run-mode .wrapper-selected {
+    outline: none !important;
+}
+body.run-mode .resize-handle,
+body.run-mode .line-handle {
+    display: none !important;
+}
+body.run-mode .draggable[data-type="formula"] {
+    display: none !important;
+}
+
+/* プロパティ設定用のスタイル */
+.prop-setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    background: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.prop-setting-input {
+    width: 70px;
+    font-size: 1.1rem;
+    text-align: right;
+    padding: 4px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+}
+.prop-select {
+    font-size: 1.1rem;
+    padding: 4px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+}
