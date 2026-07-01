@@ -1072,54 +1072,27 @@ window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable('
 
 
 /* ==========================================
-   公開版書出 (HTMLエクスポート) 機能 (究極ローカル対応版)
+   公開版書出 (HTMLエクスポート) 機能 (サーバー・Fetch完全対応版)
    ========================================== */
-addClick('export-html-btn', () => {
+addClick('export-html-btn', async () => {
     try {
+        // 1. サーバー上にある CSS と JS を直接テキストとして取得（fetch）
+        const cssRes = await fetch('style.css');
+        if (!cssRes.ok) throw new Error("style.css が取得できませんでした。");
+        const cssText = await cssRes.text();
+
+        const jsRes = await fetch('script.js');
+        if (!jsRes.ok) throw new Error("script.js が取得できませんでした。");
+        const jsText = await jsRes.text();
+
+        // 2. 現在のレイアウトデータをJSON化
         const data = generateLayoutData();
         const jsonString = JSON.stringify(data);
 
-        // 1. 現在表示しているページ自身のHTML構造から不要なものを省きつつ抽出する
-        let rawHtml = document.documentElement.outerHTML;
-
-        // --- CSSのインライン化 ---
-        // style.cssを読んでいるlinkタグを検索
-        if (rawHtml.includes('<link rel="stylesheet" href="style.css">')) {
-            // 現在適用されているスタイルシートからルールをテキスト化して抽出
-            let cssText = '';
-            for (let i = 0; i < document.styleSheets.length; i++) {
-                const sheet = document.styleSheets[i];
-                if (sheet.href && sheet.href.includes('style.css')) {
-                    try {
-                        const rules = sheet.cssRules || sheet.rules;
-                        for (let j = 0; j < rules.length; j++) {
-                            cssText += rules[j].cssText + '\n';
-                        }
-                    } catch (err) {
-                        console.warn("ローカル制限でCSSが読み込めませんでしたが、そのまま進行します。", err);
-                    }
-                }
-            }
-            // もしCSSが抽出できたら置換
-            if (cssText) {
-                rawHtml = rawHtml.replace(/<link\s+rel="stylesheet"\s+href="style\.css"[^>]*>/i, `<style>\n${cssText}\n</style>`);
-            } else {
-                alert("ブラウザのセキュリティ制限により style.css の中身を抽出できませんでした。\n書き出されたHTMLはレイアウトが崩れる可能性があります。");
-            }
-        }
-
-        // --- JSのインライン化 ---
-        // script.jsを読んでいるscriptタグを検索
-        if (rawHtml.includes('<script src="script.js"></script>')) {
-            // script.jsの中身自体を fetch せずに取得するのは困難なので、このスクリプトタグ自体を含む自分自身(DOM)ではなく、
-            // 「このソースコード自体」のテキストを取得する必要がありますが、ローカルでは不可能です。
-            // したがって、「今のDOMツリーを複製して、データだけ埋め込んで、HTMLファイルにする」方式を採用します。
-        }
-
-        // 【最終方式】現在のDOMツリーをそのまま利用する
+        // 3. 現在表示されているDOMをそのままメモリ上で複製
         const htmlClone = document.documentElement.cloneNode(true);
 
-        // 実行中の一時的なタグを取り除く
+        // 4. クローン側の不要な状態をリセット
         const containerClone = htmlClone.querySelector('#container');
         if (containerClone) containerClone.innerHTML = ''; 
         
@@ -1129,32 +1102,50 @@ addClick('export-html-btn', () => {
         const sidebarClone = htmlClone.querySelector('.sidebar');
         if (sidebarClone) sidebarClone.remove();
 
-        htmlClone.querySelectorAll('script').forEach(script => {
-            // 既存のscriptタグを全削除（外部js読み込みも含めて）
-            script.remove();
+        // 5. 既存の外部ファイル読み込み（link, script）を削除
+        htmlClone.querySelectorAll('link[rel="stylesheet"]').forEach(el => {
+            if (el.href && el.href.includes('style.css')) el.remove();
+        });
+        htmlClone.querySelectorAll('script').forEach(el => {
+            el.remove(); // 外部スクリプト読み込みタグを削除
         });
 
-        // 自身のJSのコードを取得するハック（現在のscriptタグから）
-        // 外部ファイル化されている場合、ローカル環境では中身を読めません。
-        // よって、この export 処理が「外部script.jsに分離された状態」でローカル実行されると、JSが欠落します。
-        
-        // ★結論★
-        // PCのローカルで完結させるためには、CSSとJSが「最初から1つのHTMLに書かれている状態(box.html)」で
-        // 開発・編集・書き出しを行うのが唯一の正解です。
-        
-        alert("【重要】ファイルを3つに分割した状態では、PCのローカル環境から1つのHTMLへ書き出すことは技術的に不可能です（ブラウザが別ファイルの読み取りをブロックするため）。\n\n書き出し機能を使用する場合は、前回作成した「すべてが1つのHTMLに統合されたバージョン（box_4.html）」を使用してください。");
-        return;
+        // 6. 取得したCSSを <style> タグとして head に埋め込む
+        const styleTag = document.createElement('style');
+        styleTag.textContent = cssText;
+        htmlClone.querySelector('head').appendChild(styleTag);
+
+        // 7. 取得したJSを <script> タグとして body の最後に埋め込む
+        const scriptTag = document.createElement('script');
+        // 初期化データとロジックを結合して1つのスクリプトにまとめる
+        scriptTag.textContent = `window.__INIT_DATA__ = ${jsonString};\n\n${jsText}`;
+        htmlClone.querySelector('body').appendChild(scriptTag);
+
+        const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
+
+        // 8. 完全独立した1ファイルとしてダウンロード
+        const blob = new Blob([htmlText], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'published_grid.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
 
     } catch (e) {
         console.error(e);
-        alert("書き出しに失敗しました: " + e.message);
+        alert("書き出しに失敗しました。サーバー環境(http/https)で実行しているか確認してください。\n詳細: " + e.message);
     }
 });
 
 /* ==========================================
    公開版HTMLとしての初期化処理
    ========================================== */
+// 書き出された単独ファイルが開かれた時にのみ実行されるブロック
 if (typeof window.__INIT_DATA__ !== 'undefined') {
+    // 念のためサイドバー等があれば完全に削除
     const sidebar = document.querySelector('.sidebar');
     if (sidebar) sidebar.remove();
 
@@ -1162,6 +1153,7 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
     count = 0; 
     variableRanges = {}; 
     
+    // 埋め込まれたレイアウトデータからアイテムを復元
     window.__INIT_DATA__.forEach(item => {
         if (item.type === 'config') {
             variableRanges = item.variableRanges || {};
@@ -1170,5 +1162,8 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
         }
     });
 
-    enterRunMode();
+    // 少し待ってから（DOMの描画を確実に完了させてから）実行モードに強制移行
+    setTimeout(() => {
+        enterRunMode();
+    }, 50);
 }
