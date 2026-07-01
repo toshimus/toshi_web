@@ -1063,44 +1063,40 @@ document.getElementById('load-file').addEventListener('change', (e) => {
 
 window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable('box'); });
 
+
 /* ==========================================
    公開版書出 (HTMLエクスポート) 機能
    ========================================== */
-document.getElementById('export-html-btn').addEventListener('click', async () => {
+document.getElementById('export-html-btn').addEventListener('click', () => {
     try {
-        // 現在のURL（ファイル名を含むパス）を取得
-        const currentUrl = window.location.href.split('?')[0].split('#')[0];
-        
-        // 自身のHTML、CSS、JSをフェッチして取得
-        const htmlRes = await fetch(currentUrl);
-        if (!htmlRes.ok) throw new Error("HTMLの取得に失敗しました。");
-        let htmlText = await htmlRes.text();
-
-        const cssRes = await fetch('style.css');
-        if (!cssRes.ok) throw new Error("CSSの取得に失敗しました。");
-        const cssText = await cssRes.text();
-
-        const jsRes = await fetch('script.js');
-        if (!jsRes.ok) throw new Error("JSの取得に失敗しました。");
-        const jsText = await jsRes.text();
-
         // 現在のレイアウトデータをJSON化
         const data = generateLayoutData();
         const jsonString = JSON.stringify(data);
 
-        // 1. CSSをインライン化（置換）
-        htmlText = htmlText.replace(/<link\s+rel="stylesheet"\s+href="style\.css"[^>]*>/i, `<style>\n${cssText}\n</style>`);
-        
-        // 2. JSをインライン化し、初期化データを埋め込む（置換）
-        const injectedScript = `
-<script>
-window.__INIT_DATA__ = ${jsonString};
-${jsText}
-</script>
-        `;
-        htmlText = htmlText.replace(/<script\s+src="script\.js"[^>]*><\/script>/i, injectedScript);
+        // 現在表示されているDOMをそのままメモリ上で複製（fetchを使わないのでCORSエラーを回避）
+        const htmlClone = document.documentElement.cloneNode(true);
 
-        // ダウンロード実行
+        // クローン側の不要な状態（現在のグリッドや配置アイテム）を一度空にする
+        // ※読み込まれたときにscript.jsがデータを元に再生成するため
+        const containerClone = htmlClone.querySelector('#container');
+        if (containerClone) {
+            containerClone.innerHTML = ''; 
+        }
+        
+        // 既存のトーストメッセージがあれば削除（重複防止）
+        const oldToast = htmlClone.querySelector('.toast-msg');
+        if (oldToast) oldToast.remove(); 
+
+        // 初期化用データ(__INIT_DATA__)を持ったスクリプトタグを作成し、<body>の先頭に埋め込む
+        const initScript = document.createElement('script');
+        initScript.textContent = `window.__INIT_DATA__ = ${jsonString};`;
+        const bodyClone = htmlClone.querySelector('body');
+        bodyClone.insertBefore(initScript, bodyClone.firstChild);
+
+        // クローンから完全なHTML文字列を生成
+        const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
+
+        // ダウンロード処理
         const blob = new Blob([htmlText], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1113,23 +1109,28 @@ ${jsText}
 
     } catch (e) {
         console.error(e);
-        alert("書き出しに失敗しました。\n\n※ローカルファイル環境（file://〜）ではセキュリティ制限により書き出しが行えません。VSCodeのLive ServerやPythonのローカルサーバー（http://localhost...）を使用して実行してください。");
+        alert("書き出しに失敗しました: " + e.message);
     }
 });
 
 /* ==========================================
-   公開版HTMLとしての初期化処理（エクスポートされたファイル専用）
+   公開版HTMLとしての初期化処理
    ========================================== */
+// エクスポートされたHTMLを開いた時にのみ実行されるブロック
 if (window.__INIT_DATA__) {
-    // 編集用サイドバーを完全に削除
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) sidebar.remove();
+    // 実行ボタンを先に取得しておく
+    const runBtn = document.getElementById('run-btn');
 
-    // 埋め込まれたデータをロード
+    // 編集用サイドバーを非表示（ユーザーの誤操作を防止）
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+
+    // 既存のアイテムを念のためクリア
     container.querySelectorAll('.draggable').forEach(w => w.remove());
     count = 0; 
     variableRanges = {}; 
     
+    // 埋め込まれたレイアウトデータからアイテムを復元
     window.__INIT_DATA__.forEach(item => {
         if (item.type === 'config') {
             variableRanges = item.variableRanges || {};
@@ -1138,10 +1139,8 @@ if (window.__INIT_DATA__) {
         }
     });
 
-    // 実行モードへ強制移行
-    const runBtn = document.getElementById('run-btn');
+    // 自動的に実行モードへ移行
     if (runBtn) {
-        runBtn.click(); // isEditMode = false に切り替わり、変数の展開などが走る
-        runBtn.remove(); // 実行ボタン自体も不要なため削除
+        runBtn.click(); // これにより内部でisEditMode = falseとなり、変数が展開される
     }
 }
