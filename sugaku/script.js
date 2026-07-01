@@ -4,7 +4,7 @@ let isEditMode = true;
 let currentVarValues = {}; 
 let variableRanges = {};
 let activeAnsWrapper = null;
-let activeLineWrapper = null; // 直線プロパティ用
+let activeLineWrapper = null; 
 
 // グリッド背景の生成
 for (let i = 0; i < 32 * 24; i++) {
@@ -95,10 +95,13 @@ document.querySelectorAll('.std-btn').forEach(btn => {
 
 // モーダル外部クリックによる非表示
 overlay.addEventListener('click', () => {
-    calcContainer.style.display = 'none';
-    document.getElementById('var-settings-container').style.display = 'none';
-    document.getElementById('ans-prop-container').style.display = 'none';
-    document.getElementById('line-prop-container').style.display = 'none';
+    if (calcContainer) calcContainer.style.display = 'none';
+    const varSet = document.getElementById('var-settings-container');
+    if (varSet) varSet.style.display = 'none';
+    const ansProp = document.getElementById('ans-prop-container');
+    if (ansProp) ansProp.style.display = 'none';
+    const lineProp = document.getElementById('line-prop-container');
+    if (lineProp) lineProp.style.display = 'none';
     overlay.style.display = 'none';
     activeInputBox = null;
     activeAnsWrapper = null;
@@ -146,8 +149,10 @@ const modals = [
     document.getElementById('line-prop-container')
 ];
 modals.forEach(modal => {
-    modal.addEventListener('mousedown', startModalDrag);
-    modal.addEventListener('touchstart', startModalDrag, { passive: false });
+    if (modal) {
+        modal.addEventListener('mousedown', startModalDrag);
+        modal.addEventListener('touchstart', startModalDrag, { passive: false });
+    }
 });
 document.addEventListener('mousemove', doModalDrag, { passive: false });
 document.addEventListener('mouseup', stopModalDrag);
@@ -163,7 +168,7 @@ let activeHandlePos = '';
 let rStartX, rStartY;
 let rStartWCells, rStartHCells, rStartGridX, rStartGridY;
 
-let activeLineHandleData = null; // { wrapper: element, type: 'start'|'end' }
+let activeLineHandleData = null; 
 
 const handleGlobalMove = (e) => {
     if (!isEditMode) return;
@@ -227,7 +232,6 @@ const handleGlobalMove = (e) => {
         let rawGridX = (clientX - cRect.left) / (cRect.width / 32);
         let rawGridY = (clientY - cRect.top) / (cRect.height / 24);
         
-        // 0.5グリッド単位でスナップ
         let snapX = Math.round(rawGridX * 2) / 2;
         let snapY = Math.round(rawGridY * 2) / 2;
         
@@ -267,20 +271,9 @@ const deselectAll = (e) => {
 document.addEventListener('mousedown', deselectAll);
 document.addEventListener('touchstart', deselectAll);
 
-// 選択中のアイテムを削除
-document.getElementById('delete-item-btn').addEventListener('click', () => {
-    const selected = document.querySelector('.wrapper-selected');
-    if (selected) {
-        if (confirm("選択中のアイテムを削除しますか？")) {
-            selected.remove();
-        }
-    } else {
-        alert("削除するアイテムを選択してください（クリックで選択）。");
-    }
-});
 
 /* ==========================================
-   直線のビジュアル更新関数 (グローバル)
+   直線のビジュアル更新関数
    ========================================== */
 window.updateLineVisuals = function(wrapper) {
     const startX = parseFloat(wrapper.dataset.startX) || 0;
@@ -347,7 +340,6 @@ function runValidation() {
     let allCorrect = true;
     let hasCheckable = false;
 
-    // 解答欄の値をマップ化
     let ansValues = {};
     answers.forEach(wAns => {
         const id = wAns.dataset.answerId;
@@ -357,11 +349,9 @@ function runValidation() {
         ansValues[normalizedId] = isNaN(val) ? 0 : val;
     });
 
-    // 桁数解析・合算関数（解答欄・変数 共通ロジック）
     const getCombinedValueForId = (id) => {
         const cleanId = id.replace(/[\[\]]/g, '');
 
-        // 1. 解答欄の合算処理
         let totalAns = 0;
         let foundAns = false;
         for (const key in ansValues) {
@@ -375,7 +365,6 @@ function runValidation() {
         if (foundAns) return totalAns;
         if (ansValues.hasOwnProperty(cleanId)) return ansValues[cleanId];
 
-        // 2. 変数の合算処理
         let totalVar = 0;
         let foundVar = false;
         for (const keyWithBracket in currentVarValues) {
@@ -391,7 +380,7 @@ function runValidation() {
         const bracketId = '[' + cleanId + ']';
         if (currentVarValues.hasOwnProperty(bracketId)) return currentVarValues[bracketId];
 
-        return 0; // 見つからない場合
+        return 0; 
     };
 
     formulas.forEach(wForm => {
@@ -402,7 +391,6 @@ function runValidation() {
             hasCheckable = true;
             const evaluateExpr = (expr) => {
                 let e = expr.trim();
-                // 変数と解答欄を区別なく合算して置換
                 e = e.replace(/\[([^\]]+)\]/g, (match, id) => getCombinedValueForId(id));
                 try {
                     return new Function(`return (${e})`)();
@@ -451,7 +439,6 @@ function createDraggable(type, itemData = null) {
         wrapper.style.height = '100%';
         wrapper.style.pointerEvents = 'none';
         
-        // 直線データの初期化
         wrapper.dataset.startX = itemData ? itemData.startX : 2;
         wrapper.dataset.startY = itemData ? itemData.startY : 2;
         wrapper.dataset.endX = itemData ? itemData.endX : 10;
@@ -467,10 +454,9 @@ function createDraggable(type, itemData = null) {
         svg.style.overflow = 'visible';
         
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.style.pointerEvents = 'auto'; // ドラッグ・クリック可能に
+        line.style.pointerEvents = 'auto'; 
         line.style.cursor = 'grab';
         
-        // ダブルクリックでプロパティ表示
         line.addEventListener('dblclick', (e) => {
             if (!isEditMode) return;
             e.stopPropagation();
@@ -492,7 +478,6 @@ function createDraggable(type, itemData = null) {
         el.style.pointerEvents = 'none';
         wrapper.appendChild(el);
         
-        // 始点・終点調整用ハンドル
         const hStart = document.createElement('div');
         hStart.classList.add('line-handle', 'line-handle-start', 'edit-only');
         const hEnd = document.createElement('div');
@@ -500,7 +485,7 @@ function createDraggable(type, itemData = null) {
         
         const startLineHandleDrag = (e, handleType) => {
             if (!isEditMode) return;
-            e.stopPropagation(); // 線の本体ドラッグをキャンセル
+            e.stopPropagation(); 
             activeLineHandleData = { wrapper, type: handleType };
         };
         hStart.addEventListener('mousedown', (e) => startLineHandleDrag(e, 'start'));
@@ -515,7 +500,6 @@ function createDraggable(type, itemData = null) {
         window.updateLineVisuals(wrapper);
 
     } else {
-        // 一般アイテム（箱・解答欄など）の構築
         const wCells = itemData ? itemData.wCells : 2;
         const hCells = itemData ? itemData.hCells : 2;
         const gridX = itemData ? itemData.gridX : 0;
@@ -588,7 +572,6 @@ function createDraggable(type, itemData = null) {
             el.innerHTML = txt; 
             wrapper.dataset.originalContent = txt; 
             
-            // 「変数のみ（例: [x1]）」かどうかの判定処理を追加
             if (/^\s*\[[^\]]+\]\s*$/.test(txt)) {
                 el.classList.add('single-var-text');
             }
@@ -601,7 +584,6 @@ function createDraggable(type, itemData = null) {
                 if (newTxt !== null && newTxt.trim() !== "") {
                     el.innerHTML = newTxt;
                     wrapper.dataset.originalContent = newTxt;
-                    // 文字更新時にも判定を適用
                     if (/^\s*\[[^\]]+\]\s*$/.test(newTxt)) {
                         el.classList.add('single-var-text');
                     } else {
@@ -617,7 +599,6 @@ function createDraggable(type, itemData = null) {
         
         wrapper.appendChild(el);
 
-        // 通常アイテムには四隅のリサイズハンドルを追加
         const handles = ['tl', 'tr', 'bl', 'br'];
         handles.forEach(pos => {
             const h = document.createElement('div');
@@ -643,17 +624,13 @@ function createDraggable(type, itemData = null) {
         container.appendChild(wrapper);
     }
 
-    // アイテム本体のドラッグ移動ロジック
     let isDragging = false;
     let hasMoved = false;
     let startX, startY;
-    
-    // 直線移動用の変数
     let lineInitialStartX, lineInitialStartY, lineInitialEndX, lineInitialEndY;
     
     const dragStart = (e) => {
         if (!isEditMode && type !== 'answer' && type !== 'check') return; 
-        // ハンドルをクリックした場合は本体ドラッグを無効化
         if (e.target.classList.contains('resize-handle') || e.target.classList.contains('line-handle')) return; 
 
         isDragging = true;
@@ -694,7 +671,6 @@ function createDraggable(type, itemData = null) {
         const cRect = container.getBoundingClientRect();
 
         if (type === 'line') {
-            // 直線の平行移動（0.5グリッド単位）
             const dxCells = (clientX - startX) / (cRect.width / 32);
             const dyCells = (clientY - startY) / (cRect.height / 24);
             let snapDx = Math.round(dxCells * 2) / 2;
@@ -707,7 +683,6 @@ function createDraggable(type, itemData = null) {
             
             window.updateLineVisuals(wrapper);
         } else {
-            // 通常アイテムの移動
             let x = clientX - cRect.left - (wrapper.offsetWidth / 2);
             let y = clientY - cRect.top - (wrapper.offsetHeight / 2);
             
@@ -778,8 +753,16 @@ function createDraggable(type, itemData = null) {
     document.addEventListener('touchend', dragEnd);
 }
 
+// ----------------------------------------------------
+// UIイベントの堅牢なバインディング用ヘルパー
+// ----------------------------------------------------
+function addClick(id, handler) {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', handler);
+}
+
 // プロパティパネルの保存
-document.getElementById('save-ans-prop-btn').addEventListener('click', () => {
+addClick('save-ans-prop-btn', () => {
     if (activeAnsWrapper) {
         const newId = document.getElementById('ans-prop-id').value.trim();
         const newMode = document.getElementById('ans-prop-mode').value;
@@ -793,7 +776,7 @@ document.getElementById('save-ans-prop-btn').addEventListener('click', () => {
     activeAnsWrapper = null;
 });
 
-document.getElementById('save-line-prop-btn').addEventListener('click', () => {
+addClick('save-line-prop-btn', () => {
     if (activeLineWrapper) {
         activeLineWrapper.dataset.thickness = document.getElementById('line-prop-thickness').value;
         activeLineWrapper.dataset.lineColor = document.getElementById('line-prop-color').value;
@@ -806,17 +789,28 @@ document.getElementById('save-line-prop-btn').addEventListener('click', () => {
 });
 
 // 各種生成ボタンイベント
-document.getElementById('add-box-btn').addEventListener('click', () => createDraggable('box'));
-document.getElementById('add-ans-btn').addEventListener('click', () => createDraggable('answer'));
-document.getElementById('add-formula-btn').addEventListener('click', () => createDraggable('formula'));
-document.getElementById('add-text-btn').addEventListener('click', () => createDraggable('text'));
-document.getElementById('add-line-btn').addEventListener('click', () => createDraggable('line')); // 直線追加
-document.getElementById('add-check-btn').addEventListener('click', () => createDraggable('check'));
+addClick('add-box-btn', () => createDraggable('box'));
+addClick('add-ans-btn', () => createDraggable('answer'));
+addClick('add-formula-btn', () => createDraggable('formula'));
+addClick('add-text-btn', () => createDraggable('text'));
+addClick('add-line-btn', () => createDraggable('line'));
+addClick('add-check-btn', () => createDraggable('check'));
+
+addClick('delete-item-btn', () => {
+    const selected = document.querySelector('.wrapper-selected');
+    if (selected) {
+        if (confirm("選択中のアイテムを削除しますか？")) {
+            selected.remove();
+        }
+    } else {
+        alert("削除するアイテムを選択してください（クリックで選択）。");
+    }
+});
 
 /* ==========================================
    変数設定機能
    ========================================== */
-document.getElementById('var-settings-btn').addEventListener('click', () => {
+addClick('var-settings-btn', () => {
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
     const knownAnswerIds = new Set();
     answerWrappers.forEach(w => {
@@ -836,56 +830,60 @@ document.getElementById('var-settings-btn').addEventListener('click', () => {
     });
 
     const listContainer = document.getElementById('var-list-container');
-    listContainer.innerHTML = ''; 
+    if(listContainer) {
+        listContainer.innerHTML = ''; 
 
-    if (foundVars.size === 0) {
-        listContainer.innerHTML = '<p style="text-align:center; color:#555; font-weight:bold;">テキスト内に設定可能な変数が見つかりません。</p>';
-    } else {
-        foundVars.forEach(v => {
-            const range = variableRanges[v] || { min: 1, max: 9, color: "#e74c3c", size: 1.0 };
-            const row = document.createElement('div');
-            row.className = 'prop-setting-row';
-            row.style.flexWrap = 'wrap';
-            row.innerHTML = `
-                <strong style="font-size: 1.2rem; color:#333; width: 100%; margin-bottom: 8px; border-bottom: 1px solid #eee;">${v}</strong>
-                <div style="display:flex; justify-content:space-between; width:100%; margin-bottom: 5px;">
-                    <label style="font-weight:bold; color:#555; font-size:0.9rem;">Min: <input type="number" class="var-min-input prop-setting-input" data-var="${v}" value="${range.min}"></label>
-                    <label style="font-weight:bold; color:#555; font-size:0.9rem;">Max: <input type="number" class="var-max-input prop-setting-input" data-var="${v}" value="${range.max}"></label>
-                </div>
-                <div style="display:flex; justify-content:space-between; width:100%;">
-                    <label style="font-weight:bold; color:#555; font-size:0.9rem; display:flex; align-items:center;">色: <input type="color" class="var-color-input" data-var="${v}" value="${range.color}" style="margin-left:5px; border:none; width:30px; height:30px; cursor:pointer;"></label>
-                    <label style="font-weight:bold; color:#555; font-size:0.9rem;">サイズ倍率: <input type="number" step="0.1" class="var-size-input prop-setting-input" data-var="${v}" value="${range.size}"></label>
-                </div>
-            `;
-            listContainer.appendChild(row);
-        });
+        if (foundVars.size === 0) {
+            listContainer.innerHTML = '<p style="text-align:center; color:#555; font-weight:bold;">テキスト内に設定可能な変数が見つかりません。</p>';
+        } else {
+            foundVars.forEach(v => {
+                const range = variableRanges[v] || { min: 1, max: 9, color: "#e74c3c", size: 1.0 };
+                const row = document.createElement('div');
+                row.className = 'prop-setting-row';
+                row.style.flexWrap = 'wrap';
+                row.innerHTML = `
+                    <strong style="font-size: 1.2rem; color:#333; width: 100%; margin-bottom: 8px; border-bottom: 1px solid #eee;">${v}</strong>
+                    <div style="display:flex; justify-content:space-between; width:100%; margin-bottom: 5px;">
+                        <label style="font-weight:bold; color:#555; font-size:0.9rem;">Min: <input type="number" class="var-min-input prop-setting-input" data-var="${v}" value="${range.min}"></label>
+                        <label style="font-weight:bold; color:#555; font-size:0.9rem;">Max: <input type="number" class="var-max-input prop-setting-input" data-var="${v}" value="${range.max}"></label>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; width:100%;">
+                        <label style="font-weight:bold; color:#555; font-size:0.9rem; display:flex; align-items:center;">色: <input type="color" class="var-color-input" data-var="${v}" value="${range.color}" style="margin-left:5px; border:none; width:30px; height:30px; cursor:pointer;"></label>
+                        <label style="font-weight:bold; color:#555; font-size:0.9rem;">サイズ倍率: <input type="number" step="0.1" class="var-size-input prop-setting-input" data-var="${v}" value="${range.size}"></label>
+                    </div>
+                `;
+                listContainer.appendChild(row);
+            });
+        }
     }
     document.getElementById('var-settings-container').style.display = 'flex';
     document.getElementById('overlay').style.display = 'block';
 });
 
-document.getElementById('save-var-settings-btn').addEventListener('click', () => {
+addClick('save-var-settings-btn', () => {
     const listContainer = document.getElementById('var-list-container');
-    const minInputs = listContainer.querySelectorAll('.var-min-input');
-    const maxInputs = listContainer.querySelectorAll('.var-max-input');
-    const colorInputs = listContainer.querySelectorAll('.var-color-input');
-    const sizeInputs = listContainer.querySelectorAll('.var-size-input');
-    
-    minInputs.forEach((minInput, index) => {
-        const v = minInput.dataset.var;
-        variableRanges[v] = {
-            min: parseInt(minInput.value) || 1,
-            max: parseInt(maxInputs[index].value) || 9,
-            color: colorInputs[index].value,
-            size: parseFloat(sizeInputs[index].value) || 1.0
-        };
-    });
+    if(listContainer) {
+        const minInputs = listContainer.querySelectorAll('.var-min-input');
+        const maxInputs = listContainer.querySelectorAll('.var-max-input');
+        const colorInputs = listContainer.querySelectorAll('.var-color-input');
+        const sizeInputs = listContainer.querySelectorAll('.var-size-input');
+        
+        minInputs.forEach((minInput, index) => {
+            const v = minInput.dataset.var;
+            variableRanges[v] = {
+                min: parseInt(minInput.value) || 1,
+                max: parseInt(maxInputs[index].value) || 9,
+                color: colorInputs[index].value,
+                size: parseFloat(sizeInputs[index].value) || 1.0
+            };
+        });
+    }
     document.getElementById('var-settings-container').style.display = 'none';
     document.getElementById('overlay').style.display = 'none';
 });
 
 // ==========================================
-// レイアウトデータ生成関数（共通化）
+// レイアウトデータ生成関数
 // ==========================================
 function generateLayoutData() {
     const data = [];
@@ -925,97 +923,102 @@ function generateLayoutData() {
     return data;
 }
 
-// モード切り替え
-document.getElementById('run-btn').addEventListener('click', () => {
+// モード移行処理関数化
+function enterRunMode() {
+    isEditMode = false;
+    document.body.classList.add('run-mode');
+    document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+    currentVarValues = {};
+    
+    const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+    const knownAnswerIds = new Set();
+    answerWrappers.forEach(w => {
+        if (w.dataset.answerId) knownAnswerIds.add(w.dataset.answerId);
+    });
+
+    const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+    
+    textWrappers.forEach(wrapper => {
+        const el = wrapper.querySelector('.text-rect');
+        if (el) {
+            if (!wrapper.dataset.originalContent) wrapper.dataset.originalContent = el.innerHTML;
+            const content = wrapper.dataset.originalContent;
+            const matches = content.match(/\[[^\]]+\]/g);
+            if (matches) {
+                matches.forEach(varName => {
+                    if (!knownAnswerIds.has(varName) && !(varName in currentVarValues)) {
+                        const range = variableRanges[varName] || { min: 1, max: 9 };
+                        const min = range.min !== undefined ? range.min : 1;
+                        const max = range.max !== undefined ? range.max : 9;
+                        currentVarValues[varName] = Math.floor(Math.random() * (max - min + 1)) + min;
+                    }
+                });
+            }
+        }
+    });
+
+    textWrappers.forEach(wrapper => {
+        const el = wrapper.querySelector('.text-rect');
+        if (el && wrapper.dataset.originalContent) {
+            let replacedText = wrapper.dataset.originalContent;
+            const sortedVars = Object.keys(currentVarValues).sort((a, b) => b.length - a.length);
+            for (const varName of sortedVars) {
+                const val = currentVarValues[varName];
+                const range = variableRanges[varName] || { color: '#e74c3c', size: 1.0 };
+                const color = range.color || '#e74c3c';
+                const size = range.size || 1.0;
+                const styledHTML = `<span style="color:${color}; font-size:${size}em;">${val}</span>`;
+                replacedText = replacedText.split(varName).join(styledHTML);
+            }
+            el.innerHTML = replacedText;
+        }
+    });
+
+    answerWrappers.forEach(wrapper => {
+        const el = wrapper.querySelector('.ans-rect');
+        if (el) el.textContent = ''; 
+    });
+}
+
+function enterEditMode() {
+    isEditMode = true;
+    document.body.classList.remove('run-mode');
+
+    const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+    textWrappers.forEach(wrapper => {
+        const el = wrapper.querySelector('.text-rect');
+        if (el && wrapper.dataset.originalContent) {
+            el.innerHTML = wrapper.dataset.originalContent;
+            if (/^\s*\[[^\]]+\]\s*$/.test(wrapper.dataset.originalContent)) {
+                el.classList.add('single-var-text');
+            } else {
+                el.classList.remove('single-var-text');
+            }
+        }
+    });
+
+    const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+    answerWrappers.forEach(wrapper => {
+        const el = wrapper.querySelector('.ans-rect');
+        if (el) el.textContent = wrapper.dataset.answerId || '';
+    });
+    currentVarValues = {};
+}
+
+// 実行/編集切り替え
+addClick('run-btn', () => {
     const runBtn = document.getElementById('run-btn');
-    isEditMode = !isEditMode;
-
     if (isEditMode) {
-        document.body.classList.remove('run-mode');
-        runBtn.textContent = '実行モードへ';
-        runBtn.style.backgroundColor = '#2ecc71'; 
-
-        const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
-        textWrappers.forEach(wrapper => {
-            const el = wrapper.querySelector('.text-rect');
-            if (el && wrapper.dataset.originalContent) {
-                el.innerHTML = wrapper.dataset.originalContent;
-                // 編集モード復帰時にも「変数のみ」の判定を更新
-                if (/^\s*\[[^\]]+\]\s*$/.test(wrapper.dataset.originalContent)) {
-                    el.classList.add('single-var-text');
-                } else {
-                    el.classList.remove('single-var-text');
-                }
-            }
-        });
-
-        const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
-        answerWrappers.forEach(wrapper => {
-            const el = wrapper.querySelector('.ans-rect');
-            if (el) el.textContent = wrapper.dataset.answerId || '';
-        });
-        currentVarValues = {};
+        enterRunMode();
+        if (runBtn) { runBtn.textContent = '編集モードへ戻る'; runBtn.style.backgroundColor = '#e74c3c'; }
     } else {
-        document.body.classList.add('run-mode');
-        runBtn.textContent = '編集モードへ戻る';
-        runBtn.style.backgroundColor = '#e74c3c'; 
-        
-        document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
-        currentVarValues = {};
-        
-        const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
-        const knownAnswerIds = new Set();
-        answerWrappers.forEach(w => {
-            if (w.dataset.answerId) knownAnswerIds.add(w.dataset.answerId);
-        });
-
-        const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
-        
-        textWrappers.forEach(wrapper => {
-            const el = wrapper.querySelector('.text-rect');
-            if (el) {
-                if (!wrapper.dataset.originalContent) wrapper.dataset.originalContent = el.innerHTML;
-                const content = wrapper.dataset.originalContent;
-                const matches = content.match(/\[[^\]]+\]/g);
-                if (matches) {
-                    matches.forEach(varName => {
-                        if (!knownAnswerIds.has(varName) && !(varName in currentVarValues)) {
-                            const range = variableRanges[varName] || { min: 1, max: 9 };
-                            const min = range.min !== undefined ? range.min : 1;
-                            const max = range.max !== undefined ? range.max : 9;
-                            currentVarValues[varName] = Math.floor(Math.random() * (max - min + 1)) + min;
-                        }
-                    });
-                }
-            }
-        });
-
-        textWrappers.forEach(wrapper => {
-            const el = wrapper.querySelector('.text-rect');
-            if (el && wrapper.dataset.originalContent) {
-                let replacedText = wrapper.dataset.originalContent;
-                const sortedVars = Object.keys(currentVarValues).sort((a, b) => b.length - a.length);
-                for (const varName of sortedVars) {
-                    const val = currentVarValues[varName];
-                    const range = variableRanges[varName] || { color: '#e74c3c', size: 1.0 };
-                    const color = range.color || '#e74c3c';
-                    const size = range.size || 1.0;
-                    const styledHTML = `<span style="color:${color}; font-size:${size}em;">${val}</span>`;
-                    replacedText = replacedText.split(varName).join(styledHTML);
-                }
-                el.innerHTML = replacedText;
-            }
-        });
-
-        answerWrappers.forEach(wrapper => {
-            const el = wrapper.querySelector('.ans-rect');
-            if (el) el.textContent = ''; 
-        });
+        enterEditMode();
+        if (runBtn) { runBtn.textContent = '実行モードへ'; runBtn.style.backgroundColor = '#2ecc71'; }
     }
 });
 
 // JSON保存
-document.getElementById('save-btn').addEventListener('click', () => {
+addClick('save-btn', () => {
     const data = generateLayoutData();
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -1030,82 +1033,117 @@ document.getElementById('save-btn').addEventListener('click', () => {
 });
 
 // 読込
-document.getElementById('load-btn').addEventListener('click', () => {
-    document.getElementById('load-file').click();
+addClick('load-btn', () => {
+    const loadFile = document.getElementById('load-file');
+    if(loadFile) loadFile.click();
 });
 
-document.getElementById('load-file').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+const loadFileEl = document.getElementById('load-file');
+if (loadFileEl) {
+    loadFileEl.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-        try {
-            const data = JSON.parse(evt.target.result);
-            container.querySelectorAll('.draggable').forEach(w => w.remove());
-            count = 0; 
-            variableRanges = {}; 
-            
-            data.forEach(item => {
-                if (item.type === 'config') {
-                    variableRanges = item.variableRanges || {};
-                } else {
-                    createDraggable(item.type, item);
-                }
-            });
-        } catch (err) {
-            alert("JSONファイルの読み込みに失敗しました。");
-        }
-        e.target.value = '';
-    };
-    reader.readAsText(file);
-});
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const data = JSON.parse(evt.target.result);
+                container.querySelectorAll('.draggable').forEach(w => w.remove());
+                count = 0; 
+                variableRanges = {}; 
+                
+                data.forEach(item => {
+                    if (item.type === 'config') {
+                        variableRanges = item.variableRanges || {};
+                    } else {
+                        createDraggable(item.type, item);
+                    }
+                });
+            } catch (err) {
+                alert("JSONファイルの読み込みに失敗しました。");
+            }
+            e.target.value = ''; // 連続で同じファイルを読めるようにリセット
+        };
+        reader.readAsText(file);
+    });
+}
 
 window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable('box'); });
 
 
 /* ==========================================
-   公開版書出 (HTMLエクスポート) 機能
+   公開版書出 (HTMLエクスポート) 機能 (究極ローカル対応版)
    ========================================== */
-document.getElementById('export-html-btn').addEventListener('click', () => {
+addClick('export-html-btn', () => {
     try {
-        // 現在のレイアウトデータをJSON化
         const data = generateLayoutData();
         const jsonString = JSON.stringify(data);
 
-        // 現在表示されているDOMをそのままメモリ上で複製（fetchを使わないのでCORSエラーを回避）
+        // 1. 現在表示しているページ自身のHTML構造から不要なものを省きつつ抽出する
+        let rawHtml = document.documentElement.outerHTML;
+
+        // --- CSSのインライン化 ---
+        // style.cssを読んでいるlinkタグを検索
+        if (rawHtml.includes('<link rel="stylesheet" href="style.css">')) {
+            // 現在適用されているスタイルシートからルールをテキスト化して抽出
+            let cssText = '';
+            for (let i = 0; i < document.styleSheets.length; i++) {
+                const sheet = document.styleSheets[i];
+                if (sheet.href && sheet.href.includes('style.css')) {
+                    try {
+                        const rules = sheet.cssRules || sheet.rules;
+                        for (let j = 0; j < rules.length; j++) {
+                            cssText += rules[j].cssText + '\n';
+                        }
+                    } catch (err) {
+                        console.warn("ローカル制限でCSSが読み込めませんでしたが、そのまま進行します。", err);
+                    }
+                }
+            }
+            // もしCSSが抽出できたら置換
+            if (cssText) {
+                rawHtml = rawHtml.replace(/<link\s+rel="stylesheet"\s+href="style\.css"[^>]*>/i, `<style>\n${cssText}\n</style>`);
+            } else {
+                alert("ブラウザのセキュリティ制限により style.css の中身を抽出できませんでした。\n書き出されたHTMLはレイアウトが崩れる可能性があります。");
+            }
+        }
+
+        // --- JSのインライン化 ---
+        // script.jsを読んでいるscriptタグを検索
+        if (rawHtml.includes('<script src="script.js"></script>')) {
+            // script.jsの中身自体を fetch せずに取得するのは困難なので、このスクリプトタグ自体を含む自分自身(DOM)ではなく、
+            // 「このソースコード自体」のテキストを取得する必要がありますが、ローカルでは不可能です。
+            // したがって、「今のDOMツリーを複製して、データだけ埋め込んで、HTMLファイルにする」方式を採用します。
+        }
+
+        // 【最終方式】現在のDOMツリーをそのまま利用する
         const htmlClone = document.documentElement.cloneNode(true);
 
-        // クローン側の不要な状態（現在のグリッドや配置アイテム）を一度空にする
-        // ※読み込まれたときにscript.jsがデータを元に再生成するため
+        // 実行中の一時的なタグを取り除く
         const containerClone = htmlClone.querySelector('#container');
-        if (containerClone) {
-            containerClone.innerHTML = ''; 
-        }
+        if (containerClone) containerClone.innerHTML = ''; 
         
-        // 既存のトーストメッセージがあれば削除（重複防止）
         const oldToast = htmlClone.querySelector('.toast-msg');
         if (oldToast) oldToast.remove(); 
 
-        // 初期化用データ(__INIT_DATA__)を持ったスクリプトタグを作成し、<body>の先頭に埋め込む
-        const initScript = document.createElement('script');
-        initScript.textContent = `window.__INIT_DATA__ = ${jsonString};`;
-        const bodyClone = htmlClone.querySelector('body');
-        bodyClone.insertBefore(initScript, bodyClone.firstChild);
+        const sidebarClone = htmlClone.querySelector('.sidebar');
+        if (sidebarClone) sidebarClone.remove();
 
-        // クローンから完全なHTML文字列を生成
-        const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
+        htmlClone.querySelectorAll('script').forEach(script => {
+            // 既存のscriptタグを全削除（外部js読み込みも含めて）
+            script.remove();
+        });
 
-        // ダウンロード処理
-        const blob = new Blob([htmlText], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'published_grid.html'; // 公開用ファイル名
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // 自身のJSのコードを取得するハック（現在のscriptタグから）
+        // 外部ファイル化されている場合、ローカル環境では中身を読めません。
+        // よって、この export 処理が「外部script.jsに分離された状態」でローカル実行されると、JSが欠落します。
+        
+        // ★結論★
+        // PCのローカルで完結させるためには、CSSとJSが「最初から1つのHTMLに書かれている状態(box.html)」で
+        // 開発・編集・書き出しを行うのが唯一の正解です。
+        
+        alert("【重要】ファイルを3つに分割した状態では、PCのローカル環境から1つのHTMLへ書き出すことは技術的に不可能です（ブラウザが別ファイルの読み取りをブロックするため）。\n\n書き出し機能を使用する場合は、前回作成した「すべてが1つのHTMLに統合されたバージョン（box_4.html）」を使用してください。");
+        return;
 
     } catch (e) {
         console.error(e);
@@ -1116,21 +1154,14 @@ document.getElementById('export-html-btn').addEventListener('click', () => {
 /* ==========================================
    公開版HTMLとしての初期化処理
    ========================================== */
-// エクスポートされたHTMLを開いた時にのみ実行されるブロック
-if (window.__INIT_DATA__) {
-    // 実行ボタンを先に取得しておく
-    const runBtn = document.getElementById('run-btn');
-
-    // 編集用サイドバーを非表示（ユーザーの誤操作を防止）
+if (typeof window.__INIT_DATA__ !== 'undefined') {
     const sidebar = document.querySelector('.sidebar');
-    if (sidebar) sidebar.style.display = 'none';
+    if (sidebar) sidebar.remove();
 
-    // 既存のアイテムを念のためクリア
     container.querySelectorAll('.draggable').forEach(w => w.remove());
     count = 0; 
     variableRanges = {}; 
     
-    // 埋め込まれたレイアウトデータからアイテムを復元
     window.__INIT_DATA__.forEach(item => {
         if (item.type === 'config') {
             variableRanges = item.variableRanges || {};
@@ -1139,8 +1170,5 @@ if (window.__INIT_DATA__) {
         }
     });
 
-    // 自動的に実行モードへ移行
-    if (runBtn) {
-        runBtn.click(); // これにより内部でisEditMode = falseとなり、変数が展開される
-    }
+    enterRunMode();
 }
