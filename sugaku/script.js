@@ -884,6 +884,47 @@ document.getElementById('save-var-settings-btn').addEventListener('click', () =>
     document.getElementById('overlay').style.display = 'none';
 });
 
+// ==========================================
+// レイアウトデータ生成関数（共通化）
+// ==========================================
+function generateLayoutData() {
+    const data = [];
+    data.push({ type: 'config', variableRanges: variableRanges });
+    
+    const wrappers = container.querySelectorAll('.draggable');
+    wrappers.forEach(wrapper => {
+        const type = wrapper.dataset.type;
+        const el = wrapper.querySelector('div');
+        
+        let itemData = { type: type };
+        
+        if (type === 'line') {
+            itemData.startX = parseFloat(wrapper.dataset.startX);
+            itemData.startY = parseFloat(wrapper.dataset.startY);
+            itemData.endX = parseFloat(wrapper.dataset.endX);
+            itemData.endY = parseFloat(wrapper.dataset.endY);
+            itemData.thickness = wrapper.dataset.thickness;
+            itemData.lineColor = wrapper.dataset.lineColor;
+            itemData.lineStyle = wrapper.dataset.lineStyle;
+        } else {
+            itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
+            itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
+            itemData.wCells = parseInt(wrapper.dataset.wCells) || 2;
+            itemData.hCells = parseInt(wrapper.dataset.hCells) || 2;
+            itemData.content = type === 'text' ? (wrapper.dataset.originalContent || (el ? el.innerHTML : '')) : (el ? el.textContent : '');
+            
+            if (type === 'answer') {
+                itemData.answerId = wrapper.dataset.answerId || '';
+                itemData.calcMode = wrapper.dataset.calcMode || '0-20';
+                itemData.formula = wrapper.dataset.formula || ''; 
+                itemData.content = ''; 
+            }
+        }
+        data.push(itemData);
+    });
+    return data;
+}
+
 // モード切り替え
 document.getElementById('run-btn').addEventListener('click', () => {
     const runBtn = document.getElementById('run-btn');
@@ -975,41 +1016,7 @@ document.getElementById('run-btn').addEventListener('click', () => {
 
 // JSON保存
 document.getElementById('save-btn').addEventListener('click', () => {
-    const data = [];
-    data.push({ type: 'config', variableRanges: variableRanges });
-    
-    const wrappers = container.querySelectorAll('.draggable');
-    wrappers.forEach(wrapper => {
-        const type = wrapper.dataset.type;
-        const el = wrapper.querySelector('div');
-        
-        let itemData = { type: type };
-        
-        if (type === 'line') {
-            itemData.startX = parseFloat(wrapper.dataset.startX);
-            itemData.startY = parseFloat(wrapper.dataset.startY);
-            itemData.endX = parseFloat(wrapper.dataset.endX);
-            itemData.endY = parseFloat(wrapper.dataset.endY);
-            itemData.thickness = wrapper.dataset.thickness;
-            itemData.lineColor = wrapper.dataset.lineColor;
-            itemData.lineStyle = wrapper.dataset.lineStyle;
-        } else {
-            itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
-            itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
-            itemData.wCells = parseInt(wrapper.dataset.wCells) || 2;
-            itemData.hCells = parseInt(wrapper.dataset.hCells) || 2;
-            itemData.content = type === 'text' ? (wrapper.dataset.originalContent || (el ? el.innerHTML : '')) : (el ? el.textContent : '');
-            
-            if (type === 'answer') {
-                itemData.answerId = wrapper.dataset.answerId || '';
-                itemData.calcMode = wrapper.dataset.calcMode || '0-20';
-                itemData.formula = wrapper.dataset.formula || ''; 
-                itemData.content = ''; 
-            }
-        }
-        data.push(itemData);
-    });
-    
+    const data = generateLayoutData();
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1055,3 +1062,86 @@ document.getElementById('load-file').addEventListener('change', (e) => {
 });
 
 window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable('box'); });
+
+/* ==========================================
+   公開版書出 (HTMLエクスポート) 機能
+   ========================================== */
+document.getElementById('export-html-btn').addEventListener('click', async () => {
+    try {
+        // 現在のURL（ファイル名を含むパス）を取得
+        const currentUrl = window.location.href.split('?')[0].split('#')[0];
+        
+        // 自身のHTML、CSS、JSをフェッチして取得
+        const htmlRes = await fetch(currentUrl);
+        if (!htmlRes.ok) throw new Error("HTMLの取得に失敗しました。");
+        let htmlText = await htmlRes.text();
+
+        const cssRes = await fetch('style.css');
+        if (!cssRes.ok) throw new Error("CSSの取得に失敗しました。");
+        const cssText = await cssRes.text();
+
+        const jsRes = await fetch('script.js');
+        if (!jsRes.ok) throw new Error("JSの取得に失敗しました。");
+        const jsText = await jsRes.text();
+
+        // 現在のレイアウトデータをJSON化
+        const data = generateLayoutData();
+        const jsonString = JSON.stringify(data);
+
+        // 1. CSSをインライン化（置換）
+        htmlText = htmlText.replace(/<link\s+rel="stylesheet"\s+href="style\.css"[^>]*>/i, `<style>\n${cssText}\n</style>`);
+        
+        // 2. JSをインライン化し、初期化データを埋め込む（置換）
+        const injectedScript = `
+<script>
+window.__INIT_DATA__ = ${jsonString};
+${jsText}
+</script>
+        `;
+        htmlText = htmlText.replace(/<script\s+src="script\.js"[^>]*><\/script>/i, injectedScript);
+
+        // ダウンロード実行
+        const blob = new Blob([htmlText], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'published_grid.html'; // 公開用ファイル名
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    } catch (e) {
+        console.error(e);
+        alert("書き出しに失敗しました。\n\n※ローカルファイル環境（file://〜）ではセキュリティ制限により書き出しが行えません。VSCodeのLive ServerやPythonのローカルサーバー（http://localhost...）を使用して実行してください。");
+    }
+});
+
+/* ==========================================
+   公開版HTMLとしての初期化処理（エクスポートされたファイル専用）
+   ========================================== */
+if (window.__INIT_DATA__) {
+    // 編集用サイドバーを完全に削除
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.remove();
+
+    // 埋め込まれたデータをロード
+    container.querySelectorAll('.draggable').forEach(w => w.remove());
+    count = 0; 
+    variableRanges = {}; 
+    
+    window.__INIT_DATA__.forEach(item => {
+        if (item.type === 'config') {
+            variableRanges = item.variableRanges || {};
+        } else {
+            createDraggable(item.type, item);
+        }
+    });
+
+    // 実行モードへ強制移行
+    const runBtn = document.getElementById('run-btn');
+    if (runBtn) {
+        runBtn.click(); // isEditMode = false に切り替わり、変数の展開などが走る
+        runBtn.remove(); // 実行ボタン自体も不要なため削除
+    }
+}
