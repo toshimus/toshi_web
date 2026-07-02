@@ -4,6 +4,7 @@ let isEditMode = true;
 let currentVarValues = {}; 
 let variableRanges = {};
 let activeAnsWrapper = null;
+let activeTextWrapper = null;
 let activeLineWrapper = null; 
 
 // グリッド背景の生成
@@ -25,10 +26,7 @@ const stdCalcDisplay = document.getElementById('std-calc-display');
 let activeInputBox = null;
 let stdCalcValue = "";
 
-// ★修正：公開版でスクリプトが実行された際、ボタンが増殖するのを防ぐため中身をリセット
 if (calc0to20View) calc0to20View.innerHTML = '';
-
-// 0〜20電卓パネル
 const numPad = document.createElement('div');
 numPad.className = 'num-pad';
 for (let i = 0; i <= 20; i++) {
@@ -47,12 +45,8 @@ for (let i = 0; i <= 20; i++) {
 }
 calc0to20View.appendChild(numPad);
 
-// 即決0-9電卓パネル
 const quickPadInner = document.getElementById('quick-pad-inner');
-
-// ★修正：公開版でスクリプトが実行された際、ボタンが増殖するのを防ぐため中身をリセット
 if (quickPadInner) quickPadInner.innerHTML = '';
-
 for (let i = 0; i <= 9; i++) {
     const piece = document.createElement('div');
     piece.className = 'piece quick-btn';
@@ -68,7 +62,6 @@ for (let i = 0; i <= 9; i++) {
     quickPadInner.appendChild(piece);
 }
 
-// 通常電卓パネル
 document.querySelectorAll('.std-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         if (!activeInputBox) return;
@@ -100,18 +93,20 @@ document.querySelectorAll('.std-btn').forEach(btn => {
     });
 });
 
-// モーダル外部クリックによる非表示
 overlay.addEventListener('click', () => {
     if (calcContainer) calcContainer.style.display = 'none';
     const varSet = document.getElementById('var-settings-container');
     if (varSet) varSet.style.display = 'none';
     const ansProp = document.getElementById('ans-prop-container');
     if (ansProp) ansProp.style.display = 'none';
+    const textProp = document.getElementById('text-prop-container');
+    if (textProp) textProp.style.display = 'none';
     const lineProp = document.getElementById('line-prop-container');
     if (lineProp) lineProp.style.display = 'none';
     overlay.style.display = 'none';
     activeInputBox = null;
     activeAnsWrapper = null;
+    activeTextWrapper = null;
     activeLineWrapper = null;
 });
 
@@ -153,6 +148,7 @@ const modals = [
     calcContainer, 
     document.getElementById('var-settings-container'), 
     document.getElementById('ans-prop-container'),
+    document.getElementById('text-prop-container'),
     document.getElementById('line-prop-container')
 ];
 modals.forEach(modal => {
@@ -174,22 +170,17 @@ let activeResizeWrapper = null;
 let activeHandlePos = '';
 let rStartX, rStartY;
 let rStartWCells, rStartHCells, rStartGridX, rStartGridY;
-
 let activeLineHandleData = null; 
 
 const handleGlobalMove = (e) => {
     if (!isEditMode) return;
-    
-    // 箱などのリサイズ処理
     if (activeResizeWrapper) {
         e.preventDefault();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        
         const cRect = container.getBoundingClientRect();
         const cellW = cRect.width / 32;
         const cellH = cRect.height / 24;
-        
         const deltaGridX = Math.round((clientX - rStartX) / cellW);
         const deltaGridY = Math.round((clientY - rStartY) / cellH);
         
@@ -199,19 +190,12 @@ const handleGlobalMove = (e) => {
         let newY = rStartGridY;
         
         if (activeHandlePos.includes('r')) newW = rStartWCells + deltaGridX;
-        if (activeHandlePos.includes('l')) {
-            newW = rStartWCells - deltaGridX;
-            newX = rStartGridX + deltaGridX;
-        }
+        if (activeHandlePos.includes('l')) { newW = rStartWCells - deltaGridX; newX = rStartGridX + deltaGridX; }
         if (activeHandlePos.includes('b')) newH = rStartHCells + deltaGridY;
-        if (activeHandlePos.includes('t')) {
-            newH = rStartHCells - deltaGridY;
-            newY = rStartGridY + deltaGridY;
-        }
+        if (activeHandlePos.includes('t')) { newH = rStartHCells - deltaGridY; newY = rStartGridY + deltaGridY; }
         
         if (newW < 1) { newX -= (1 - newW); newW = 1; }
         if (newH < 1) { newY -= (1 - newH); newH = 1; }
-        
         if (newX < 0) { newW += newX; newX = 0; }
         if (newY < 0) { newH += newY; newY = 0; }
         if (newX + newW > 32) newW = 32 - newX;
@@ -229,19 +213,15 @@ const handleGlobalMove = (e) => {
         return;
     }
 
-    // 直線のハンドルドラッグ処理
     if (activeLineHandleData) {
         e.preventDefault();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        
         const cRect = container.getBoundingClientRect();
         let rawGridX = (clientX - cRect.left) / (cRect.width / 32);
         let rawGridY = (clientY - cRect.top) / (cRect.height / 24);
-        
         let snapX = Math.round(rawGridX * 2) / 2;
         let snapY = Math.round(rawGridY * 2) / 2;
-        
         snapX = Math.max(0, Math.min(snapX, 32));
         snapY = Math.max(0, Math.min(snapY, 24));
         
@@ -253,7 +233,6 @@ const handleGlobalMove = (e) => {
             wrapper.dataset.endX = snapX;
             wrapper.dataset.endY = snapY;
         }
-        
         window.updateLineVisuals(wrapper);
         return;
     }
@@ -269,7 +248,6 @@ document.addEventListener('touchmove', handleGlobalMove, { passive: false });
 document.addEventListener('mouseup', handleGlobalEnd);
 document.addEventListener('touchend', handleGlobalEnd);
 
-// 外部クリックによる選択解除
 const deselectAll = (e) => {
     if (!e.target.closest('.draggable') && !e.target.closest('.resize-handle') && !e.target.closest('.line-handle') && !e.target.closest('.pieces-container') && !e.target.closest('.sidebar')) {
         document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
@@ -280,7 +258,7 @@ document.addEventListener('touchstart', deselectAll);
 
 
 /* ==========================================
-   直線のビジュアル更新関数
+   レンダリング関数 (文字＆解答欄の分割対応)
    ========================================== */
 window.updateLineVisuals = function(wrapper) {
     const startX = parseFloat(wrapper.dataset.startX) || 0;
@@ -297,10 +275,8 @@ window.updateLineVisuals = function(wrapper) {
         line.setAttribute('y1', `${(startY / 24) * 100}%`);
         line.setAttribute('x2', `${(endX / 32) * 100}%`);
         line.setAttribute('y2', `${(endY / 24) * 100}%`);
-        
         line.setAttribute('stroke', color);
         line.setAttribute('stroke-width', thickness);
-        
         if (style === 'dashed') {
             line.setAttribute('stroke-dasharray', `${thickness * 3}, ${thickness * 3}`);
             line.setAttribute('stroke-linecap', 'butt');
@@ -312,7 +288,6 @@ window.updateLineVisuals = function(wrapper) {
             line.setAttribute('stroke-linecap', 'butt');
         }
     }
-    
     const hStart = wrapper.querySelector('.line-handle-start');
     const hEnd = wrapper.querySelector('.line-handle-end');
     if (hStart && hEnd) {
@@ -322,6 +297,102 @@ window.updateLineVisuals = function(wrapper) {
         hEnd.style.top = `calc(${endY} * (100% / 24))`;
     }
 };
+
+function renderAnswer(wrapper) {
+    const el = wrapper.querySelector('.ans-rect');
+    if (!el) return;
+    const digits = parseInt(wrapper.dataset.digits) || 0;
+    const answerId = wrapper.dataset.answerId || '';
+    
+    el.innerHTML = '';
+    
+    if (digits > 0) {
+        const container = document.createElement('div');
+        container.className = 'split-container';
+        for (let i = 0; i < digits; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'split-cell';
+            container.appendChild(cell);
+        }
+        el.appendChild(container);
+        
+        if (isEditMode) {
+            const label = document.createElement('div');
+            label.className = 'id-label';
+            label.textContent = answerId;
+            el.appendChild(label);
+        }
+    } else {
+        if (isEditMode) {
+            el.textContent = answerId;
+        } else {
+            el.textContent = ''; 
+        }
+    }
+}
+
+function renderText(wrapper) {
+    const el = wrapper.querySelector('.text-rect');
+    if (!el) return;
+    const digits = parseInt(wrapper.dataset.digits) || 0;
+    const originalContent = wrapper.dataset.originalContent || '';
+    
+    el.innerHTML = '';
+    
+    if (isEditMode) {
+        if (digits > 0) {
+            const container = document.createElement('div');
+            container.className = 'split-container';
+            for (let i = 0; i < digits; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'split-cell';
+                container.appendChild(cell);
+            }
+            el.appendChild(container);
+            const label = document.createElement('div');
+            label.className = 'id-label';
+            label.innerHTML = originalContent; 
+            el.appendChild(label);
+        } else {
+            el.innerHTML = originalContent;
+        }
+    } else {
+        // Run Mode
+        if (digits > 0 && /^\s*\[[^\]]+\]\s*$/.test(originalContent)) {
+            const varName = originalContent.trim();
+            const val = currentVarValues[varName];
+            if (val !== undefined) {
+                const range = variableRanges[varName] || { color: '#e74c3c', size: 1.0 };
+                let valStr = String(val).padStart(digits, ' ');
+                const container = document.createElement('div');
+                container.className = 'split-container';
+                for (let i = 0; i < digits; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'split-cell';
+                    let char = valStr[i] === ' ' ? '' : valStr[i];
+                    cell.innerHTML = char !== '' ? `<span style="color:${range.color}; font-size:${range.size}em;">${char}</span>` : '';
+                    container.appendChild(cell);
+                }
+                el.appendChild(container);
+                return;
+            }
+        }
+        
+        let replacedText = originalContent;
+        const sortedVars = Object.keys(currentVarValues).sort((a, b) => b.length - a.length);
+        for (const varName of sortedVars) {
+            const val = currentVarValues[varName];
+            if (val !== undefined) {
+                const range = variableRanges[varName] || { color: '#e74c3c', size: 1.0 };
+                const color = range.color || '#e74c3c';
+                const size = range.size || 1.0;
+                const styledHTML = `<span style="color:${color}; font-size:${size}em;">${val}</span>`;
+                replacedText = replacedText.split(varName).join(styledHTML);
+            }
+        }
+        el.innerHTML = replacedText;
+    }
+}
 
 /* ==========================================
    トースト判定演出と判定ロジック
@@ -352,7 +423,16 @@ function runValidation() {
         const id = wAns.dataset.answerId;
         const el = wAns.querySelector('.ans-rect');
         const normalizedId = id.replace(/[\[\]]/g, '');
-        const val = parseFloat(el.textContent);
+        const digits = parseInt(wAns.dataset.digits) || 0;
+        
+        let val;
+        if (digits > 0) {
+            const cells = Array.from(el.querySelectorAll('.split-cell'));
+            const str = cells.map(c => c.textContent.trim()).join('');
+            val = str === "" ? NaN : parseFloat(str);
+        } else {
+            val = parseFloat(el.textContent);
+        }
         ansValues[normalizedId] = isNaN(val) ? 0 : val;
     });
 
@@ -393,25 +473,16 @@ function runValidation() {
     formulas.forEach(wForm => {
         const formulaStr = wForm.querySelector('.formula-rect').textContent;
         const parts = formulaStr.split('=');
-        
         if (parts.length === 2) {
             hasCheckable = true;
             const evaluateExpr = (expr) => {
                 let e = expr.trim();
                 e = e.replace(/\[([^\]]+)\]/g, (match, id) => getCombinedValueForId(id));
-                try {
-                    return new Function(`return (${e})`)();
-                } catch (err) {
-                    return NaN;
-                }
+                try { return new Function(`return (${e})`)(); } catch (err) { return NaN; }
             };
-
             const left = evaluateExpr(parts[0]);
             const right = evaluateExpr(parts[1]);
-
-            if (isNaN(left) || isNaN(right) || left !== right) {
-                allCorrect = false;
-            }
+            if (isNaN(left) || isNaN(right) || left !== right) allCorrect = false;
         }
     });
 
@@ -420,7 +491,18 @@ function runValidation() {
         return;
     }
 
-    const anyEmpty = answers.some(w => w.querySelector('.ans-rect').textContent.trim() === "");
+    const anyEmpty = answers.some(w => {
+        const el = w.querySelector('.ans-rect');
+        const digits = parseInt(w.dataset.digits) || 0;
+        if (digits > 0) {
+            const cells = Array.from(el.querySelectorAll('.split-cell'));
+            const str = cells.map(c => c.textContent.trim()).join('');
+            return str === ""; 
+        } else {
+            return el.textContent.trim() === "";
+        }
+    });
+
     if (anyEmpty) {
         showToast("まだ空欄があります");
     } else {
@@ -532,32 +614,27 @@ function createDraggable(type, itemData = null) {
                 el.textContent = count;
             }
             el.classList.add('rect');
+            wrapper.appendChild(el);
 
         } else if (type === 'answer') {
             el.classList.add('ans-rect');
-            let defaultId = '';
-            let calcMode = '0-20';
-            if (itemData) {
-                defaultId = itemData.answerId || itemData.content || '';
-                calcMode = itemData.calcMode || '0-20';
-                wrapper.dataset.formula = itemData.formula || ''; 
-            } else {
-                defaultId = '[q1]';
-                wrapper.dataset.formula = '';
-            }
-            wrapper.dataset.answerId = defaultId;
-            wrapper.dataset.calcMode = calcMode;
-            el.textContent = defaultId; 
-
+            wrapper.dataset.answerId = itemData ? (itemData.answerId || itemData.content || '') : '[q1]';
+            wrapper.dataset.calcMode = itemData ? (itemData.calcMode || '0-20') : '0-20';
+            wrapper.dataset.formula = itemData ? (itemData.formula || '') : ''; 
+            wrapper.dataset.digits = itemData ? (itemData.digits || 0) : 0;
+            
             el.addEventListener('dblclick', (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
                 activeAnsWrapper = wrapper;
-                document.getElementById('ans-prop-id').value = wrapper.dataset.answerId || "";
-                document.getElementById('ans-prop-mode').value = wrapper.dataset.calcMode || "0-20";
+                document.getElementById('ans-prop-id').value = wrapper.dataset.answerId;
+                document.getElementById('ans-prop-mode').value = wrapper.dataset.calcMode;
+                document.getElementById('ans-prop-digits').value = wrapper.dataset.digits;
                 document.getElementById('ans-prop-container').style.display = 'flex';
                 document.getElementById('overlay').style.display = 'block';
             });
+            wrapper.appendChild(el);
+            renderAnswer(wrapper);
 
         } else if (type === 'formula') {
             let txt = itemData ? itemData.content : prompt("判定・表示用の計算式を入力してください (例: [q1]=[x1]+[x2]):");
@@ -571,13 +648,14 @@ function createDraggable(type, itemData = null) {
                 const newTxt = prompt("計算式を編集してください:", el.textContent);
                 if (newTxt !== null && newTxt.trim() !== "") el.textContent = newTxt;
             });
+            wrapper.appendChild(el);
 
         } else if (type === 'text') {
             let txt = itemData ? itemData.content : prompt("追加する文字を入力してください (例: [x1]＋[x2]＝):");
             if (!itemData && (txt === null || txt.trim() === "")) return;
             el.classList.add('text-rect');
-            el.innerHTML = txt; 
             wrapper.dataset.originalContent = txt; 
+            wrapper.dataset.digits = itemData ? (itemData.digits || 0) : 0;
             
             if (/^\s*\[[^\]]+\]\s*$/.test(txt)) {
                 el.classList.add('single-var-text');
@@ -586,31 +664,25 @@ function createDraggable(type, itemData = null) {
             el.addEventListener('dblclick', (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
-                const currentTxt = wrapper.dataset.originalContent || el.innerHTML;
-                const newTxt = prompt("文字を編集してください:", currentTxt);
-                if (newTxt !== null && newTxt.trim() !== "") {
-                    el.innerHTML = newTxt;
-                    wrapper.dataset.originalContent = newTxt;
-                    if (/^\s*\[[^\]]+\]\s*$/.test(newTxt)) {
-                        el.classList.add('single-var-text');
-                    } else {
-                        el.classList.remove('single-var-text');
-                    }
-                }
+                activeTextWrapper = wrapper;
+                document.getElementById('text-prop-content').value = wrapper.dataset.originalContent;
+                document.getElementById('text-prop-digits').value = wrapper.dataset.digits;
+                document.getElementById('text-prop-container').style.display = 'flex';
+                document.getElementById('overlay').style.display = 'block';
             });
+            wrapper.appendChild(el);
+            renderText(wrapper);
 
         } else if (type === 'check') {
             el.classList.add('check-rect');
             el.textContent = "できた";
+            wrapper.appendChild(el);
         }
         
-        wrapper.appendChild(el);
-
         const handles = ['tl', 'tr', 'bl', 'br'];
         handles.forEach(pos => {
             const h = document.createElement('div');
             h.classList.add('resize-handle', `handle-${pos}`);
-            
             const startResize = (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
@@ -682,29 +754,22 @@ function createDraggable(type, itemData = null) {
             const dyCells = (clientY - startY) / (cRect.height / 24);
             let snapDx = Math.round(dxCells * 2) / 2;
             let snapDy = Math.round(dyCells * 2) / 2;
-            
             wrapper.dataset.startX = lineInitialStartX + snapDx;
             wrapper.dataset.startY = lineInitialStartY + snapDy;
             wrapper.dataset.endX = lineInitialEndX + snapDx;
             wrapper.dataset.endY = lineInitialEndY + snapDy;
-            
             window.updateLineVisuals(wrapper);
         } else {
             let x = clientX - cRect.left - (wrapper.offsetWidth / 2);
             let y = clientY - cRect.top - (wrapper.offsetHeight / 2);
-            
             let gridX = Math.round(x / (cRect.width / 32));
             let gridY = Math.round(y / (cRect.height / 24));
-            
             let wCells = parseInt(wrapper.dataset.wCells) || 2;
             let hCells = parseInt(wrapper.dataset.hCells) || 2;
-            
             gridX = Math.max(0, Math.min(gridX, 32 - wCells));
             gridY = Math.max(0, Math.min(gridY, 24 - hCells));
-            
             wrapper.dataset.gridX = gridX;
             wrapper.dataset.gridY = gridY;
-            
             wrapper.style.left = `calc(${gridX} * (100% / 32))`;
             wrapper.style.top = `calc(${gridY} * (100% / 24))`;
         }
@@ -722,9 +787,19 @@ function createDraggable(type, itemData = null) {
 
         if (!hasMoved) {
             if (type === 'answer' && !isEditMode) {
-                activeInputBox = el;
-                const mode = wrapper.dataset.calcMode || '0-20';
+                const digits = parseInt(wrapper.dataset.digits) || 0;
+                if (digits > 0) {
+                    const cell = e.target.closest('.split-cell');
+                    if (cell && wrapper.contains(cell)) {
+                        activeInputBox = cell;
+                    } else {
+                        return; // セル以外がクリックされた場合は無視
+                    }
+                } else {
+                    activeInputBox = el;
+                }
                 
+                const mode = wrapper.dataset.calcMode || '0-20';
                 calc0to20View.style.display = 'none';
                 calcStandardView.style.display = 'none';
                 document.getElementById('calc-quick-view').style.display = 'none';
@@ -738,7 +813,6 @@ function createDraggable(type, itemData = null) {
                 } else {
                     calc0to20View.style.display = 'block';
                 }
-                
                 calcContainer.style.display = 'flex';
                 overlay.style.display = 'block';
                 
@@ -768,19 +842,36 @@ function addClick(id, handler) {
     if (btn) btn.addEventListener('click', handler);
 }
 
-// プロパティパネルの保存
 addClick('save-ans-prop-btn', () => {
     if (activeAnsWrapper) {
-        const newId = document.getElementById('ans-prop-id').value.trim();
-        const newMode = document.getElementById('ans-prop-mode').value;
-        activeAnsWrapper.dataset.answerId = newId;
-        activeAnsWrapper.dataset.calcMode = newMode;
-        const el = activeAnsWrapper.querySelector('.ans-rect');
-        if (el) el.textContent = newId;
+        activeAnsWrapper.dataset.answerId = document.getElementById('ans-prop-id').value.trim();
+        activeAnsWrapper.dataset.calcMode = document.getElementById('ans-prop-mode').value;
+        activeAnsWrapper.dataset.digits = document.getElementById('ans-prop-digits').value;
+        renderAnswer(activeAnsWrapper);
     }
     document.getElementById('ans-prop-container').style.display = 'none';
     document.getElementById('overlay').style.display = 'none';
     activeAnsWrapper = null;
+});
+
+addClick('save-text-prop-btn', () => {
+    if (activeTextWrapper) {
+        const newTxt = document.getElementById('text-prop-content').value.trim();
+        if (newTxt !== "") {
+            activeTextWrapper.dataset.originalContent = newTxt;
+            activeTextWrapper.dataset.digits = document.getElementById('text-prop-digits').value;
+            const el = activeTextWrapper.querySelector('.text-rect');
+            if (/^\s*\[[^\]]+\]\s*$/.test(newTxt)) {
+                el.classList.add('single-var-text');
+            } else {
+                el.classList.remove('single-var-text');
+            }
+            renderText(activeTextWrapper);
+        }
+    }
+    document.getElementById('text-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeTextWrapper = null;
 });
 
 addClick('save-line-prop-btn', () => {
@@ -795,7 +886,6 @@ addClick('save-line-prop-btn', () => {
     activeLineWrapper = null;
 });
 
-// 各種生成ボタンイベント
 addClick('add-box-btn', () => createDraggable('box'));
 addClick('add-ans-btn', () => createDraggable('answer'));
 addClick('add-formula-btn', () => createDraggable('formula'));
@@ -922,7 +1012,11 @@ function generateLayoutData() {
                 itemData.answerId = wrapper.dataset.answerId || '';
                 itemData.calcMode = wrapper.dataset.calcMode || '0-20';
                 itemData.formula = wrapper.dataset.formula || ''; 
+                itemData.digits = parseInt(wrapper.dataset.digits) || 0;
                 itemData.content = ''; 
+            }
+            if (type === 'text') {
+                itemData.digits = parseInt(wrapper.dataset.digits) || 0;
             }
         }
         data.push(itemData);
@@ -945,11 +1039,10 @@ function enterRunMode() {
 
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     
+    // 変数の決定
     textWrappers.forEach(wrapper => {
-        const el = wrapper.querySelector('.text-rect');
-        if (el) {
-            if (!wrapper.dataset.originalContent) wrapper.dataset.originalContent = el.innerHTML;
-            const content = wrapper.dataset.originalContent;
+        const content = wrapper.dataset.originalContent;
+        if (content) {
             const matches = content.match(/\[[^\]]+\]/g);
             if (matches) {
                 matches.forEach(varName => {
@@ -964,27 +1057,8 @@ function enterRunMode() {
         }
     });
 
-    textWrappers.forEach(wrapper => {
-        const el = wrapper.querySelector('.text-rect');
-        if (el && wrapper.dataset.originalContent) {
-            let replacedText = wrapper.dataset.originalContent;
-            const sortedVars = Object.keys(currentVarValues).sort((a, b) => b.length - a.length);
-            for (const varName of sortedVars) {
-                const val = currentVarValues[varName];
-                const range = variableRanges[varName] || { color: '#e74c3c', size: 1.0 };
-                const color = range.color || '#e74c3c';
-                const size = range.size || 1.0;
-                const styledHTML = `<span style="color:${color}; font-size:${size}em;">${val}</span>`;
-                replacedText = replacedText.split(varName).join(styledHTML);
-            }
-            el.innerHTML = replacedText;
-        }
-    });
-
-    answerWrappers.forEach(wrapper => {
-        const el = wrapper.querySelector('.ans-rect');
-        if (el) el.textContent = ''; 
-    });
+    textWrappers.forEach(wrapper => renderText(wrapper));
+    answerWrappers.forEach(wrapper => renderAnswer(wrapper));
 }
 
 function enterEditMode() {
@@ -992,23 +1066,11 @@ function enterEditMode() {
     document.body.classList.remove('run-mode');
 
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
-    textWrappers.forEach(wrapper => {
-        const el = wrapper.querySelector('.text-rect');
-        if (el && wrapper.dataset.originalContent) {
-            el.innerHTML = wrapper.dataset.originalContent;
-            if (/^\s*\[[^\]]+\]\s*$/.test(wrapper.dataset.originalContent)) {
-                el.classList.add('single-var-text');
-            } else {
-                el.classList.remove('single-var-text');
-            }
-        }
-    });
-
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
-    answerWrappers.forEach(wrapper => {
-        const el = wrapper.querySelector('.ans-rect');
-        if (el) el.textContent = wrapper.dataset.answerId || '';
-    });
+    
+    textWrappers.forEach(wrapper => renderText(wrapper));
+    answerWrappers.forEach(wrapper => renderAnswer(wrapper));
+    
     currentVarValues = {};
 }
 
@@ -1069,7 +1131,7 @@ if (loadFileEl) {
             } catch (err) {
                 alert("JSONファイルの読み込みに失敗しました。");
             }
-            e.target.value = ''; // 連続で同じファイルを読めるようにリセット
+            e.target.value = ''; 
         };
         reader.readAsText(file);
     });
@@ -1083,7 +1145,6 @@ window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable('
    ========================================== */
 addClick('export-html-btn', async () => {
     try {
-        // 1. サーバー上にある CSS と JS を直接テキストとして取得（fetch）
         const cssRes = await fetch('style.css');
         if (!cssRes.ok) throw new Error("style.css が取得できませんでした。");
         const cssText = await cssRes.text();
@@ -1092,14 +1153,11 @@ addClick('export-html-btn', async () => {
         if (!jsRes.ok) throw new Error("script.js が取得できませんでした。");
         const jsText = await jsRes.text();
 
-        // 2. 現在のレイアウトデータをJSON化
         const data = generateLayoutData();
         const jsonString = JSON.stringify(data);
 
-        // 3. 現在表示されているDOMをそのままメモリ上で複製
         const htmlClone = document.documentElement.cloneNode(true);
 
-        // 4. クローン側の不要な状態をリセット
         const containerClone = htmlClone.querySelector('#container');
         if (containerClone) containerClone.innerHTML = ''; 
         
@@ -1109,28 +1167,23 @@ addClick('export-html-btn', async () => {
         const sidebarClone = htmlClone.querySelector('.sidebar');
         if (sidebarClone) sidebarClone.remove();
 
-        // 5. 既存の外部ファイル読み込み（link, script）を削除
         htmlClone.querySelectorAll('link[rel="stylesheet"]').forEach(el => {
             if (el.href && el.href.includes('style.css')) el.remove();
         });
         htmlClone.querySelectorAll('script').forEach(el => {
-            el.remove(); // 外部スクリプト読み込みタグを削除
+            el.remove(); 
         });
 
-        // 6. 取得したCSSを <style> タグとして head に埋め込む
         const styleTag = document.createElement('style');
         styleTag.textContent = cssText;
         htmlClone.querySelector('head').appendChild(styleTag);
 
-        // 7. 取得したJSを <script> タグとして body の最後に埋め込む
         const scriptTag = document.createElement('script');
-        // 初期化データとロジックを結合して1つのスクリプトにまとめる
         scriptTag.textContent = `window.__INIT_DATA__ = ${jsonString};\n\n${jsText}`;
         htmlClone.querySelector('body').appendChild(scriptTag);
 
         const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
 
-        // 8. 完全独立した1ファイルとしてダウンロード
         const blob = new Blob([htmlText], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1150,9 +1203,7 @@ addClick('export-html-btn', async () => {
 /* ==========================================
    公開版HTMLとしての初期化処理
    ========================================== */
-// 書き出された単独ファイルが開かれた時にのみ実行されるブロック
 if (typeof window.__INIT_DATA__ !== 'undefined') {
-    // 念のためサイドバー等があれば完全に削除
     const sidebar = document.querySelector('.sidebar');
     if (sidebar) sidebar.remove();
 
@@ -1160,7 +1211,6 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
     count = 0; 
     variableRanges = {}; 
     
-    // 埋め込まれたレイアウトデータからアイテムを復元
     window.__INIT_DATA__.forEach(item => {
         if (item.type === 'config') {
             variableRanges = item.variableRanges || {};
@@ -1169,7 +1219,6 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
         }
     });
 
-    // 少し待ってから（DOMの描画を確実に完了させてから）実行モードに強制移行
     setTimeout(() => {
         enterRunMode();
     }, 50);

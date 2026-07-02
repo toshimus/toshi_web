@@ -162,6 +162,7 @@ body, html {
     text-overflow: ellipsis;
     padding: 2px;
     box-sizing: border-box;
+    position: relative;
 }
 
 /* 実行モードでは数字メインなので大きく表示 */
@@ -183,6 +184,7 @@ body.run-mode .ans-rect {
     font-family: sans-serif;
     user-select: none;
     -webkit-user-select: none;
+    position: relative;
 }
 
 /* 変数のみ（[??]）のテキストに対する、解答欄と同様のサイズ調整 */
@@ -431,4 +433,43 @@ body.run-mode .draggable[data-type="formula"] {
     padding: 4px;
     border: 1px solid #bdc3c7;
     border-radius: 4px;
+}
+
+/* ★追加：枠分割機能用のスタイル */
+.split-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+.split-cell {
+    flex: 1;
+    border-right: 2px dashed #3498db; /* 解答欄用の色 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    font-size: inherit;
+    color: inherit;
+    font-weight: inherit;
+    overflow: hidden;
+}
+.split-cell:last-child {
+    border-right: none;
+}
+.text-rect .split-cell {
+    border-right: 2px dashed rgba(0,0,0,0.2); /* テキスト用の色 */
+}
+.id-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none; /* クリックを邪魔しない */
+    color: #333;
+    font-weight: bold;
+    font-size: calc(var(--grid-cell-h) * 0.7);
+    white-space: nowrap;
+    text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff;
+    z-index: 2;
 }

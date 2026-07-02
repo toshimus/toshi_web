@@ -71,6 +71,10 @@
             <input type="text" id="ans-prop-id" class="prop-setting-input" style="text-align: left; width: 120px;" placeholder="例: [q1]">
         </div>
         <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">桁分割(0で無効)</strong>
+            <input type="number" id="ans-prop-digits" class="prop-setting-input" style="width: 70px;" min="0">
+        </div>
+        <div class="prop-setting-row">
             <strong style="font-size: 1.1rem; color:#333;">入力モード</strong>
             <select id="ans-prop-mode" class="prop-select" style="width: 130px;">
                 <option value="0-20">0〜20入力</option>
@@ -79,6 +83,19 @@
             </select>
         </div>
         <button id="save-ans-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+    </div>
+
+    <div class="pieces-container" id="text-prop-container" style="max-width: 350px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">文字プロパティ</h3>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">内容</strong>
+            <input type="text" id="text-prop-content" class="prop-setting-input" style="text-align: left; width: 180px;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">桁分割(0で無効)</strong>
+            <input type="number" id="text-prop-digits" class="prop-setting-input" style="width: 70px;" min="0">
+        </div>
+        <button id="save-text-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
     </div>
 
     <div class="pieces-container" id="line-prop-container" style="max-width: 300px; cursor: default;">
