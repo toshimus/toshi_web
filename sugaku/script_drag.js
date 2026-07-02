@@ -548,7 +548,13 @@ function createDraggable(type, itemData = null) {
                 
             } else if (type === 'check') {
                 if (!isEditMode) {
-                    runValidation();
+                    if (isSolved) {
+                        if (typeof window.loadNextProblem === 'function') {
+                            window.loadNextProblem();
+                        }
+                    } else {
+                        runValidation();
+                    }
                 } else {
                     document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
                     wrapper.classList.add('wrapper-selected');

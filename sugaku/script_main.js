@@ -195,6 +195,11 @@ function enterRunMode() {
     document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
     currentVarValues = {};
     
+    // 正解状態のリセット
+    isSolved = false;
+    const checkRect = document.querySelector('.check-rect');
+    if (checkRect) checkRect.textContent = "できた";
+    
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
     const knownAnswerIds = new Set();
     answerWrappers.forEach(w => {
@@ -228,6 +233,11 @@ function enterRunMode() {
 function enterEditMode() {
     isEditMode = true;
     document.body.classList.remove('run-mode');
+
+    // 正解状態のリセット
+    isSolved = false;
+    const checkRect = document.querySelector('.check-rect');
+    if (checkRect) checkRect.textContent = "できた";
 
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');

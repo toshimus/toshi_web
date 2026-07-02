@@ -6,6 +6,7 @@ let variableRanges = {};
 let activeAnsWrapper = null;
 let activeTextWrapper = null;
 let activeLineWrapper = null; 
+let isSolved = false; // 正解状態を管理するフラグ
 
 // グリッド背景の生成
 for (let i = 0; i < 32 * 24; i++) {
@@ -179,6 +180,17 @@ function showToast(message) {
     }, 2500);
 }
 
+// 画面クリックでトーストを即座にフェードアウト
+const hideToast = (e) => {
+    // できた/次の問題へボタンをクリックした際は、判定処理と被らないよう除外します
+    if (toast.classList.contains('show') && !e.target.closest('.check-rect')) {
+        toast.classList.remove('show');
+        if (toastTimer) clearTimeout(toastTimer);
+    }
+};
+document.addEventListener('mousedown', hideToast);
+document.addEventListener('touchstart', hideToast, { passive: true });
+
 function runValidation() {
     const answers = Array.from(container.querySelectorAll('.draggable[data-type="answer"]'));
     const formulas = Array.from(container.querySelectorAll('.draggable[data-type="formula"]'));
@@ -274,7 +286,7 @@ function runValidation() {
 
     // --- 空欄チェックロジック（新形式・旧形式の両対応） ---
     let hasEmpty = false;
-    let groupStatus = {}; // 旧形式の桁グループを管理するオブジェクト
+    let groupStatus = {}; 
 
     answers.forEach(w => {
         const id = w.dataset.answerId;
@@ -282,47 +294,40 @@ function runValidation() {
         const digits = parseInt(w.dataset.digits) || 0;
         
         if (digits > 0) {
-            // 【新形式】1つの枠内で分割されている場合のチェック
             const cells = Array.from(el.querySelectorAll('.split-cell'));
             const vals = cells.map(c => c.textContent.trim());
             const firstFilled = vals.findIndex(v => v !== "");
             
             if (firstFilled === -1) {
-                hasEmpty = true; // 全部空欄
+                hasEmpty = true; 
             } else {
                 for (let i = firstFilled + 1; i < vals.length; i++) {
-                    if (vals[i] === "") hasEmpty = true; // 途中抜け
+                    if (vals[i] === "") hasEmpty = true; 
                 }
             }
         } else {
-            // 【旧形式】バラバラに配置されている場合のチェック
             const cleanId = id.replace(/[\[\]]/g, '');
             const val = el.textContent.trim();
             const match = cleanId.match(/^(.+)-(\d+)$/);
             
             if (match) {
-                // [q1-3] のようにハイフンと数字で終わる場合はグループ化
                 const baseId = match[1];
                 const digit = parseInt(match[2]);
                 if (!groupStatus[baseId]) groupStatus[baseId] = [];
-                groupStatus[baseId][digit] = val; // 桁数をインデックスにして格納
+                groupStatus[baseId][digit] = val; 
             } else {
-                // 通常の単独枠
                 if (val === "") hasEmpty = true;
             }
         }
     });
 
-    // 旧形式グループの空欄・途中抜け判定
     for (const baseId in groupStatus) {
         const arr = groupStatus[baseId];
         let started = false;
         let allEmpty = true;
         
-        // 上位桁（配列のインデックスが大きい方）から走査します
         const maxDigit = arr.length - 1;
         for (let i = maxDigit; i >= 1; i--) {
-            // 配置されていない桁(undefined)も空欄("")として扱う
             const val = arr[i] === undefined ? "" : arr[i];
             
             if (val !== "") {
@@ -330,16 +335,28 @@ function runValidation() {
                 allEmpty = false;
             } else {
                 if (started) {
-                    hasEmpty = true; // 数字が始まっているのに空欄がある＝途中抜けエラー
+                    hasEmpty = true; 
                 }
             }
         }
-        if (allEmpty) hasEmpty = true; // すべて空欄の場合
+        if (allEmpty) hasEmpty = true; 
     }
 
     if (hasEmpty) {
         showToast("まだ空欄があります");
     } else {
-        showToast(allCorrect ? "正解！" : "おしい！");
+        if (allCorrect) {
+            showToast("正解！");
+            isSolved = true;
+            const checkRect = document.querySelector('.check-rect');
+            if (checkRect) checkRect.textContent = "次の問題へ";
+        } else {
+            showToast("おしい！");
+        }
     }
 }
+
+// 次の問題を読み込むためのプレースホルダー関数
+window.loadNextProblem = function() {
+    alert("次の問題へ移行します。（※連携するシステムの仕様に合わせてここに遷移処理を実装します）");
+};
