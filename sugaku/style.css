@@ -435,16 +435,25 @@ body.run-mode .draggable[data-type="formula"] {
     border-radius: 4px;
 }
 
-/* ★追加：枠分割機能用のスタイル */
+/* ★変更：枠分割機能用のスタイル（独立した□を並べる構造へ進化） */
 .split-container {
     display: flex;
+    justify-content: center; /* 中央に配置 */
+    align-items: center;     /* 上下中央に配置 */
+    gap: 4px;                /* 各マス目の間の隙間 */
     width: 100%;
     height: 100%;
     position: relative;
+    padding: 2px;            /* コンテナ内側のはみ出し防止 */
+    box-sizing: border-box;
 }
 .split-cell {
-    flex: 1;
-    border-right: 2px dashed #3498db; /* 解答欄用の色 */
+    flex: 1;                 /* 親の横幅に対して分割数に応じた均等サイズを自動計算 */
+    height: 100%;
+    max-width: 2.5em;        /* マス目が横に広がりすぎるのを防止 */
+    border: 2px solid #3498db; /* 全周を囲み、独立したマスとして描画 */
+    border-radius: 4px;      /* 柔らかな角丸 */
+    background-color: #fff;  /* マスの中身を白に */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -454,11 +463,9 @@ body.run-mode .draggable[data-type="formula"] {
     font-weight: inherit;
     overflow: hidden;
 }
-.split-cell:last-child {
-    border-right: none;
-}
 .text-rect .split-cell {
-    border-right: 2px dashed rgba(0,0,0,0.2); /* テキスト用の色 */
+    border: 2px solid rgba(0,0,0,0.2); /* テキスト変数の場合は枠の色を落ち着かせる */
+    background-color: transparent;     /* 背景は透過 */
 }
 .id-label {
     position: absolute;
