@@ -272,28 +272,72 @@ function runValidation() {
         return;
     }
 
-    const anyEmpty = answers.some(w => {
+    // --- 空欄チェックロジック（新形式・旧形式の両対応） ---
+    let hasEmpty = false;
+    let groupStatus = {}; // 旧形式の桁グループを管理するオブジェクト
+
+    answers.forEach(w => {
+        const id = w.dataset.answerId;
         const el = w.querySelector('.ans-rect');
         const digits = parseInt(w.dataset.digits) || 0;
+        
         if (digits > 0) {
+            // 【新形式】1つの枠内で分割されている場合のチェック
             const cells = Array.from(el.querySelectorAll('.split-cell'));
             const vals = cells.map(c => c.textContent.trim());
             const firstFilled = vals.findIndex(v => v !== "");
             
-            // すべて空欄の場合はNG
-            if (firstFilled === -1) return true;
-            
-            // 最初に入力された桁より下に空欄があればNG（上位の空欄はスルーされる）
-            for (let i = firstFilled + 1; i < vals.length; i++) {
-                if (vals[i] === "") return true;
+            if (firstFilled === -1) {
+                hasEmpty = true; // 全部空欄
+            } else {
+                for (let i = firstFilled + 1; i < vals.length; i++) {
+                    if (vals[i] === "") hasEmpty = true; // 途中抜け
+                }
             }
-            return false;
         } else {
-            return el.textContent.trim() === "";
+            // 【旧形式】バラバラに配置されている場合のチェック
+            const cleanId = id.replace(/[\[\]]/g, '');
+            const val = el.textContent.trim();
+            const match = cleanId.match(/^(.+)-(\d+)$/);
+            
+            if (match) {
+                // [q1-3] のようにハイフンと数字で終わる場合はグループ化
+                const baseId = match[1];
+                const digit = parseInt(match[2]);
+                if (!groupStatus[baseId]) groupStatus[baseId] = [];
+                groupStatus[baseId][digit] = val; // 桁数をインデックスにして格納
+            } else {
+                // 通常の単独枠
+                if (val === "") hasEmpty = true;
+            }
         }
     });
 
-    if (anyEmpty) {
+    // 旧形式グループの空欄・途中抜け判定
+    for (const baseId in groupStatus) {
+        const arr = groupStatus[baseId];
+        let started = false;
+        let allEmpty = true;
+        
+        // 上位桁（配列のインデックスが大きい方）から走査します
+        const maxDigit = arr.length - 1;
+        for (let i = maxDigit; i >= 1; i--) {
+            // 配置されていない桁(undefined)も空欄("")として扱う
+            const val = arr[i] === undefined ? "" : arr[i];
+            
+            if (val !== "") {
+                started = true;
+                allEmpty = false;
+            } else {
+                if (started) {
+                    hasEmpty = true; // 数字が始まっているのに空欄がある＝途中抜けエラー
+                }
+            }
+        }
+        if (allEmpty) hasEmpty = true; // すべて空欄の場合
+    }
+
+    if (hasEmpty) {
         showToast("まだ空欄があります");
     } else {
         showToast(allCorrect ? "正解！" : "おしい！");

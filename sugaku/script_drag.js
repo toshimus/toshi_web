@@ -143,6 +143,7 @@ function renderAnswer(wrapper) {
     el.innerHTML = '';
     
     if (digits > 0) {
+        el.classList.add('is-split'); // 分割用のスタイルを適用
         const container = document.createElement('div');
         container.className = 'split-container';
         for (let i = 0; i < digits; i++) {
@@ -159,6 +160,7 @@ function renderAnswer(wrapper) {
             el.appendChild(label);
         }
     } else {
+        el.classList.remove('is-split'); // 単独枠の場合は元に戻す
         if (isEditMode) {
             el.textContent = answerId;
         } else {

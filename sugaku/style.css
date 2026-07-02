@@ -165,6 +165,13 @@ body, html {
     position: relative;
 }
 
+/* 新形式（分割）の外枠を透明にして、旧形式と見た目を統一する */
+.ans-rect.is-split {
+    border: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
 /* 実行モードでは数字メインなので大きく表示 */
 body.run-mode .ans-rect {
     font-size: calc(var(--grid-cell-h) * 1.2);
@@ -435,25 +442,25 @@ body.run-mode .draggable[data-type="formula"] {
     border-radius: 4px;
 }
 
-/* ★変更：枠分割機能用のスタイル（独立した□を並べる構造へ進化） */
+/* 枠分割機能用のスタイル（独立した□を並べる構造） */
 .split-container {
     display: flex;
-    justify-content: center; /* 中央に配置 */
-    align-items: center;     /* 上下中央に配置 */
-    gap: 4px;                /* 各マス目の間の隙間 */
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
     width: 100%;
     height: 100%;
     position: relative;
-    padding: 2px;            /* コンテナ内側のはみ出し防止 */
+    padding: 2px;
     box-sizing: border-box;
 }
 .split-cell {
-    flex: 1;                 /* 親の横幅に対して分割数に応じた均等サイズを自動計算 */
+    flex: 1;                 
     height: 100%;
-    max-width: 2.5em;        /* マス目が横に広がりすぎるのを防止 */
-    border: 2px solid #3498db; /* 全周を囲み、独立したマスとして描画 */
-    border-radius: 4px;      /* 柔らかな角丸 */
-    background-color: #fff;  /* マスの中身を白に */
+    max-width: 2.5em;        
+    border: 3px dashed #3498db;  /* 旧形式と同じ枠線 */
+    background-color: #f0f8ff;   /* 旧形式と同じ背景色 */
+    border-radius: calc(100% / 8); /* 旧形式と同じ角丸 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -464,8 +471,8 @@ body.run-mode .draggable[data-type="formula"] {
     overflow: hidden;
 }
 .text-rect .split-cell {
-    border: 2px solid rgba(0,0,0,0.2); /* テキスト変数の場合は枠の色を落ち着かせる */
-    background-color: transparent;     /* 背景は透過 */
+    border: 2px solid rgba(0,0,0,0.2); 
+    background-color: transparent;     
 }
 .id-label {
     position: absolute;
