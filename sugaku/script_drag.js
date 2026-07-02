@@ -147,9 +147,12 @@ function renderAnswer(wrapper) {
         const container = document.createElement('div');
         container.className = 'split-container';
         for (let i = 0; i < digits; i++) {
+            const cellWrapper = document.createElement('div');
+            cellWrapper.className = 'split-cell-wrapper';
             const cell = document.createElement('div');
             cell.className = 'split-cell';
-            container.appendChild(cell);
+            cellWrapper.appendChild(cell);
+            container.appendChild(cellWrapper);
         }
         el.appendChild(container);
         
@@ -182,9 +185,12 @@ function renderText(wrapper) {
             const container = document.createElement('div');
             container.className = 'split-container';
             for (let i = 0; i < digits; i++) {
+                const cellWrapper = document.createElement('div');
+                cellWrapper.className = 'split-cell-wrapper';
                 const cell = document.createElement('div');
                 cell.className = 'split-cell';
-                container.appendChild(cell);
+                cellWrapper.appendChild(cell);
+                container.appendChild(cellWrapper);
             }
             el.appendChild(container);
             const label = document.createElement('div');
@@ -204,11 +210,14 @@ function renderText(wrapper) {
                 const container = document.createElement('div');
                 container.className = 'split-container';
                 for (let i = 0; i < digits; i++) {
+                    const cellWrapper = document.createElement('div');
+                    cellWrapper.className = 'split-cell-wrapper';
                     const cell = document.createElement('div');
                     cell.className = 'split-cell';
                     let char = valStr[i] === ' ' ? '' : valStr[i];
                     cell.innerHTML = char !== '' ? `<span style="color:${range.color}; font-size:${range.size}em;">${char}</span>` : '';
-                    container.appendChild(cell);
+                    cellWrapper.appendChild(cell);
+                    container.appendChild(cellWrapper);
                 }
                 el.appendChild(container);
                 return;
