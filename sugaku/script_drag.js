@@ -171,6 +171,7 @@ function renderAnswer(wrapper) {
         }
     }
 }
+window.renderAnswer = renderAnswer; // グローバルアクセス用
 
 function renderText(wrapper) {
     const el = wrapper.querySelector('.text-rect');
@@ -239,6 +240,7 @@ function renderText(wrapper) {
         el.innerHTML = replacedText;
     }
 }
+window.renderText = renderText; // グローバルアクセス用
 
 /* ==========================================
    ドラッグ可能要素の生成と制御

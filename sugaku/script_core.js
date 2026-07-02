@@ -8,6 +8,12 @@ let activeTextWrapper = null;
 let activeLineWrapper = null; 
 let isSolved = false; // 正解状態を管理するフラグ
 
+// ---- 新規追加: 10問対応用の状態管理 ----
+window.currentQuestionNum = 1;
+window.MAX_QUESTIONS = 10;
+window.usedVarHistory = new Set();
+// ----------------------------------------
+
 // グリッド背景の生成
 for (let i = 0; i < 32 * 24; i++) {
     const cell = document.createElement('div');
@@ -356,7 +362,145 @@ function runValidation() {
     }
 }
 
-// 次の問題を読み込むためのプレースホルダー関数
+// ---- 追加: 重複しない変数の生成と10問制御・結果表示 ----
+window.generateProblemVars = function() {
+    const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+    const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+    const knownAnswerIds = new Set();
+    answerWrappers.forEach(w => {
+        if (w.dataset.answerId) knownAnswerIds.add(w.dataset.answerId);
+    });
+
+    let newVars = {};
+    let attempts = 0;
+    let signature = "";
+    
+    // 過去の出題と被らないよう最大100回試行
+    do {
+        newVars = {};
+        textWrappers.forEach(wrapper => {
+            const content = wrapper.dataset.originalContent;
+            if (content) {
+                const matches = content.match(/\[[^\]]+\]/g);
+                if (matches) {
+                    matches.forEach(varName => {
+                        if (!knownAnswerIds.has(varName) && !(varName in newVars)) {
+                            const range = variableRanges[varName] || { min: 1, max: 9 };
+                            const min = range.min !== undefined ? range.min : 1;
+                            const max = range.max !== undefined ? range.max : 9;
+                            newVars[varName] = Math.floor(Math.random() * (max - min + 1)) + min;
+                        }
+                    });
+                }
+            }
+        });
+        
+        signature = JSON.stringify(newVars, Object.keys(newVars).sort());
+        attempts++;
+    } while (window.usedVarHistory.has(signature) && Object.keys(newVars).length > 0 && attempts < 100);
+
+    if (Object.keys(newVars).length > 0) {
+        window.usedVarHistory.add(signature);
+    }
+    currentVarValues = newVars;
+};
+
 window.loadNextProblem = function() {
-    alert("次の問題へ移行します。（※連携するシステムの仕様に合わせてここに遷移処理を実装します）");
+    if (window.currentQuestionNum >= window.MAX_QUESTIONS) {
+        window.showResultScreen();
+        return;
+    }
+    
+    window.currentQuestionNum++;
+    isSolved = false;
+    const checkRect = document.querySelector('.check-rect');
+    if (checkRect) checkRect.textContent = "できた";
+
+    const toastMsg = document.querySelector('.toast-msg');
+    if (toastMsg) toastMsg.classList.remove('show');
+
+    // 次の問題の変数を生成してUI更新
+    window.generateProblemVars();
+    const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+    const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+    textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : renderText(wrapper));
+    answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : renderAnswer(wrapper));
+};
+
+window.showResultScreen = function() {
+    const toastMsg = document.querySelector('.toast-msg');
+    if (toastMsg) toastMsg.classList.remove('show');
+
+    let resultOverlay = document.getElementById('result-overlay');
+    if (!resultOverlay) {
+        resultOverlay = document.createElement('div');
+        resultOverlay.id = 'result-overlay';
+        resultOverlay.style.position = 'fixed';
+        resultOverlay.style.top = '0';
+        resultOverlay.style.left = '0';
+        resultOverlay.style.width = '100%';
+        resultOverlay.style.height = '100%';
+        resultOverlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+        resultOverlay.style.color = '#fff';
+        resultOverlay.style.display = 'flex';
+        resultOverlay.style.flexDirection = 'column';
+        resultOverlay.style.justifyContent = 'center';
+        resultOverlay.style.alignItems = 'center';
+        resultOverlay.style.zIndex = '3000';
+        
+        const title = document.createElement('h1');
+        title.textContent = '全' + window.MAX_QUESTIONS + '問 クリア！';
+        title.style.fontSize = '4rem';
+        title.style.marginBottom = '20px';
+        title.style.textShadow = '0 0 10px rgba(255,255,255,0.5)';
+        
+        const subText = document.createElement('p');
+        subText.textContent = '素晴らしい結果です！お疲れ様でした。';
+        subText.style.fontSize = '1.5rem';
+        subText.style.marginBottom = '40px';
+
+        const btnContainer = document.createElement('div');
+        btnContainer.style.display = 'flex';
+        btnContainer.style.gap = '20px';
+
+        const replayBtn = document.createElement('button');
+        replayBtn.textContent = 'もう一度プレイ';
+        replayBtn.style.padding = '15px 30px';
+        replayBtn.style.fontSize = '1.2rem';
+        replayBtn.style.backgroundColor = '#3498db';
+        replayBtn.style.color = '#fff';
+        replayBtn.style.border = 'none';
+        replayBtn.style.borderRadius = '8px';
+        replayBtn.style.cursor = 'pointer';
+        replayBtn.style.fontWeight = 'bold';
+        replayBtn.onclick = () => {
+            resultOverlay.style.display = 'none';
+            if (typeof window.enterRunMode === 'function') window.enterRunMode();
+        };
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '編集に戻る';
+        editBtn.style.padding = '15px 30px';
+        editBtn.style.fontSize = '1.2rem';
+        editBtn.style.backgroundColor = '#e74c3c';
+        editBtn.style.color = '#fff';
+        editBtn.style.border = 'none';
+        editBtn.style.borderRadius = '8px';
+        editBtn.style.cursor = 'pointer';
+        editBtn.style.fontWeight = 'bold';
+        editBtn.onclick = () => {
+            resultOverlay.style.display = 'none';
+            if (typeof window.enterEditMode === 'function') window.enterEditMode();
+            const runBtn = document.getElementById('run-btn');
+            if (runBtn) { runBtn.textContent = '実行モードへ'; runBtn.style.backgroundColor = '#2ecc71'; }
+        };
+        
+        btnContainer.appendChild(replayBtn);
+        btnContainer.appendChild(editBtn);
+        resultOverlay.appendChild(title);
+        resultOverlay.appendChild(subText);
+        resultOverlay.appendChild(btnContainer);
+        document.body.appendChild(resultOverlay);
+    }
+    resultOverlay.style.display = 'flex';
 };
