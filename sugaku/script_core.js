@@ -196,8 +196,21 @@ function runValidation() {
         let val;
         if (digits > 0) {
             const cells = Array.from(el.querySelectorAll('.split-cell'));
-            const str = cells.map(c => c.textContent.trim()).join('');
-            val = str === "" ? NaN : parseFloat(str);
+            const vals = cells.map(c => c.textContent.trim());
+            
+            // 左から見て、最初に入力されているマスのインデックスを取得
+            const firstFilled = vals.findIndex(v => v !== "");
+            
+            if (firstFilled === -1) {
+                val = NaN; // すべて空欄
+            } else {
+                let isValid = true;
+                // 最初に入力された桁より「下（右側）」の桁に空欄がないかチェック
+                for (let i = firstFilled + 1; i < vals.length; i++) {
+                    if (vals[i] === "") isValid = false; 
+                }
+                val = isValid ? parseFloat(vals.slice(firstFilled).join('')) : NaN;
+            }
         } else {
             val = parseFloat(el.textContent);
         }
@@ -264,8 +277,17 @@ function runValidation() {
         const digits = parseInt(w.dataset.digits) || 0;
         if (digits > 0) {
             const cells = Array.from(el.querySelectorAll('.split-cell'));
-            const str = cells.map(c => c.textContent.trim()).join('');
-            return str === ""; 
+            const vals = cells.map(c => c.textContent.trim());
+            const firstFilled = vals.findIndex(v => v !== "");
+            
+            // すべて空欄の場合はNG
+            if (firstFilled === -1) return true;
+            
+            // 最初に入力された桁より下に空欄があればNG（上位の空欄はスルーされる）
+            for (let i = firstFilled + 1; i < vals.length; i++) {
+                if (vals[i] === "") return true;
+            }
+            return false;
         } else {
             return el.textContent.trim() === "";
         }
