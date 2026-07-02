@@ -25,6 +25,9 @@ const stdCalcDisplay = document.getElementById('std-calc-display');
 let activeInputBox = null;
 let stdCalcValue = "";
 
+// ★修正：公開版でスクリプトが実行された際、ボタンが増殖するのを防ぐため中身をリセット
+if (calc0to20View) calc0to20View.innerHTML = '';
+
 // 0〜20電卓パネル
 const numPad = document.createElement('div');
 numPad.className = 'num-pad';
@@ -46,6 +49,10 @@ calc0to20View.appendChild(numPad);
 
 // 即決0-9電卓パネル
 const quickPadInner = document.getElementById('quick-pad-inner');
+
+// ★修正：公開版でスクリプトが実行された際、ボタンが増殖するのを防ぐため中身をリセット
+if (quickPadInner) quickPadInner.innerHTML = '';
+
 for (let i = 0; i <= 9; i++) {
     const piece = document.createElement('div');
     piece.className = 'piece quick-btn';
