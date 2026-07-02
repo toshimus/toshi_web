@@ -112,7 +112,7 @@ body, html {
     width: 90%;
     height: 90%;
     background-color: #44FFFF; 
-    border-radius: calc(100% / 8);
+    border-radius: calc(var(--grid-cell-h) * 0.4); /* 角丸を一定の円弧に修正 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -131,7 +131,7 @@ body, html {
     height: 90%;
     border: 3px dashed #3498db;
     background-color: #f0f8ff;
-    border-radius: calc(100% / 8);
+    border-radius: calc(var(--grid-cell-h) * 0.4); /* 角丸を一定の円弧に修正 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -173,7 +173,8 @@ body.run-mode .ans-rect {
     cursor: grab;
     color: #333;
     font-weight: bold;
-    font-size: calc(var(--grid-cell-h) * 1.2);
+    /* ★変更: カスタムプロパティ var(--text-scale, 1) を乗算して文字サイズ倍率を反映 */
+    font-size: calc(var(--grid-cell-h) * 1.2 * var(--text-scale, 1));
     font-family: sans-serif;
     user-select: none;
     -webkit-user-select: none;
@@ -181,7 +182,8 @@ body.run-mode .ans-rect {
 }
 
 .text-rect.single-var-text {
-    font-size: calc(var(--grid-cell-h) * 0.7); 
+    /* ★変更: 文字サイズ倍率を反映 */
+    font-size: calc(var(--grid-cell-h) * 0.7 * var(--text-scale, 1)); 
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -189,7 +191,8 @@ body.run-mode .ans-rect {
     box-sizing: border-box;
 }
 body.run-mode .text-rect.single-var-text {
-    font-size: calc(var(--grid-cell-h) * 1.2);
+    /* ★変更: 文字サイズ倍率を反映 */
+    font-size: calc(var(--grid-cell-h) * 1.2 * var(--text-scale, 1));
 }
 
 .formula-rect {
@@ -211,7 +214,7 @@ body.run-mode .text-rect.single-var-text {
     width: 90%;
     height: 90%;
     background-color: #e67e22;
-    border-radius: calc(100% / 8);
+    border-radius: calc(var(--grid-cell-h) * 0.4); /* 角丸を一定の円弧に修正 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -248,8 +251,8 @@ body.run-mode .text-rect.single-var-text {
 .pieces-container:active { cursor: grabbing; }
 
 .num-pad { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; width: 100%; }
-.num-pad-square { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 400px; margin: 0 auto; }
-.num-pad-square .piece { aspect-ratio: 1 / 1; height: auto; display: flex; justify-content: center; align-items: center; }
+.num-pad-square { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 220px; margin: 0 auto; }
+.num-pad-square .piece { height: 50px; display: flex; justify-content: center; align-items: center; font-size: 1.4rem; }
 .standard-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; }
 
 .calc-display {
@@ -311,7 +314,7 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
     height: 90%;
     border: 3px dashed #3498db;  
     background-color: #f0f8ff;   
-    border-radius: calc(100% / 8); 
+    border-radius: calc(var(--grid-cell-h) * 0.4); /* 角丸を一定の円弧に修正 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -337,4 +340,14 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
     white-space: nowrap;
     text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff;
     z-index: 2;
+}
+
+/* 矩形選択ボックスのスタイルを追加 */
+.selection-box {
+    position: absolute;
+    border: 1px solid rgba(52, 152, 219, 0.8);
+    background-color: rgba(52, 152, 219, 0.2);
+    z-index: 1000;
+    pointer-events: none;
+    display: none;
 }

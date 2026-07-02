@@ -24,6 +24,8 @@ addClick('save-text-prop-btn', () => {
         if (newTxt !== "") {
             activeTextWrapper.dataset.originalContent = newTxt;
             activeTextWrapper.dataset.digits = document.getElementById('text-prop-digits').value;
+            // ★追加: フォントサイズの保存処理
+            activeTextWrapper.dataset.fontSize = document.getElementById('text-prop-size').value; 
             const el = activeTextWrapper.querySelector('.text-rect');
             if (/^\s*\[[^\]]+\]\s*$/.test(newTxt)) {
                 el.classList.add('single-var-text');
@@ -58,13 +60,13 @@ addClick('add-line-btn', () => createDraggable('line'));
 addClick('add-check-btn', () => createDraggable('check'));
 
 addClick('delete-item-btn', () => {
-    const selected = document.querySelector('.wrapper-selected');
-    if (selected) {
-        if (confirm("選択中のアイテムを削除しますか？")) {
-            selected.remove();
+    const selectedItems = document.querySelectorAll('.wrapper-selected');
+    if (selectedItems.length > 0) {
+        if (confirm(`選択中のアイテム（${selectedItems.length}個）を削除しますか？`)) {
+            selectedItems.forEach(item => item.remove());
         }
     } else {
-        alert("削除するアイテムを選択してください（クリックで選択）。");
+        alert("削除するアイテムを選択してください（クリックまたは矩形選択）。");
     }
 });
 
@@ -181,6 +183,8 @@ function generateLayoutData() {
             }
             if (type === 'text') {
                 itemData.digits = parseInt(wrapper.dataset.digits) || 0;
+                // ★追加: フォントサイズの書き出し
+                itemData.fontSize = parseFloat(wrapper.dataset.fontSize) || 1.0; 
             }
         }
         data.push(itemData);
@@ -196,11 +200,9 @@ function enterRunMode() {
     document.body.classList.add('run-mode');
     document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
     
-    // ==== 変更箇所: 10問管理の初期化と変数生成 ====
     window.currentQuestionNum = 1;
     if (window.usedVarHistory) window.usedVarHistory.clear();
     
-    // 正解状態のリセット
     isSolved = false;
     const checkRect = document.querySelector('.check-rect');
     if (checkRect) checkRect.textContent = "できた";
@@ -210,7 +212,6 @@ function enterRunMode() {
     } else {
         currentVarValues = {};
     }
-    // ==============================================
 
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
@@ -223,7 +224,6 @@ function enterEditMode() {
     isEditMode = true;
     document.body.classList.remove('run-mode');
 
-    // 正解状態のリセット
     isSolved = false;
     const checkRect = document.querySelector('.check-rect');
     if (checkRect) checkRect.textContent = "できた";

@@ -84,13 +84,105 @@ document.addEventListener('touchmove', handleGlobalMove, { passive: false });
 document.addEventListener('mouseup', handleGlobalEnd);
 document.addEventListener('touchend', handleGlobalEnd);
 
-const deselectAll = (e) => {
-    if (!e.target.closest('.draggable') && !e.target.closest('.resize-handle') && !e.target.closest('.line-handle') && !e.target.closest('.pieces-container') && !e.target.closest('.sidebar')) {
+
+/* ==========================================
+   矩形選択機能
+   ========================================== */
+let isSelecting = false;
+let selectionStartX = 0;
+let selectionStartY = 0;
+let selectionBox = null;
+
+function initSelectionBox() {
+    selectionBox = document.createElement('div');
+    selectionBox.className = 'selection-box';
+    container.appendChild(selectionBox);
+}
+initSelectionBox();
+
+const startSelection = (e) => {
+    if (!isEditMode) return;
+    if (e.target.closest('.draggable') || e.target.closest('.resize-handle') || e.target.closest('.line-handle') || e.target.closest('.pieces-container') || e.target.closest('.sidebar')) {
+        return;
+    }
+    
+    if (!e.shiftKey) {
         document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
     }
+
+    isSelecting = true;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const cRect = container.getBoundingClientRect();
+    
+    selectionStartX = clientX - cRect.left;
+    selectionStartY = clientY - cRect.top;
+    
+    selectionBox.style.left = selectionStartX + 'px';
+    selectionBox.style.top = selectionStartY + 'px';
+    selectionBox.style.width = '0px';
+    selectionBox.style.height = '0px';
+    selectionBox.style.display = 'block';
 };
-document.addEventListener('mousedown', deselectAll);
-document.addEventListener('touchstart', deselectAll);
+
+const moveSelection = (e) => {
+    if (!isSelecting) return;
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const cRect = container.getBoundingClientRect();
+    
+    let currentX = clientX - cRect.left;
+    let currentY = clientY - cRect.top;
+    
+    currentX = Math.max(0, Math.min(currentX, cRect.width));
+    currentY = Math.max(0, Math.min(currentY, cRect.height));
+
+    const left = Math.min(selectionStartX, currentX);
+    const top = Math.min(selectionStartY, currentY);
+    const width = Math.abs(currentX - selectionStartX);
+    const height = Math.abs(currentY - selectionStartY);
+
+    selectionBox.style.left = left + 'px';
+    selectionBox.style.top = top + 'px';
+    selectionBox.style.width = width + 'px';
+    selectionBox.style.height = height + 'px';
+};
+
+const endSelection = (e) => {
+    if (!isSelecting) return;
+    isSelecting = false;
+    selectionBox.style.display = 'none';
+
+    const sLeft = parseFloat(selectionBox.style.left);
+    const sTop = parseFloat(selectionBox.style.top);
+    const sRight = sLeft + parseFloat(selectionBox.style.width);
+    const sBottom = sTop + parseFloat(selectionBox.style.height);
+
+    if (parseFloat(selectionBox.style.width) < 5 && parseFloat(selectionBox.style.height) < 5) {
+        return; 
+    }
+
+    const draggables = container.querySelectorAll('.draggable');
+    draggables.forEach(wrapper => {
+        const wLeft = wrapper.offsetLeft;
+        const wTop = wrapper.offsetTop;
+        const wRight = wLeft + wrapper.offsetWidth;
+        const wBottom = wTop + wrapper.offsetHeight;
+
+        const intersect = !(sRight < wLeft || sLeft > wRight || sBottom < wTop || sTop > wBottom);
+        if (intersect) {
+            wrapper.classList.add('wrapper-selected');
+        }
+    });
+};
+
+container.addEventListener('mousedown', startSelection);
+container.addEventListener('touchstart', startSelection, { passive: true });
+document.addEventListener('mousemove', moveSelection);
+document.addEventListener('touchmove', moveSelection);
+document.addEventListener('mouseup', endSelection);
+document.addEventListener('touchend', endSelection);
 
 
 /* ==========================================
@@ -438,7 +530,6 @@ function createDraggable(type, itemData = null) {
     let isDragging = false;
     let hasMoved = false;
     let startX, startY;
-    let lineInitialStartX, lineInitialStartY, lineInitialEndX, lineInitialEndY;
     
     const dragStart = (e) => {
         if (!isEditMode && type !== 'answer' && type !== 'check') return; 
@@ -452,14 +543,40 @@ function createDraggable(type, itemData = null) {
         startX = clientX;
         startY = clientY;
 
-        if (type === 'line' && isEditMode) {
-            wrapper.querySelector('line').style.cursor = 'grabbing';
-            lineInitialStartX = parseFloat(wrapper.dataset.startX);
-            lineInitialStartY = parseFloat(wrapper.dataset.startY);
-            lineInitialEndX = parseFloat(wrapper.dataset.endX);
-            lineInitialEndY = parseFloat(wrapper.dataset.endY);
-        } else if (type !== 'check' && isEditMode) {
-            el.style.cursor = 'grabbing';
+        if (isEditMode) {
+            if (!wrapper.classList.contains('wrapper-selected')) {
+                document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+                wrapper.classList.add('wrapper-selected');
+            }
+
+            window.activeDragItems = [];
+            const selectedItems = document.querySelectorAll('.wrapper-selected');
+            selectedItems.forEach(item => {
+                const itemType = item.dataset.type;
+                if (itemType === 'line') {
+                    const lineEl = item.querySelector('line');
+                    if (lineEl) lineEl.style.cursor = 'grabbing';
+                    window.activeDragItems.push({
+                        element: item,
+                        type: 'line',
+                        lineInitialStartX: parseFloat(item.dataset.startX),
+                        lineInitialStartY: parseFloat(item.dataset.startY),
+                        lineInitialEndX: parseFloat(item.dataset.endX),
+                        lineInitialEndY: parseFloat(item.dataset.endY)
+                    });
+                } else {
+                    const innerDiv = item.querySelector('div');
+                    if (innerDiv && itemType !== 'check') innerDiv.style.cursor = 'grabbing';
+                    window.activeDragItems.push({
+                        element: item,
+                        type: itemType,
+                        initialGridX: parseInt(item.dataset.gridX) || 0,
+                        initialGridY: parseInt(item.dataset.gridY) || 0,
+                        wCells: parseInt(item.dataset.wCells) || 2,
+                        hCells: parseInt(item.dataset.hCells) || 2
+                    });
+                }
+            });
         }
     };
 
@@ -481,29 +598,37 @@ function createDraggable(type, itemData = null) {
         
         const cRect = container.getBoundingClientRect();
 
-        if (type === 'line') {
-            const dxCells = (clientX - startX) / (cRect.width / 32);
-            const dyCells = (clientY - startY) / (cRect.height / 24);
-            let snapDx = Math.round(dxCells * 2) / 2;
-            let snapDy = Math.round(dyCells * 2) / 2;
-            wrapper.dataset.startX = lineInitialStartX + snapDx;
-            wrapper.dataset.startY = lineInitialStartY + snapDy;
-            wrapper.dataset.endX = lineInitialEndX + snapDx;
-            wrapper.dataset.endY = lineInitialEndY + snapDy;
-            window.updateLineVisuals(wrapper);
-        } else {
-            let x = clientX - cRect.left - (wrapper.offsetWidth / 2);
-            let y = clientY - cRect.top - (wrapper.offsetHeight / 2);
-            let gridX = Math.round(x / (cRect.width / 32));
-            let gridY = Math.round(y / (cRect.height / 24));
-            let wCells = parseInt(wrapper.dataset.wCells) || 2;
-            let hCells = parseInt(wrapper.dataset.hCells) || 2;
-            gridX = Math.max(0, Math.min(gridX, 32 - wCells));
-            gridY = Math.max(0, Math.min(gridY, 24 - hCells));
-            wrapper.dataset.gridX = gridX;
-            wrapper.dataset.gridY = gridY;
-            wrapper.style.left = `calc(${gridX} * (100% / 32))`;
-            wrapper.style.top = `calc(${gridY} * (100% / 24))`;
+        const dxCells = (clientX - startX) / (cRect.width / 32);
+        const dyCells = (clientY - startY) / (cRect.height / 24);
+        
+        let snapDx = Math.round(dxCells);
+        let snapDy = Math.round(dyCells);
+        
+        let lineSnapDx = Math.round(dxCells * 2) / 2;
+        let lineSnapDy = Math.round(dyCells * 2) / 2;
+
+        if (window.activeDragItems) {
+            window.activeDragItems.forEach(dragData => {
+                const item = dragData.element;
+                if (dragData.type === 'line') {
+                    item.dataset.startX = dragData.lineInitialStartX + lineSnapDx;
+                    item.dataset.startY = dragData.lineInitialStartY + lineSnapDy;
+                    item.dataset.endX = dragData.lineInitialEndX + lineSnapDx;
+                    item.dataset.endY = dragData.lineInitialEndY + lineSnapDy;
+                    window.updateLineVisuals(item);
+                } else {
+                    let newGridX = dragData.initialGridX + snapDx;
+                    let newGridY = dragData.initialGridY + snapDy;
+                    
+                    newGridX = Math.max(0, Math.min(newGridX, 32 - dragData.wCells));
+                    newGridY = Math.max(0, Math.min(newGridY, 24 - dragData.hCells));
+                    
+                    item.dataset.gridX = newGridX;
+                    item.dataset.gridY = newGridY;
+                    item.style.left = `calc(${newGridX} * (100% / 32))`;
+                    item.style.top = `calc(${newGridY} * (100% / 24))`;
+                }
+            });
         }
     };
 
@@ -514,8 +639,19 @@ function createDraggable(type, itemData = null) {
         if (!isDragging) return;
         isDragging = false;
         
-        if (type === 'line' && isEditMode) wrapper.querySelector('line').style.cursor = 'grab';
-        else if (type !== 'check' && type !== 'line' && isEditMode) el.style.cursor = 'grab';
+        if (isEditMode && window.activeDragItems) {
+            window.activeDragItems.forEach(dragData => {
+                const item = dragData.element;
+                if (dragData.type === 'line') {
+                    const lineEl = item.querySelector('line');
+                    if (lineEl) lineEl.style.cursor = 'grab';
+                } else if (dragData.type !== 'check') {
+                    const innerDiv = item.querySelector('div');
+                    if (innerDiv) innerDiv.style.cursor = 'grab';
+                }
+            });
+            window.activeDragItems = null;
+        }
 
         if (!hasMoved) {
             if (type === 'answer' && !isEditMode) {
@@ -525,7 +661,7 @@ function createDraggable(type, itemData = null) {
                     if (cell && wrapper.contains(cell)) {
                         activeInputBox = cell;
                     } else {
-                        return; // セル以外がクリックされた場合は無視
+                        return; 
                     }
                 } else {
                     activeInputBox = el;
@@ -545,8 +681,32 @@ function createDraggable(type, itemData = null) {
                 } else {
                     calc0to20View.style.display = 'block';
                 }
+                
+                // ★追加：解答欄の位置に合わせて入力画面を配置する処理
                 calcContainer.style.display = 'flex';
                 overlay.style.display = 'block';
+                
+                calcContainer.style.transform = 'none'; // CSSの中央揃えを解除
+                const targetRect = activeInputBox.getBoundingClientRect();
+                const calcRect = calcContainer.getBoundingClientRect();
+                
+                let left = targetRect.left;
+                let top = targetRect.bottom + 10; // 基本は解答欄のすぐ下
+                
+                // 画面下にはみ出る場合は解答欄の上に配置
+                if (top + calcRect.height > window.innerHeight) {
+                    top = targetRect.top - calcRect.height - 10;
+                }
+                // 画面右にはみ出る場合は左に寄せる
+                if (left + calcRect.width > window.innerWidth) {
+                    left = window.innerWidth - calcRect.width - 10;
+                }
+                // 画面上や左にはみ出ないように最終調整
+                if (top < 0) top = 10;
+                if (left < 0) left = 10;
+                
+                calcContainer.style.left = left + 'px';
+                calcContainer.style.top = top + 'px';
                 
             } else if (type === 'check') {
                 if (!isEditMode) {
@@ -558,11 +718,15 @@ function createDraggable(type, itemData = null) {
                         runValidation();
                     }
                 } else {
-                    document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+                    if (!e.shiftKey) {
+                        document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+                    }
                     wrapper.classList.add('wrapper-selected');
                 }
             } else if (isEditMode) {
-                document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+                if (!e.shiftKey) {
+                    document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+                }
                 wrapper.classList.add('wrapper-selected');
             }
         }
