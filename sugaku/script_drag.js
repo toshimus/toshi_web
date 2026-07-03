@@ -318,7 +318,6 @@ function createDraggable(type, itemData = null) {
         line.style.pointerEvents = 'auto'; 
         line.style.cursor = 'grab';
         
-        // ★変更: dblclickの代わりに独自のbindDoubleTapを使用
         const lineHandler = (e) => {
             if (!isEditMode) return;
             e.stopPropagation();
@@ -397,7 +396,6 @@ function createDraggable(type, itemData = null) {
             wrapper.dataset.formula = itemData ? (itemData.formula || '') : ''; 
             wrapper.dataset.digits = itemData ? (itemData.digits || 0) : 0;
             
-            // ★変更: bindDoubleTapを使用
             const ansHandler = (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
@@ -419,7 +417,6 @@ function createDraggable(type, itemData = null) {
             el.classList.add('formula-rect');
             el.textContent = txt;
             
-            // ★変更: bindDoubleTapを使用
             const formulaHandler = (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
@@ -442,7 +439,6 @@ function createDraggable(type, itemData = null) {
                 el.classList.add('single-var-text');
             }
 
-            // ★変更: bindDoubleTapを使用
             const textHandler = (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
@@ -665,14 +661,21 @@ function createDraggable(type, itemData = null) {
                 calcContainer.style.left = left + 'px';
                 calcContainer.style.top = top + 'px';
                 
+            // ★変更: 判定ボタン(check)の重複クリック（ゴーストクリック）を防止する処理を追加
             } else if (type === 'check') {
                 if (!isEditMode) {
+                    const now = Date.now();
+                    if (window.lastCheckTime && now - window.lastCheckTime < 500) {
+                        return; // iOSなどのゴーストクリック（0.5秒以内の連続発火）を防止
+                    }
+                    window.lastCheckTime = now;
+
                     if (isSolved) {
                         if (typeof window.loadNextProblem === 'function') {
                             window.loadNextProblem();
                         }
                     } else {
-                        runValidation();
+                        if (typeof runValidation === 'function') runValidation();
                     }
                 } else {
                     if (!e.shiftKey) {
