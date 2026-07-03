@@ -7,6 +7,23 @@ let rStartX, rStartY;
 let rStartWCells, rStartHCells, rStartGridX, rStartGridY;
 let activeLineHandleData = null; 
 
+// ★追加: タッチデバイス向けダブルタップ検知ユーティリティ
+const bindDoubleTap = (element, handler) => {
+    element.addEventListener('dblclick', handler);
+    let lastTap = 0;
+    element.addEventListener('touchend', (e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        // 350ms以内の連続タップをダブルタップとして判定
+        if (tapLength > 0 && tapLength < 350) {
+            handler(e);
+            lastTap = 0; // リセット
+        } else {
+            lastTap = currentTime;
+        }
+    });
+};
+
 const handleGlobalMove = (e) => {
     if (!isEditMode) return;
     
@@ -235,7 +252,7 @@ function renderAnswer(wrapper) {
     el.innerHTML = '';
     
     if (digits > 0) {
-        el.classList.add('is-split'); // 分割用のスタイルを適用
+        el.classList.add('is-split'); 
         const container = document.createElement('div');
         container.className = 'split-container';
         for (let i = 0; i < digits; i++) {
@@ -255,7 +272,7 @@ function renderAnswer(wrapper) {
             el.appendChild(label);
         }
     } else {
-        el.classList.remove('is-split'); // 単独枠の場合は元に戻す
+        el.classList.remove('is-split'); 
         if (isEditMode) {
             el.textContent = answerId;
         } else {
@@ -263,76 +280,7 @@ function renderAnswer(wrapper) {
         }
     }
 }
-window.renderAnswer = renderAnswer; // グローバルアクセス用
-
-function renderText(wrapper) {
-    const el = wrapper.querySelector('.text-rect');
-    if (!el) return;
-    const digits = parseInt(wrapper.dataset.digits) || 0;
-    const originalContent = wrapper.dataset.originalContent || '';
-    
-    el.innerHTML = '';
-    
-    if (isEditMode) {
-        if (digits > 0) {
-            const container = document.createElement('div');
-            container.className = 'split-container';
-            for (let i = 0; i < digits; i++) {
-                const cellWrapper = document.createElement('div');
-                cellWrapper.className = 'split-cell-wrapper';
-                const cell = document.createElement('div');
-                cell.className = 'split-cell';
-                cellWrapper.appendChild(cell);
-                container.appendChild(cellWrapper);
-            }
-            el.appendChild(container);
-            const label = document.createElement('div');
-            label.className = 'id-label';
-            label.innerHTML = originalContent; 
-            el.appendChild(label);
-        } else {
-            el.innerHTML = originalContent;
-        }
-    } else {
-        if (digits > 0 && /^\s*\[[^\]]+\]\s*$/.test(originalContent)) {
-            const varName = originalContent.trim();
-            const val = currentVarValues[varName];
-            if (val !== undefined) {
-                const range = variableRanges[varName] || { color: '#e74c3c', size: 1.0 };
-                let valStr = String(val).padStart(digits, ' ');
-                const container = document.createElement('div');
-                container.className = 'split-container';
-                for (let i = 0; i < digits; i++) {
-                    const cellWrapper = document.createElement('div');
-                    cellWrapper.className = 'split-cell-wrapper';
-                    const cell = document.createElement('div');
-                    cell.className = 'split-cell';
-                    let char = valStr[i] === ' ' ? '' : valStr[i];
-                    cell.innerHTML = char !== '' ? `<span style="color:${range.color}; font-size:${range.size}em;">${char}</span>` : '';
-                    cellWrapper.appendChild(cell);
-                    container.appendChild(cellWrapper);
-                }
-                el.appendChild(container);
-                return;
-            }
-        }
-        
-        let replacedText = originalContent;
-        const sortedVars = Object.keys(currentVarValues).sort((a, b) => b.length - a.length);
-        for (const varName of sortedVars) {
-            const val = currentVarValues[varName];
-            if (val !== undefined) {
-                const range = variableRanges[varName] || { color: '#e74c3c', size: 1.0 };
-                const color = range.color || '#e74c3c';
-                const size = range.size || 1.0;
-                const styledHTML = `<span style="color:${color}; font-size:${size}em;">${val}</span>`;
-                replacedText = replacedText.split(varName).join(styledHTML);
-            }
-        }
-        el.innerHTML = replacedText;
-    }
-}
-window.renderText = renderText; // グローバルアクセス用
+window.renderAnswer = renderAnswer; 
 
 /* ==========================================
    ドラッグ可能要素の生成と制御
@@ -370,7 +318,8 @@ function createDraggable(type, itemData = null) {
         line.style.pointerEvents = 'auto'; 
         line.style.cursor = 'grab';
         
-        line.addEventListener('dblclick', (e) => {
+        // ★変更: dblclickの代わりに独自のbindDoubleTapを使用
+        const lineHandler = (e) => {
             if (!isEditMode) return;
             e.stopPropagation();
             activeLineWrapper = wrapper;
@@ -380,7 +329,8 @@ function createDraggable(type, itemData = null) {
             
             document.getElementById('line-prop-container').style.display = 'flex';
             document.getElementById('overlay').style.display = 'block';
-        });
+        };
+        bindDoubleTap(line, lineHandler);
         
         svg.appendChild(line);
         el.appendChild(svg);
@@ -410,7 +360,7 @@ function createDraggable(type, itemData = null) {
         wrapper.appendChild(hEnd);
         
         container.appendChild(wrapper);
-        window.updateLineVisuals(wrapper);
+        if (typeof window.updateLineVisuals === 'function') window.updateLineVisuals(wrapper);
 
     } else {
         const wCells = itemData ? itemData.wCells : 2;
@@ -447,7 +397,8 @@ function createDraggable(type, itemData = null) {
             wrapper.dataset.formula = itemData ? (itemData.formula || '') : ''; 
             wrapper.dataset.digits = itemData ? (itemData.digits || 0) : 0;
             
-            el.addEventListener('dblclick', (e) => {
+            // ★変更: bindDoubleTapを使用
+            const ansHandler = (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
                 activeAnsWrapper = wrapper;
@@ -456,9 +407,11 @@ function createDraggable(type, itemData = null) {
                 document.getElementById('ans-prop-digits').value = wrapper.dataset.digits;
                 document.getElementById('ans-prop-container').style.display = 'flex';
                 document.getElementById('overlay').style.display = 'block';
-            });
+            };
+            bindDoubleTap(el, ansHandler);
+            
             wrapper.appendChild(el);
-            renderAnswer(wrapper);
+            if (typeof window.renderAnswer === 'function') window.renderAnswer(wrapper);
 
         } else if (type === 'formula') {
             let txt = itemData ? itemData.content : prompt("判定・表示用の計算式を入力してください (例: [q1]=[x1]+[x2]):");
@@ -466,12 +419,15 @@ function createDraggable(type, itemData = null) {
             el.classList.add('formula-rect');
             el.textContent = txt;
             
-            el.addEventListener('dblclick', (e) => {
+            // ★変更: bindDoubleTapを使用
+            const formulaHandler = (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
                 const newTxt = prompt("計算式を編集してください:", el.textContent);
                 if (newTxt !== null && newTxt.trim() !== "") el.textContent = newTxt;
-            });
+            };
+            bindDoubleTap(el, formulaHandler);
+            
             wrapper.appendChild(el);
 
         } else if (type === 'text') {
@@ -480,22 +436,27 @@ function createDraggable(type, itemData = null) {
             el.classList.add('text-rect');
             wrapper.dataset.originalContent = txt; 
             wrapper.dataset.digits = itemData ? (itemData.digits || 0) : 0;
+            wrapper.dataset.fontSize = itemData ? (itemData.fontSize || 1.0) : 1.0; 
             
             if (/^\s*\[[^\]]+\]\s*$/.test(txt)) {
                 el.classList.add('single-var-text');
             }
 
-            el.addEventListener('dblclick', (e) => {
+            // ★変更: bindDoubleTapを使用
+            const textHandler = (e) => {
                 if (!isEditMode) return; 
                 e.stopPropagation();
                 activeTextWrapper = wrapper;
                 document.getElementById('text-prop-content').value = wrapper.dataset.originalContent;
+                document.getElementById('text-prop-size').value = wrapper.dataset.fontSize || 1.0; 
                 document.getElementById('text-prop-digits').value = wrapper.dataset.digits;
                 document.getElementById('text-prop-container').style.display = 'flex';
                 document.getElementById('overlay').style.display = 'block';
-            });
+            };
+            bindDoubleTap(el, textHandler);
+            
             wrapper.appendChild(el);
-            renderText(wrapper);
+            if (typeof window.renderText === 'function') window.renderText(wrapper);
 
         } else if (type === 'check') {
             el.classList.add('check-rect');
@@ -615,7 +576,7 @@ function createDraggable(type, itemData = null) {
                     item.dataset.startY = dragData.lineInitialStartY + lineSnapDy;
                     item.dataset.endX = dragData.lineInitialEndX + lineSnapDx;
                     item.dataset.endY = dragData.lineInitialEndY + lineSnapDy;
-                    window.updateLineVisuals(item);
+                    if (typeof window.updateLineVisuals === 'function') window.updateLineVisuals(item);
                 } else {
                     let newGridX = dragData.initialGridX + snapDx;
                     let newGridY = dragData.initialGridY + snapDy;
@@ -682,26 +643,22 @@ function createDraggable(type, itemData = null) {
                     calc0to20View.style.display = 'block';
                 }
                 
-                // ★追加：解答欄の位置に合わせて入力画面を配置する処理
                 calcContainer.style.display = 'flex';
                 overlay.style.display = 'block';
                 
-                calcContainer.style.transform = 'none'; // CSSの中央揃えを解除
+                calcContainer.style.transform = 'none'; 
                 const targetRect = activeInputBox.getBoundingClientRect();
                 const calcRect = calcContainer.getBoundingClientRect();
                 
                 let left = targetRect.left;
-                let top = targetRect.bottom + 10; // 基本は解答欄のすぐ下
+                let top = targetRect.bottom + 10; 
                 
-                // 画面下にはみ出る場合は解答欄の上に配置
                 if (top + calcRect.height > window.innerHeight) {
                     top = targetRect.top - calcRect.height - 10;
                 }
-                // 画面右にはみ出る場合は左に寄せる
                 if (left + calcRect.width > window.innerWidth) {
                     left = window.innerWidth - calcRect.width - 10;
                 }
-                // 画面上や左にはみ出ないように最終調整
                 if (top < 0) top = 10;
                 if (left < 0) left = 10;
                 

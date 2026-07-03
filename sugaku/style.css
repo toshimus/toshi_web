@@ -78,10 +78,11 @@ body, html {
 .draggable[data-type="line"].wrapper-selected { outline: none !important; }
 .draggable[data-type="line"].wrapper-selected line { filter: drop-shadow(0 0 5px #3498db); }
 
+/* ★変更: タッチ操作用にハンドルを14pxから24pxに拡大 */
 .resize-handle {
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 24px;
+    height: 24px;
     background-color: #333;
     border: 2px solid #fff;
     box-sizing: border-box;
@@ -89,15 +90,16 @@ body, html {
     display: block;
 }
 
-.handle-tl { top: -7px; left: -7px; cursor: nwse-resize; }
-.handle-tr { top: -7px; right: -7px; cursor: nesw-resize; }
-.handle-bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
-.handle-br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+/* ★変更: ハンドルの拡大に合わせて配置位置（マイナスマージン）を調整 */
+.handle-tl { top: -12px; left: -12px; cursor: nwse-resize; }
+.handle-tr { top: -12px; right: -12px; cursor: nesw-resize; }
+.handle-bl { bottom: -12px; left: -12px; cursor: nesw-resize; }
+.handle-br { bottom: -12px; right: -12px; cursor: nwse-resize; }
 
 .line-handle {
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 24px; /* 拡大 */
+    height: 24px; /* 拡大 */
     background-color: #333;
     border: 2px solid #fff;
     box-sizing: border-box;
@@ -112,7 +114,7 @@ body, html {
     width: 90%;
     height: 90%;
     background-color: #44FFFF; 
-    border-radius: calc(var(--grid-cell-h) * 0.4); /* 角丸を一定の円弧に修正 */
+    border-radius: calc(var(--grid-cell-h) * 0.4); 
     display: flex;
     justify-content: center;
     align-items: center;
@@ -131,7 +133,7 @@ body, html {
     height: 90%;
     border: 3px dashed #3498db;
     background-color: #f0f8ff;
-    border-radius: calc(var(--grid-cell-h) * 0.4); /* 角丸を一定の円弧に修正 */
+    border-radius: calc(var(--grid-cell-h) * 0.4); 
     display: flex;
     justify-content: center;
     align-items: center;
@@ -150,7 +152,6 @@ body, html {
     position: relative;
 }
 
-/* ★変更：新形式（分割）の外枠を親要素いっぱいに広げ、余白をリセット */
 .ans-rect.is-split {
     width: 100% !important;
     height: 100% !important;
@@ -173,7 +174,6 @@ body.run-mode .ans-rect {
     cursor: grab;
     color: #333;
     font-weight: bold;
-    /* ★変更: カスタムプロパティ var(--text-scale, 1) を乗算して文字サイズ倍率を反映 */
     font-size: calc(var(--grid-cell-h) * 1.2 * var(--text-scale, 1));
     font-family: sans-serif;
     user-select: none;
@@ -182,7 +182,6 @@ body.run-mode .ans-rect {
 }
 
 .text-rect.single-var-text {
-    /* ★変更: 文字サイズ倍率を反映 */
     font-size: calc(var(--grid-cell-h) * 0.7 * var(--text-scale, 1)); 
     white-space: nowrap;
     overflow: hidden;
@@ -191,7 +190,6 @@ body.run-mode .ans-rect {
     box-sizing: border-box;
 }
 body.run-mode .text-rect.single-var-text {
-    /* ★変更: 文字サイズ倍率を反映 */
     font-size: calc(var(--grid-cell-h) * 1.2 * var(--text-scale, 1));
 }
 
@@ -214,7 +212,7 @@ body.run-mode .text-rect.single-var-text {
     width: 90%;
     height: 90%;
     background-color: #e67e22;
-    border-radius: calc(var(--grid-cell-h) * 0.4); /* 角丸を一定の円弧に修正 */
+    border-radius: calc(var(--grid-cell-h) * 0.4); 
     display: flex;
     justify-content: center;
     align-items: center;
@@ -272,7 +270,14 @@ body.run-mode .text-rect.single-var-text {
     .num-pad { gap: 5px; } .standard-pad { gap: 5px; } .piece { height: 50px; font-size: 1.2rem; }
 }
 
-.overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+/* ★変更: iOS Safari対策としてカーソルポインタを指定し、タップイベントの発火を保証します */
+.overlay { 
+    display: none; 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.4); 
+    z-index: 999; 
+    cursor: pointer; 
+}
 
 .toast-msg {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
@@ -296,7 +301,6 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
 .prop-setting-input { width: 70px; font-size: 1.1rem; text-align: right; padding: 4px; border: 1px solid #bdc3c7; border-radius: 4px; }
 .prop-select { font-size: 1.1rem; padding: 4px; border: 1px solid #bdc3c7; border-radius: 4px; }
 
-/* ★変更：見えないラッパーを導入し、旧形式と全く同じサイズ感を実現 */
 .split-container {
     display: flex;
     width: 100%;
@@ -314,7 +318,7 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
     height: 90%;
     border: 3px dashed #3498db;  
     background-color: #f0f8ff;   
-    border-radius: calc(var(--grid-cell-h) * 0.4); /* 角丸を一定の円弧に修正 */
+    border-radius: calc(var(--grid-cell-h) * 0.4); 
     display: flex;
     justify-content: center;
     align-items: center;
@@ -342,7 +346,6 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
     z-index: 2;
 }
 
-/* 矩形選択ボックスのスタイルを追加 */
 .selection-box {
     position: absolute;
     border: 1px solid rgba(52, 152, 219, 0.8);
