@@ -1,17 +1,35 @@
 /* ==========================================
-   UIイベント・保存・エクスポート
+   script_main.js (UIイベント・保存・エクスポート・全体初期化)
    ========================================== */
+window.enableEmptyCheck = window.enableEmptyCheck || false; // ★追加: 初期化
+
 function addClick(id, handler) {
     const btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', handler);
 }
+
+addClick('save-box-prop-btn', () => {
+    if (activeBoxWrapper) {
+        activeBoxWrapper.dataset.boxName = document.getElementById('box-prop-name').value.trim();
+        activeBoxWrapper.dataset.boxId = document.getElementById('box-prop-id').value.trim();
+        activeBoxWrapper.dataset.isLastPressed = document.getElementById('box-prop-last').checked ? "true" : "false";
+        
+        const el = activeBoxWrapper.querySelector('.rect');
+        if (el) el.textContent = activeBoxWrapper.dataset.boxName;
+        
+        activeBoxWrapper.style.opacity = activeBoxWrapper.dataset.isLastPressed === "true" ? "0.7" : "1";
+    }
+    document.getElementById('box-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeBoxWrapper = null;
+});
 
 addClick('save-ans-prop-btn', () => {
     if (activeAnsWrapper) {
         activeAnsWrapper.dataset.answerId = document.getElementById('ans-prop-id').value.trim();
         activeAnsWrapper.dataset.calcMode = document.getElementById('ans-prop-mode').value;
         activeAnsWrapper.dataset.digits = document.getElementById('ans-prop-digits').value;
-        renderAnswer(activeAnsWrapper);
+        if (typeof window.renderAnswer === 'function') window.renderAnswer(activeAnsWrapper);
     }
     document.getElementById('ans-prop-container').style.display = 'none';
     document.getElementById('overlay').style.display = 'none';
@@ -24,7 +42,6 @@ addClick('save-text-prop-btn', () => {
         if (newTxt !== "") {
             activeTextWrapper.dataset.originalContent = newTxt;
             activeTextWrapper.dataset.digits = document.getElementById('text-prop-digits').value;
-            // ★追加: フォントサイズの保存処理
             activeTextWrapper.dataset.fontSize = document.getElementById('text-prop-size').value; 
             const el = activeTextWrapper.querySelector('.text-rect');
             if (/^\s*\[[^\]]+\]\s*$/.test(newTxt)) {
@@ -32,7 +49,7 @@ addClick('save-text-prop-btn', () => {
             } else {
                 el.classList.remove('single-var-text');
             }
-            renderText(activeTextWrapper);
+            if (typeof window.renderText === 'function') window.renderText(activeTextWrapper);
         }
     }
     document.getElementById('text-prop-container').style.display = 'none';
@@ -45,19 +62,32 @@ addClick('save-line-prop-btn', () => {
         activeLineWrapper.dataset.thickness = document.getElementById('line-prop-thickness').value;
         activeLineWrapper.dataset.lineColor = document.getElementById('line-prop-color').value;
         activeLineWrapper.dataset.lineStyle = document.getElementById('line-prop-style').value;
-        window.updateLineVisuals(activeLineWrapper);
+        if (typeof window.updateLineVisuals === 'function') window.updateLineVisuals(activeLineWrapper);
     }
     document.getElementById('line-prop-container').style.display = 'none';
     document.getElementById('overlay').style.display = 'none';
     activeLineWrapper = null;
 });
 
-addClick('add-box-btn', () => createDraggable('box'));
-addClick('add-ans-btn', () => createDraggable('answer'));
-addClick('add-formula-btn', () => createDraggable('formula'));
-addClick('add-text-btn', () => createDraggable('text'));
-addClick('add-line-btn', () => createDraggable('line'));
-addClick('add-check-btn', () => createDraggable('check'));
+addClick('save-formula-prop-btn', () => {
+    if (activeFormulaWrapper) {
+        const newTxt = document.getElementById('formula-prop-content').value.trim();
+        if (newTxt !== "") {
+            const el = activeFormulaWrapper.querySelector('.formula-rect');
+            if (el) el.textContent = newTxt;
+        }
+    }
+    document.getElementById('formula-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeFormulaWrapper = null;
+});
+
+addClick('add-box-btn', () => typeof createDraggable === 'function' && createDraggable('box'));
+addClick('add-ans-btn', () => typeof createDraggable === 'function' && createDraggable('answer'));
+addClick('add-formula-btn', () => typeof createDraggable === 'function' && createDraggable('formula'));
+addClick('add-text-btn', () => typeof createDraggable === 'function' && createDraggable('text'));
+addClick('add-line-btn', () => typeof createDraggable === 'function' && createDraggable('line'));
+addClick('add-check-btn', () => typeof createDraggable === 'function' && createDraggable('check'));
 
 addClick('delete-item-btn', () => {
     const selectedItems = document.querySelectorAll('.wrapper-selected');
@@ -71,9 +101,15 @@ addClick('delete-item-btn', () => {
 });
 
 /* ==========================================
-   変数設定機能
+   動作・変数設定機能
    ========================================== */
 addClick('var-settings-btn', () => {
+    // ★追加: パネルを開く際に現在の空欄チェック設定状態をUIに反映
+    const emptyCheckToggle = document.getElementById('empty-check-toggle');
+    if (emptyCheckToggle) {
+        emptyCheckToggle.checked = window.enableEmptyCheck === true;
+    }
+
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
     const knownAnswerIds = new Set();
     answerWrappers.forEach(w => {
@@ -124,6 +160,12 @@ addClick('var-settings-btn', () => {
 });
 
 addClick('save-var-settings-btn', () => {
+    // ★追加: チェック状態をグローバル変数に保存
+    const emptyCheckToggle = document.getElementById('empty-check-toggle');
+    if (emptyCheckToggle) {
+        window.enableEmptyCheck = emptyCheckToggle.checked;
+    }
+
     const listContainer = document.getElementById('var-list-container');
     if(listContainer) {
         const minInputs = listContainer.querySelectorAll('.var-min-input');
@@ -150,7 +192,11 @@ addClick('save-var-settings-btn', () => {
 // ==========================================
 function generateLayoutData() {
     const data = [];
-    data.push({ type: 'config', variableRanges: variableRanges });
+    data.push({ 
+        type: 'config', 
+        variableRanges: variableRanges,
+        enableEmptyCheck: window.enableEmptyCheck === true // ★追加: JSON保存データに含める
+    });
     
     const wrappers = container.querySelectorAll('.draggable');
     wrappers.forEach(wrapper => {
@@ -174,6 +220,12 @@ function generateLayoutData() {
             itemData.hCells = parseInt(wrapper.dataset.hCells) || 2;
             itemData.content = type === 'text' ? (wrapper.dataset.originalContent || (el ? el.innerHTML : '')) : (el ? el.textContent : '');
             
+            if (type === 'box') {
+                itemData.boxName = wrapper.dataset.boxName || itemData.content;
+                itemData.boxId = wrapper.dataset.boxId || "";
+                itemData.isLastPressed = wrapper.dataset.isLastPressed || "false";
+            }
+            
             if (type === 'answer') {
                 itemData.answerId = wrapper.dataset.answerId || '';
                 itemData.calcMode = wrapper.dataset.calcMode || '0-20';
@@ -183,7 +235,6 @@ function generateLayoutData() {
             }
             if (type === 'text') {
                 itemData.digits = parseInt(wrapper.dataset.digits) || 0;
-                // ★追加: フォントサイズの書き出し
                 itemData.fontSize = parseFloat(wrapper.dataset.fontSize) || 1.0; 
             }
         }
@@ -213,12 +264,14 @@ function enterRunMode() {
         currentVarValues = {};
     }
 
+    if (typeof window.shuffleBoxes === 'function') window.shuffleBoxes();
+
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
-    textWrappers.forEach(wrapper => renderText(wrapper));
-    answerWrappers.forEach(wrapper => renderAnswer(wrapper));
+    textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
+    answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
 }
-window.enterRunMode = enterRunMode; // リザルト画面の再プレイ用にグローバル化
+window.enterRunMode = enterRunMode; 
 
 function enterEditMode() {
     isEditMode = true;
@@ -231,14 +284,13 @@ function enterEditMode() {
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
     
-    textWrappers.forEach(wrapper => renderText(wrapper));
-    answerWrappers.forEach(wrapper => renderAnswer(wrapper));
+    textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
+    answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
     
     currentVarValues = {};
 }
-window.enterEditMode = enterEditMode; // リザルト画面の編集遷移用にグローバル化
+window.enterEditMode = enterEditMode; 
 
-// 実行/編集切り替え
 addClick('run-btn', () => {
     const runBtn = document.getElementById('run-btn');
     if (isEditMode) {
@@ -250,7 +302,6 @@ addClick('run-btn', () => {
     }
 });
 
-// JSON保存
 addClick('save-btn', () => {
     const data = generateLayoutData();
     const jsonString = JSON.stringify(data, null, 2);
@@ -265,7 +316,6 @@ addClick('save-btn', () => {
     URL.revokeObjectURL(url);
 });
 
-// 読込
 addClick('load-btn', () => {
     const loadFile = document.getElementById('load-file');
     if(loadFile) loadFile.click();
@@ -288,8 +338,9 @@ if (loadFileEl) {
                 data.forEach(item => {
                     if (item.type === 'config') {
                         variableRanges = item.variableRanges || {};
+                        window.enableEmptyCheck = item.enableEmptyCheck === true; // ★追加: JSON読み込み時に反映
                     } else {
-                        createDraggable(item.type, item);
+                        if (typeof createDraggable === 'function') createDraggable(item.type, item);
                     }
                 });
             } catch (err) {
@@ -301,11 +352,11 @@ if (loadFileEl) {
     });
 }
 
-window.addEventListener('keydown', (e) => { if(e.key === 'F1') createDraggable('box'); });
+window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDraggable === 'function' && createDraggable('box'); });
 
 
 /* ==========================================
-   公開版書出 (HTMLエクスポート) 機能 (サーバー・Fetch完全対応版)
+   公開版書出 (HTMLエクスポート) 機能
    ========================================== */
 addClick('export-html-btn', async () => {
     try {
@@ -313,8 +364,8 @@ addClick('export-html-btn', async () => {
         if (!cssRes.ok) throw new Error("style.css が取得できませんでした。");
         const cssText = await cssRes.text();
 
-        // 3つのJSファイルをすべて取得して結合
-        const jsFiles = ['script_core.js', 'script_drag.js', 'script_main.js'];
+        // 5つのファイルに分割した構成に対応
+        const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_main.js'];
         let combinedJsText = '';
         for (const file of jsFiles) {
             const res = await fetch(file);
@@ -383,12 +434,13 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
     window.__INIT_DATA__.forEach(item => {
         if (item.type === 'config') {
             variableRanges = item.variableRanges || {};
+            window.enableEmptyCheck = item.enableEmptyCheck === true; // ★追加: 初期化時に反映
         } else {
-            createDraggable(item.type, item);
+            if (typeof createDraggable === 'function') createDraggable(item.type, item);
         }
     });
 
     setTimeout(() => {
-        enterRunMode();
+        if (typeof window.enterRunMode === 'function') window.enterRunMode();
     }, 50);
 }

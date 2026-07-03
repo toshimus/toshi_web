@@ -123,13 +123,62 @@
         <button id="save-line-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
     </div>
 
+    <div class="pieces-container" id="box-prop-container" style="max-width: 300px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">箱プロパティ</h3>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">表示名</strong>
+            <input type="text" id="box-prop-name" class="prop-setting-input" style="width: 120px;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">箱ID</strong>
+            <input type="text" id="box-prop-id" class="prop-setting-input" style="width: 120px;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">最後に押した状態</strong>
+            <input type="checkbox" id="box-prop-last" style="width: 25px; height: 25px;">
+        </div>
+        <button id="save-box-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+    </div>
+
+    <div class="pieces-container" id="formula-prop-container" style="max-width: 500px; width: 90%; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">計算式プロパティ</h3>
+        <div class="prop-setting-row" style="flex-direction: column; align-items: stretch; background: transparent; box-shadow: none; padding: 0;">
+            <strong style="font-size: 1.1rem; color:#333; margin-bottom: 5px;">判定・表示用の式</strong>
+            <input type="text" id="formula-prop-content" class="prop-setting-input" style="width: 100%; text-align: left; margin-bottom: 15px; font-size: 1.2rem; padding: 8px; box-sizing: border-box;">
+            
+            <strong style="font-size: 1rem; color:#555; margin-bottom: 5px;">記号 (クリックで挿入)</strong>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">
+                <button class="insert-btn" onclick="insertIntoFormula('+')">＋</button>
+                <button class="insert-btn" onclick="insertIntoFormula('-')">－</button>
+                <button class="insert-btn" onclick="insertIntoFormula('*')">＊</button>
+                <button class="insert-btn" onclick="insertIntoFormula('/')">／</button>
+                <button class="insert-btn" onclick="insertIntoFormula('=')">＝</button>
+                <button class="insert-btn" onclick="insertIntoFormula('=1')">選択された(=1)</button>
+            </div>
+            
+            <strong style="font-size: 1rem; color:#555; margin-bottom: 5px;">画面上の変数・ID (クリックで挿入)</strong>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; max-height: 150px; overflow-y: auto; background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7;" id="formula-id-btns">
+            </div>
+        </div>
+        <button id="save-formula-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 15px;">設定を保存</button>
+    </div>
+
     <div class="pieces-container" id="var-settings-container" style="max-width: 500px; cursor: default; overflow-y: auto; max-height: 80vh;">
-        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">変数プロパティ設定</h3>
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">動作・変数設定</h3>
+        
+        <div style="background: #fff; padding: 10px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+            <label style="font-weight:bold; color:#333; font-size: 1.1rem; cursor: pointer;">
+                <input type="checkbox" id="empty-check-toggle" style="transform: scale(1.3); margin-right: 8px;"> 「空欄があります」の判定を有効にする
+            </label>
+        </div>
+
         <div id="var-list-container" style="width: 100%; margin-bottom: 20px;"></div>
         <button id="save-var-settings-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9;">設定を保存</button>
     </div>
 
     <script src="script_core.js"></script>
+    <script src="script_element.js"></script>
+    <script src="script_game.js"></script>
     <script src="script_drag.js"></script>
     <script src="script_main.js"></script>
 </body>

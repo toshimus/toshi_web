@@ -78,7 +78,6 @@ body, html {
 .draggable[data-type="line"].wrapper-selected { outline: none !important; }
 .draggable[data-type="line"].wrapper-selected line { filter: drop-shadow(0 0 5px #3498db); }
 
-/* ★変更: タッチ操作用にハンドルを14pxから24pxに拡大 */
 .resize-handle {
     position: absolute;
     width: 24px;
@@ -90,7 +89,6 @@ body, html {
     display: block;
 }
 
-/* ★変更: ハンドルの拡大に合わせて配置位置（マイナスマージン）を調整 */
 .handle-tl { top: -12px; left: -12px; cursor: nwse-resize; }
 .handle-tr { top: -12px; right: -12px; cursor: nesw-resize; }
 .handle-bl { bottom: -12px; left: -12px; cursor: nesw-resize; }
@@ -98,8 +96,8 @@ body, html {
 
 .line-handle {
     position: absolute;
-    width: 24px; /* 拡大 */
-    height: 24px; /* 拡大 */
+    width: 24px;
+    height: 24px;
     background-color: #333;
     border: 2px solid #fff;
     box-sizing: border-box;
@@ -270,7 +268,6 @@ body.run-mode .text-rect.single-var-text {
     .num-pad { gap: 5px; } .standard-pad { gap: 5px; } .piece { height: 50px; font-size: 1.2rem; }
 }
 
-/* ★変更: iOS Safari対策としてカーソルポインタを指定し、タップイベントの発火を保証します */
 .overlay { 
     display: none; 
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -354,3 +351,18 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
     pointer-events: none;
     display: none;
 }
+
+/* ★追加: 数式エディタの挿入ボタン用スタイル */
+.insert-btn {
+    padding: 6px 12px;
+    background-color: #ecf0f1;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #2c3e50;
+    transition: background-color 0.1s;
+}
+.insert-btn:active { background-color: #bdc3c7; }
+.insert-btn:hover { background-color: #dfe6e9; }
