@@ -10,13 +10,23 @@ let activeAnsWrapper = null;
 let activeTextWrapper = null;
 let activeLineWrapper = null; 
 let activeBoxWrapper = null; 
-let activeFormulaWrapper = null; // ★追加: アクティブな数式を保持
+let activeFormulaWrapper = null; 
 let isSolved = false; 
 
 window.currentQuestionNum = 1;
 window.MAX_QUESTIONS = 10;
 window.usedVarHistory = new Set();
 window.lastCheckTime = 0;
+window.transitionStyle = 'none'; 
+
+// ★追加: 成績カウントとトースト表示状態のフラグ
+window.mistakeCount = 0;
+window.isToastShowing = false;
+
+window.judgeSettings = {
+    correct: { text: "せいかい！", color: "#ff3333", stroke: "#000000", bg: "transparent" },
+    incorrect: { text: "おしい！", color: "#3366ff", stroke: "#000000", bg: "transparent" }
+};
 
 const bindDoubleTap = (element, handler) => {
     element.addEventListener('dblclick', handler);
@@ -145,10 +155,10 @@ overlay.addEventListener('click', () => {
     if (lineProp) lineProp.style.display = 'none';
     const boxProp = document.getElementById('box-prop-container');
     if (boxProp) boxProp.style.display = 'none';
-    
-    // ★追加: 数式プロパティパネルも閉じる対象に追加
     const formulaProp = document.getElementById('formula-prop-container');
     if (formulaProp) formulaProp.style.display = 'none';
+    const judgeProp = document.getElementById('judge-prop-container');
+    if (judgeProp) judgeProp.style.display = 'none';
     
     overlay.style.display = 'none';
     
@@ -200,7 +210,8 @@ const modals = [
     document.getElementById('text-prop-container'),
     document.getElementById('line-prop-container'),
     document.getElementById('box-prop-container'),
-    document.getElementById('formula-prop-container') // ★追加
+    document.getElementById('formula-prop-container'),
+    document.getElementById('judge-prop-container')
 ];
 modals.forEach(modal => {
     if (modal) {
@@ -218,19 +229,38 @@ toast.className = 'toast-msg';
 document.body.appendChild(toast);
 let toastTimer = null;
 
-function showToast(message) {
+function showToast(message, type = 'system') {
     if (toastTimer) clearTimeout(toastTimer);
     toast.textContent = message;
+    
+    toast.style.color = '';
+    toast.style.backgroundColor = '';
+    toast.style.webkitTextStroke = '';
+    toast.className = 'toast-msg'; 
+    
+    if (type === 'correct' || type === 'incorrect') {
+        const settings = window.judgeSettings[type];
+        toast.style.color = settings.color;
+        toast.style.backgroundColor = settings.bg;
+        toast.style.webkitTextStroke = `3px ${settings.stroke}`;
+        toast.classList.add('judge-toast'); 
+    }
+    
     toast.classList.add('show');
+    window.isToastShowing = true; // ★追加: 表示中フラグを立てる
+
     toastTimer = setTimeout(() => {
         toast.classList.remove('show');
+        window.isToastShowing = false; // ★追加: 非表示時にフラグを下ろす
     }, 2500);
 }
+window.showToast = showToast; 
 
 const hideToast = (e) => {
     if (toast.classList.contains('show') && !e.target.closest('.check-rect')) {
         toast.classList.remove('show');
         if (toastTimer) clearTimeout(toastTimer);
+        window.isToastShowing = false; // ★追加: 即座に消した場合もフラグを下ろす
     }
 };
 document.addEventListener('mousedown', hideToast);

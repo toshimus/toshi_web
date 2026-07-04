@@ -2,7 +2,6 @@
    script_element.js (要素の生成とレンダリング、個別ドラッグ処理)
    ========================================== */
 
-// ★追加: 数式プロパティのカーソル位置に文字を挿入する共通関数
 window.insertIntoFormula = function(text) {
     const input = document.getElementById('formula-prop-content');
     const start = input.selectionStart;
@@ -238,10 +237,38 @@ function createDraggable(type, itemData = null) {
         if (typeof window.updateLineVisuals === 'function') window.updateLineVisuals(wrapper);
 
     } else {
-        const wCells = itemData ? itemData.wCells : 2;
-        const hCells = itemData ? itemData.hCells : 2;
+        let wCells = itemData ? itemData.wCells : 2;
+        let hCells = itemData ? itemData.hCells : 2;
         const gridX = itemData ? itemData.gridX : 0;
         const gridY = itemData ? itemData.gridY : 0;
+
+        let initialContent = null;
+
+        if (!itemData) {
+            const getCellsByText = (text, padding = 1) => {
+                if (!text) return 2;
+                let len = 0;
+                for (let i = 0; i < text.length; i++) {
+                    (text[i].match(/[ -~]/)) ? len += 1 : len += 2;
+                }
+                return Math.max(2, Math.ceil(len / 2) + padding);
+            };
+
+            if (type === 'text') {
+                initialContent = prompt("追加する文字を入力してください (例: [x1]＋[x2]＝):");
+                if (initialContent === null || initialContent.trim() === "") return;
+                wCells = getCellsByText(initialContent, 1);
+            } else if (type === 'formula') {
+                initialContent = "[q1]=[x1]+[x2]";
+                wCells = getCellsByText(initialContent, 1);
+            } else if (type === 'check') {
+                wCells = getCellsByText("次の問題へ", 1); 
+            } else if (type === 'box') {
+                count++;
+                initialContent = count.toString();
+                wCells = getCellsByText(initialContent, 2);
+            }
+        }
 
         wrapper.dataset.wCells = wCells;
         wrapper.dataset.hCells = hCells;
@@ -259,17 +286,36 @@ function createDraggable(type, itemData = null) {
                 wrapper.dataset.boxName = itemData.boxName || itemData.content;
                 wrapper.dataset.boxId = itemData.boxId || "";
                 wrapper.dataset.isLastPressed = itemData.isLastPressed || "false";
+                wrapper.dataset.bgColor = itemData.bgColor || "#44FFFF";
+                wrapper.dataset.borderColor = itemData.borderColor || "#000000";
+                wrapper.dataset.borderwidth = itemData.borderwidth !== undefined ? itemData.borderwidth : "0";
                 const num = parseInt(itemData.content);
                 if (!isNaN(num) && num > count) count = num;
-                if (wrapper.dataset.isLastPressed === "true") wrapper.style.opacity = "0.7";
             } else {
-                count++;
-                wrapper.dataset.boxName = count.toString();
-                wrapper.dataset.boxId = "box" + count;
+                wrapper.dataset.boxName = initialContent;
+                wrapper.dataset.boxId = "box" + initialContent;
                 wrapper.dataset.isLastPressed = "false";
+                wrapper.dataset.bgColor = "#44FFFF";
+                wrapper.dataset.borderColor = "#000000";
+                wrapper.dataset.borderwidth = "0";
                 el.textContent = wrapper.dataset.boxName;
             }
             el.classList.add('rect');
+
+            el.style.backgroundColor = wrapper.dataset.bgColor;
+            const bw = parseInt(wrapper.dataset.borderwidth) || 0;
+            if (bw > 0) {
+                el.style.border = `${bw}px solid ${wrapper.dataset.borderColor}`;
+                el.style.boxSizing = "border-box";
+            } else {
+                el.style.border = "none";
+            }
+
+            if (wrapper.dataset.isLastPressed === "true") {
+                el.style.outline = "6px solid #e74c3c";
+                el.style.outlineOffset = "2px";
+            }
+            el.style.opacity = "1";
 
             el.addEventListener('dblclick', (e) => {
                 if (!isEditMode) return;
@@ -277,6 +323,9 @@ function createDraggable(type, itemData = null) {
                 activeBoxWrapper = wrapper;
                 document.getElementById('box-prop-name').value = wrapper.dataset.boxName;
                 document.getElementById('box-prop-id').value = wrapper.dataset.boxId;
+                document.getElementById('box-prop-bgcolor').value = wrapper.dataset.bgColor;
+                document.getElementById('box-prop-bordercolor').value = wrapper.dataset.borderColor;
+                document.getElementById('box-prop-borderwidth').value = wrapper.dataset.borderwidth;
                 document.getElementById('box-prop-last').checked = (wrapper.dataset.isLastPressed === "true");
                 document.getElementById('box-prop-container').style.display = 'flex';
                 document.getElementById('overlay').style.display = 'block';
@@ -288,11 +337,13 @@ function createDraggable(type, itemData = null) {
                 const allBoxes = container.querySelectorAll('.draggable[data-type="box"]');
                 allBoxes.forEach(w => {
                     w.dataset.isLastPressed = "false";
-                    w.style.opacity = "1";
+                    const wEl = w.querySelector('.rect');
+                    if (wEl) wEl.style.outline = "none";
                 });
                 
                 wrapper.dataset.isLastPressed = "true";
-                wrapper.style.opacity = "0.7";
+                el.style.outline = "6px solid #e74c3c";
+                el.style.outlineOffset = "2px";
             });
 
             wrapper.appendChild(el);
@@ -319,9 +370,8 @@ function createDraggable(type, itemData = null) {
             wrapper.appendChild(el);
             if (typeof window.renderAnswer === 'function') window.renderAnswer(wrapper);
 
-        // ★大幅変更: promptを廃止し、数式エディタパネルを開くロジックへ
         } else if (type === 'formula') {
-            let txt = itemData ? itemData.content : "[q1]=[x1]+[x2]"; // デフォルト式
+            let txt = itemData ? itemData.content : initialContent;
             el.classList.add('formula-rect');
             el.textContent = txt;
             
@@ -343,7 +393,6 @@ function createDraggable(type, itemData = null) {
                     idContainer.appendChild(btn);
                 };
 
-                // 画面上の変数を抽出してボタン化
                 const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
                 const vars = new Set();
                 textWrappers.forEach(w => {
@@ -353,23 +402,21 @@ function createDraggable(type, itemData = null) {
                 });
                 vars.forEach(v => addInsertBtn(`変数: ${v}`, v, '#ffeaa7'));
 
-                // 画面上の解答欄を抽出してボタン化
                 const ansWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
                 ansWrappers.forEach(w => {
                     const id = w.dataset.answerId;
                     if (id) addInsertBtn(`解答欄: ${id}`, id, '#81ecec');
                 });
 
-                // 画面上の箱を抽出してボタン化
                 const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
                 boxWrappers.forEach(w => {
                     const id = w.dataset.boxId;
                     const name = w.dataset.boxName;
-                    if (id) addInsertBtn(`箱: ${name}(${id})`, `[${id}]`, '#fab1a0');
+                    if (id) addInsertBtn(`選択肢: ${name}(${id})`, `[${id}]`, '#fab1a0');
                 });
 
                 if (idContainer.innerHTML === '') {
-                    idContainer.innerHTML = '<span style="color:#7f8c8d; font-size:0.9rem;">設定されている変数・解答欄・箱はありません。文字や解答欄を追加してください。</span>';
+                    idContainer.innerHTML = '<span style="color:#7f8c8d; font-size:0.9rem;">設定されている変数・解答欄・選択肢はありません。</span>';
                 }
 
                 document.getElementById('formula-prop-container').style.display = 'flex';
@@ -379,7 +426,6 @@ function createDraggable(type, itemData = null) {
             
             wrapper.appendChild(el);
             
-            // 新規作成時は即座にエディタを開く
             if (!itemData) {
                 setTimeout(() => {
                     formulaHandler(null);
@@ -387,8 +433,7 @@ function createDraggable(type, itemData = null) {
             }
 
         } else if (type === 'text') {
-            let txt = itemData ? itemData.content : prompt("追加する文字を入力してください (例: [x1]＋[x2]＝):");
-            if (!itemData && (txt === null || txt.trim() === "")) return;
+            let txt = itemData ? itemData.content : initialContent;
             el.classList.add('text-rect');
             wrapper.dataset.originalContent = txt; 
             wrapper.dataset.digits = itemData ? (itemData.digits || 0) : 0;
@@ -622,6 +667,9 @@ function createDraggable(type, itemData = null) {
                 
             } else if (type === 'check') {
                 if (!isEditMode) {
+                    // ★追加: トースト表示中（判定結果表示中）は操作を無効化
+                    if (window.isToastShowing) return;
+
                     const now = Date.now();
                     if (window.lastCheckTime && now - window.lastCheckTime < 500) {
                         return; 

@@ -1,7 +1,7 @@
 /* ==========================================
    script_main.js (UIイベント・保存・エクスポート・全体初期化)
    ========================================== */
-window.enableEmptyCheck = window.enableEmptyCheck || false; // ★追加: 初期化
+window.enableEmptyCheck = window.enableEmptyCheck || false; 
 
 function addClick(id, handler) {
     const btn = document.getElementById(id);
@@ -14,10 +14,30 @@ addClick('save-box-prop-btn', () => {
         activeBoxWrapper.dataset.boxId = document.getElementById('box-prop-id').value.trim();
         activeBoxWrapper.dataset.isLastPressed = document.getElementById('box-prop-last').checked ? "true" : "false";
         
-        const el = activeBoxWrapper.querySelector('.rect');
-        if (el) el.textContent = activeBoxWrapper.dataset.boxName;
+        activeBoxWrapper.dataset.bgColor = document.getElementById('box-prop-bgcolor').value;
+        activeBoxWrapper.dataset.borderColor = document.getElementById('box-prop-bordercolor').value;
+        activeBoxWrapper.dataset.borderwidth = document.getElementById('box-prop-borderwidth').value;
         
-        activeBoxWrapper.style.opacity = activeBoxWrapper.dataset.isLastPressed === "true" ? "0.7" : "1";
+        const el = activeBoxWrapper.querySelector('.rect');
+        if (el) {
+            el.textContent = activeBoxWrapper.dataset.boxName;
+            el.style.backgroundColor = activeBoxWrapper.dataset.bgColor;
+            
+            const bw = parseInt(activeBoxWrapper.dataset.borderwidth) || 0;
+            if (bw > 0) {
+                el.style.border = `${bw}px solid ${activeBoxWrapper.dataset.borderColor}`;
+                el.style.boxSizing = "border-box";
+            } else {
+                el.style.border = "none";
+            }
+            
+            if (activeBoxWrapper.dataset.isLastPressed === "true") {
+                el.style.outline = "6px solid #e74c3c";
+                el.style.outlineOffset = "2px";
+            } else {
+                el.style.outline = "none";
+            }
+        }
     }
     document.getElementById('box-prop-container').style.display = 'none';
     document.getElementById('overlay').style.display = 'none';
@@ -104,10 +124,14 @@ addClick('delete-item-btn', () => {
    動作・変数設定機能
    ========================================== */
 addClick('var-settings-btn', () => {
-    // ★追加: パネルを開く際に現在の空欄チェック設定状態をUIに反映
     const emptyCheckToggle = document.getElementById('empty-check-toggle');
     if (emptyCheckToggle) {
         emptyCheckToggle.checked = window.enableEmptyCheck === true;
+    }
+    
+    const transitionSelect = document.getElementById('transition-style-select');
+    if (transitionSelect) {
+        transitionSelect.value = window.transitionStyle || 'none';
     }
 
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
@@ -160,10 +184,14 @@ addClick('var-settings-btn', () => {
 });
 
 addClick('save-var-settings-btn', () => {
-    // ★追加: チェック状態をグローバル変数に保存
     const emptyCheckToggle = document.getElementById('empty-check-toggle');
     if (emptyCheckToggle) {
         window.enableEmptyCheck = emptyCheckToggle.checked;
+    }
+
+    const transitionSelect = document.getElementById('transition-style-select');
+    if (transitionSelect) {
+        window.transitionStyle = transitionSelect.value;
     }
 
     const listContainer = document.getElementById('var-list-container');
@@ -187,6 +215,39 @@ addClick('save-var-settings-btn', () => {
     document.getElementById('overlay').style.display = 'none';
 });
 
+addClick('judge-settings-btn', () => {
+    document.getElementById('judge-correct-text').value = window.judgeSettings.correct.text;
+    document.getElementById('judge-correct-color').value = window.judgeSettings.correct.color;
+    document.getElementById('judge-correct-stroke').value = window.judgeSettings.correct.stroke;
+    document.getElementById('judge-correct-bg').value = window.judgeSettings.correct.bg;
+
+    document.getElementById('judge-incorrect-text').value = window.judgeSettings.incorrect.text;
+    document.getElementById('judge-incorrect-color').value = window.judgeSettings.incorrect.color;
+    document.getElementById('judge-incorrect-stroke').value = window.judgeSettings.incorrect.stroke;
+    document.getElementById('judge-incorrect-bg').value = window.judgeSettings.incorrect.bg;
+
+    document.getElementById('judge-prop-container').style.display = 'flex';
+    document.getElementById('overlay').style.display = 'block';
+});
+
+addClick('save-judge-prop-btn', () => {
+    window.judgeSettings.correct = {
+        text: document.getElementById('judge-correct-text').value.trim() || "せいかい！",
+        color: document.getElementById('judge-correct-color').value,
+        stroke: document.getElementById('judge-correct-stroke').value,
+        bg: document.getElementById('judge-correct-bg').value.trim() || "transparent"
+    };
+    window.judgeSettings.incorrect = {
+        text: document.getElementById('judge-incorrect-text').value.trim() || "おしい！",
+        color: document.getElementById('judge-incorrect-color').value,
+        stroke: document.getElementById('judge-incorrect-stroke').value,
+        bg: document.getElementById('judge-incorrect-bg').value.trim() || "transparent"
+    };
+
+    document.getElementById('judge-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+});
+
 // ==========================================
 // レイアウトデータ生成関数
 // ==========================================
@@ -195,7 +256,9 @@ function generateLayoutData() {
     data.push({ 
         type: 'config', 
         variableRanges: variableRanges,
-        enableEmptyCheck: window.enableEmptyCheck === true // ★追加: JSON保存データに含める
+        enableEmptyCheck: window.enableEmptyCheck === true,
+        transitionStyle: window.transitionStyle, 
+        judgeSettings: window.judgeSettings 
     });
     
     const wrappers = container.querySelectorAll('.draggable');
@@ -224,6 +287,9 @@ function generateLayoutData() {
                 itemData.boxName = wrapper.dataset.boxName || itemData.content;
                 itemData.boxId = wrapper.dataset.boxId || "";
                 itemData.isLastPressed = wrapper.dataset.isLastPressed || "false";
+                itemData.bgColor = wrapper.dataset.bgColor || "#44FFFF";
+                itemData.borderColor = wrapper.dataset.borderColor || "#000000";
+                itemData.borderwidth = wrapper.dataset.borderwidth || "0";
             }
             
             if (type === 'answer') {
@@ -251,7 +317,10 @@ function enterRunMode() {
     document.body.classList.add('run-mode');
     document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
     
+    // ★追加: 成績の初期化処理
     window.currentQuestionNum = 1;
+    window.mistakeCount = 0; 
+    
     if (window.usedVarHistory) window.usedVarHistory.clear();
     
     isSolved = false;
@@ -338,7 +407,9 @@ if (loadFileEl) {
                 data.forEach(item => {
                     if (item.type === 'config') {
                         variableRanges = item.variableRanges || {};
-                        window.enableEmptyCheck = item.enableEmptyCheck === true; // ★追加: JSON読み込み時に反映
+                        window.enableEmptyCheck = item.enableEmptyCheck === true; 
+                        window.transitionStyle = item.transitionStyle || 'none'; 
+                        if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
                     } else {
                         if (typeof createDraggable === 'function') createDraggable(item.type, item);
                     }
@@ -364,7 +435,6 @@ addClick('export-html-btn', async () => {
         if (!cssRes.ok) throw new Error("style.css が取得できませんでした。");
         const cssText = await cssRes.text();
 
-        // 5つのファイルに分割した構成に対応
         const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_main.js'];
         let combinedJsText = '';
         for (const file of jsFiles) {
@@ -434,7 +504,9 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
     window.__INIT_DATA__.forEach(item => {
         if (item.type === 'config') {
             variableRanges = item.variableRanges || {};
-            window.enableEmptyCheck = item.enableEmptyCheck === true; // ★追加: 初期化時に反映
+            window.enableEmptyCheck = item.enableEmptyCheck === true; 
+            window.transitionStyle = item.transitionStyle || 'none'; 
+            if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
         } else {
             if (typeof createDraggable === 'function') createDraggable(item.type, item);
         }

@@ -284,6 +284,24 @@ body.run-mode .text-rect.single-var-text {
 }
 .toast-msg.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
+.toast-msg.judge-toast {
+    transform: translate(-50%, -50%) scale(0.7);
+    font-size: 7rem;
+    padding: 30px 60px;
+    -webkit-text-stroke: 3px #000;
+    text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: none; 
+    border-radius: 20px;
+    white-space: nowrap; 
+}
+.toast-msg.judge-toast.show {
+    transform: translate(-50%, -50%) scale(1.0);
+}
+
+@media (max-width: 600px) {
+    .toast-msg.judge-toast { font-size: 4rem; padding: 20px 40px; }
+}
+
 body.run-mode .edit-only { display: none !important; }
 body.run-mode .draggable { cursor: default !important; }
 body.run-mode .ans-rect, body.run-mode .check-rect { cursor: pointer !important; }
@@ -352,7 +370,6 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
     display: none;
 }
 
-/* ★追加: 数式エディタの挿入ボタン用スタイル */
 .insert-btn {
     padding: 6px 12px;
     background-color: #ecf0f1;
@@ -366,3 +383,31 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
 }
 .insert-btn:active { background-color: #bdc3c7; }
 .insert-btn:hover { background-color: #dfe6e9; }
+
+/* ==========================================
+   ★追加: 画面切り替えトランジション用アニメーション
+   ========================================== */
+.anim-out-left { animation: slideOutLeft 0.3s ease-in forwards; }
+.anim-in-left { animation: slideInLeft 0.3s ease-out forwards; }
+@keyframes slideOutLeft { to { transform: translateX(-30%); opacity: 0; } }
+@keyframes slideInLeft { from { transform: translateX(30%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.anim-out-right { animation: slideOutRight 0.3s ease-in forwards; }
+.anim-in-right { animation: slideInRight 0.3s ease-out forwards; }
+@keyframes slideOutRight { to { transform: translateX(30%); opacity: 0; } }
+@keyframes slideInRight { from { transform: translateX(-30%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.anim-out-up { animation: slideOutUp 0.3s ease-in forwards; }
+.anim-in-up { animation: slideInUp 0.3s ease-out forwards; }
+@keyframes slideOutUp { to { transform: translateY(-30%); opacity: 0; } }
+@keyframes slideInUp { from { transform: translateY(30%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.anim-out-down { animation: slideOutDown 0.3s ease-in forwards; }
+.anim-in-down { animation: slideInDown 0.3s ease-out forwards; }
+@keyframes slideOutDown { to { transform: translateY(30%); opacity: 0; } }
+@keyframes slideInDown { from { transform: translateY(-30%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.anim-out-fade { animation: fadeOut 0.3s ease-in forwards; }
+.anim-in-fade { animation: fadeIn 0.3s ease-out forwards; }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

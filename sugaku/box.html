@@ -13,12 +13,13 @@
     </div>
 
     <div class="sidebar">
-        <button id="add-box-btn" class="edit-only">箱追加</button>
+        <button id="add-box-btn" class="edit-only">選択肢追加</button>
         <button id="add-ans-btn" class="edit-only">解答欄追加</button>
         <button id="add-formula-btn" class="edit-only">計算式追加</button>
         <button id="add-text-btn" class="edit-only">文字追加</button>
         <button id="add-line-btn" class="edit-only" style="background-color: #f39c12;">直線追加</button>
-        <button id="var-settings-btn" class="edit-only" style="background-color: #8e44ad;">変数設定</button>
+        <button id="var-settings-btn" class="edit-only" style="background-color: #8e44ad;">動作・変数設定</button>
+        <button id="judge-settings-btn" class="edit-only" style="background-color: #e84393;">判定設定</button>
         <button id="add-check-btn" class="edit-only" style="background-color: #e67e22;">できた追加</button>
         <button id="delete-item-btn" class="edit-only" style="background-color: #c0392b;">削除</button>
         
@@ -124,14 +125,26 @@
     </div>
 
     <div class="pieces-container" id="box-prop-container" style="max-width: 300px; cursor: default;">
-        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">箱プロパティ</h3>
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">選択肢プロパティ</h3>
         <div class="prop-setting-row">
             <strong style="font-size: 1.1rem; color:#333;">表示名</strong>
             <input type="text" id="box-prop-name" class="prop-setting-input" style="width: 120px;">
         </div>
         <div class="prop-setting-row">
-            <strong style="font-size: 1.1rem; color:#333;">箱ID</strong>
+            <strong style="font-size: 1.1rem; color:#333;">選択ID</strong>
             <input type="text" id="box-prop-id" class="prop-setting-input" style="width: 120px;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">背景色</strong>
+            <input type="color" id="box-prop-bgcolor" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">枠線の色</strong>
+            <input type="color" id="box-prop-bordercolor" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">枠線の太さ</strong>
+            <input type="number" id="box-prop-borderwidth" class="prop-setting-input" style="width: 70px;" min="0" max="20" value="0">
         </div>
         <div class="prop-setting-row">
             <strong style="font-size: 1.1rem; color:#333;">最後に押した状態</strong>
@@ -163,13 +176,68 @@
         <button id="save-formula-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 15px;">設定を保存</button>
     </div>
 
+    <div class="pieces-container" id="judge-prop-container" style="max-width: 400px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">判定表示設定</h3>
+        
+        <h4 style="margin-top: 10px; margin-bottom: 5px; color: #e74c3c; border-bottom: 1px solid #ccc;">正解時</h4>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">テキスト</strong>
+            <input type="text" id="judge-correct-text" class="prop-setting-input" style="width: 140px;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">文字色</strong>
+            <input type="color" id="judge-correct-color" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">渕色</strong>
+            <input type="color" id="judge-correct-stroke" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 15px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">背景色</strong>
+            <input type="text" id="judge-correct-bg" class="prop-setting-input" style="width: 140px;" placeholder="例: transparent">
+        </div>
+
+        <h4 style="margin-bottom: 5px; color: #3498db; border-bottom: 1px solid #ccc;">不正解時</h4>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">テキスト</strong>
+            <input type="text" id="judge-incorrect-text" class="prop-setting-input" style="width: 140px;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">文字色</strong>
+            <input type="color" id="judge-incorrect-color" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">渕色</strong>
+            <input type="color" id="judge-incorrect-stroke" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 15px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">背景色</strong>
+            <input type="text" id="judge-incorrect-bg" class="prop-setting-input" style="width: 140px;" placeholder="例: transparent">
+        </div>
+
+        <button id="save-judge-prop-btn" class="piece" style="width:100%; height:50px; background-color:#e84393; border-color:#d63031; color:white; box-shadow:0 4px 0 #d63031; margin-top: 10px;">設定を保存</button>
+    </div>
+
     <div class="pieces-container" id="var-settings-container" style="max-width: 500px; cursor: default; overflow-y: auto; max-height: 80vh;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">動作・変数設定</h3>
         
-        <div style="background: #fff; padding: 10px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+        <div style="background: #fff; padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
             <label style="font-weight:bold; color:#333; font-size: 1.1rem; cursor: pointer;">
                 <input type="checkbox" id="empty-check-toggle" style="transform: scale(1.3); margin-right: 8px;"> 「空欄があります」の判定を有効にする
             </label>
+        </div>
+
+        <!-- ★追加: 画面切り替え設定 -->
+        <div class="prop-setting-row" style="margin-bottom: 15px;">
+            <strong style="font-size: 1.1rem; color:#333;">画面切り替え</strong>
+            <select id="transition-style-select" class="prop-select" style="width: 150px;">
+                <option value="none">なし</option>
+                <option value="fade">フェード</option>
+                <option value="left">右から左へ(←)</option>
+                <option value="right">左から右へ(→)</option>
+                <option value="up">下から上へ(↑)</option>
+                <option value="down">上から下へ(↓)</option>
+            </select>
         </div>
 
         <div id="var-list-container" style="width: 100%; margin-bottom: 20px;"></div>

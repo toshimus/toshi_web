@@ -94,13 +94,12 @@ function runValidation() {
     });
 
     if (!hasCheckable) {
-        showToast("判定式がありません");
+        window.showToast("判定式がありません", "system");
         return;
     }
 
     let hasEmpty = false;
     
-    // ★変更: 設定がオン(true)の時のみ空欄チェックを実行
     if (window.enableEmptyCheck === true) {
         let groupStatus = {}; 
 
@@ -160,15 +159,16 @@ function runValidation() {
     }
 
     if (hasEmpty) {
-        showToast("まだ空欄があります");
+        window.showToast("まだ空欄があります", "system");
     } else {
         if (allCorrect) {
-            showToast("正解！");
+            window.showToast(window.judgeSettings.correct.text, "correct");
             isSolved = true;
             const checkRect = document.querySelector('.check-rect');
             if (checkRect) checkRect.textContent = "次の問題へ";
         } else {
-            showToast("おしい！");
+            window.showToast(window.judgeSettings.incorrect.text, "incorrect");
+            window.mistakeCount++; // ★追加: ミス回数を加算
         }
     }
 }
@@ -233,7 +233,8 @@ window.shuffleBoxes = function() {
         b.style.top = `calc(${positions[index].y} * (100% / 24))`;
         
         b.dataset.isLastPressed = "false";
-        b.style.opacity = "1";
+        const el = b.querySelector('.rect');
+        if (el) el.style.outline = "none";
     });
 };
 
@@ -243,6 +244,24 @@ window.loadNextProblem = function() {
         return;
     }
     
+    const tStyle = window.transitionStyle || 'none';
+    
+    if (tStyle === 'none') {
+        processNextProblem();
+    } else {
+        container.classList.add(`anim-out-${tStyle}`);
+        setTimeout(() => {
+            processNextProblem();
+            container.classList.remove(`anim-out-${tStyle}`);
+            container.classList.add(`anim-in-${tStyle}`);
+            setTimeout(() => {
+                container.classList.remove(`anim-in-${tStyle}`);
+            }, 300); 
+        }, 300); 
+    }
+};
+
+function processNextProblem() {
     window.currentQuestionNum++;
     isSolved = false;
     const checkRect = document.querySelector('.check-rect');
@@ -258,8 +277,9 @@ window.loadNextProblem = function() {
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
     textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : renderText(wrapper));
     answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : renderAnswer(wrapper));
-};
+}
 
+// ★追加: リザルト画面に成績情報を表示
 window.showResultScreen = function() {
     const toastMsg = document.querySelector('.toast-msg');
     if (toastMsg) toastMsg.classList.remove('show');
@@ -290,7 +310,13 @@ window.showResultScreen = function() {
         const subText = document.createElement('p');
         subText.textContent = '素晴らしい結果です！お疲れ様でした。';
         subText.style.fontSize = '1.5rem';
-        subText.style.marginBottom = '40px';
+        subText.style.marginBottom = '20px';
+
+        // ★新規: 成績の表示ブロック
+        const statsContainer = document.createElement('div');
+        statsContainer.id = 'result-stats'; // IDを付与して後から更新可能にする
+        statsContainer.style.textAlign = 'center';
+        statsContainer.style.marginBottom = '40px';
 
         const btnContainer = document.createElement('div');
         btnContainer.style.display = 'flex';
@@ -332,8 +358,23 @@ window.showResultScreen = function() {
         btnContainer.appendChild(editBtn);
         resultOverlay.appendChild(title);
         resultOverlay.appendChild(subText);
+        resultOverlay.appendChild(statsContainer);
         resultOverlay.appendChild(btnContainer);
         document.body.appendChild(resultOverlay);
     }
+    
+    // 成績情報の計算と更新
+    const statsContainer = document.getElementById('result-stats');
+    const totalQuestions = window.MAX_QUESTIONS;
+    const mistakes = window.mistakeCount || 0;
+    const totalAttempts = totalQuestions + mistakes;
+    const accuracy = Math.round((totalQuestions / totalAttempts) * 100);
+
+    statsContainer.innerHTML = `
+        <div style="font-size: 1.8rem; margin-bottom: 10px;">正解: <span style="color:#2ecc71;">${totalQuestions} 回</span></div>
+        <div style="font-size: 1.8rem; margin-bottom: 10px;">ミス: <span style="color:#e74c3c;">${mistakes} 回</span></div>
+        <div style="font-size: 2.2rem; font-weight: bold; margin-bottom: 10px;">正答率: <span style="color:#f1c40f;">${accuracy} ％</span></div>
+    `;
+
     resultOverlay.style.display = 'flex';
 };
