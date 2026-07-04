@@ -676,65 +676,55 @@ window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDrag
 /* ==========================================
    ★公開版書出 (単一HTMLへの全内包処理)
    ========================================== */
+/* script_main.js の export-html-btn 部分を以下のように修正 */
 addClick('export-html-btn', async () => {
     try {
         const cssRes = await fetch('style.css');
         const cssText = await cssRes.text();
 
-        // 読み込み順序を厳守した結合
+        // 1. 各ファイルの読み込み
         const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_main.js'];
-        let combinedJsText = '';
+        let jsContent = '';
         for (const file of jsFiles) {
             const res = await fetch(file);
-            const text = await res.text();
-            // 即時関数(IIFE)で囲むとスコープが混ざらず安全です
-            combinedJsText += `(function() {\n${text}\n})();\n\n`;
+            jsContent += await res.text() + '\n';
         }
 
         const data = generateLayoutData();
         const jsonString = JSON.stringify(data);
 
         const htmlClone = document.documentElement.cloneNode(true);
-
-        const containerClone = htmlClone.querySelector('#container');
-        if (containerClone) containerClone.innerHTML = ''; 
-        
-        const oldToast = htmlClone.querySelector('.toast-msg');
-        if (oldToast) oldToast.remove(); 
-
-        const sidebarClone = htmlClone.querySelector('.sidebar');
-        if (sidebarClone) sidebarClone.remove();
-
-        htmlClone.querySelectorAll('link[rel="stylesheet"]').forEach(el => {
-            if (el.href && el.href.includes('style.css')) el.remove();
-        });
-        htmlClone.querySelectorAll('script').forEach(el => {
-            el.remove(); 
-        });
+        // コンテナやサイドバーの不要な初期状態をクリア
+        htmlClone.querySelector('#container').innerHTML = '';
+        htmlClone.querySelector('.sidebar')?.remove();
+        htmlClone.querySelector('.toast-msg')?.remove();
 
         const styleTag = document.createElement('style');
         styleTag.textContent = cssText;
         htmlClone.querySelector('head').appendChild(styleTag);
 
         const scriptTag = document.createElement('script');
-        scriptTag.textContent = `window.__INIT_DATA__ = ${jsonString};\n\n${combinedJsText}`;
+        
+        // ★重要: すべてのJSを結合し、最後に初期化処理を確実に実行する
+        scriptTag.textContent = `
+            window.__INIT_DATA__ = ${jsonString};
+            ${jsContent}
+            // ページロード完了後に確実に初期化
+            document.addEventListener('DOMContentLoaded', () => {
+                if (typeof window.initApp === 'function') window.initApp();
+            });
+        `;
         htmlClone.querySelector('body').appendChild(scriptTag);
 
-        const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
-
-        const blob = new Blob([htmlText], { type: 'text/html' });
+        const blob = new Blob(["<!DOCTYPE html>\n" + htmlClone.outerHTML], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'published_grid.html';
-        document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
         URL.revokeObjectURL(url);
-
     } catch (e) {
-        console.error(e);
-        alert("書き出しに失敗しました。サーバー環境(http/https)で実行しているか確認してください。\n詳細: " + e.message);
+        alert("書き出し失敗: " + e.message);
     }
 });
 
