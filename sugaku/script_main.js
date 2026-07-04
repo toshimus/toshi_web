@@ -6,7 +6,6 @@ window.problemSet = [ [] ];
 window.currentEditPage = 0;
 window.runProblemSet = [];
 window.playMode = window.playMode || 'pattern2';
-window.orderStyle = window.orderStyle || 'random';
 
 function addClick(id, handler) {
     const btn = document.getElementById(id);
@@ -264,11 +263,6 @@ addClick('var-settings-btn', () => {
         playModeSelect.value = window.playMode || 'pattern2';
     }
 
-    const orderSelect = document.getElementById('order-style-select');
-    if (orderSelect) {
-        orderSelect.value = window.orderStyle || 'random';
-    }
-
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
     const knownAnswerIds = new Set();
     answerWrappers.forEach(w => {
@@ -332,11 +326,6 @@ addClick('save-var-settings-btn', () => {
     const playModeSelect = document.getElementById('play-mode-select');
     if (playModeSelect) {
         window.playMode = playModeSelect.value;
-    }
-
-    const orderSelect = document.getElementById('order-style-select');
-    if (orderSelect) {
-        window.orderStyle = orderSelect.value;
     }
 
     const listContainer = document.getElementById('var-list-container');
@@ -404,7 +393,6 @@ function generateLayoutData() {
             enableEmptyCheck: window.enableEmptyCheck === true,
             transitionStyle: window.transitionStyle, 
             playMode: window.playMode, 
-            orderStyle: window.orderStyle, 
             judgeSettings: window.judgeSettings 
         },
         pages: window.problemSet
@@ -422,7 +410,6 @@ window.enterRunMode = function() {
     window.saveCurrentPage();
 
     window.playMode = window.playMode || 'pattern2';
-    window.orderStyle = window.orderStyle || 'random';
     window.runProblemSet = [];
     window.csvLinesForRun = [];
 
@@ -437,12 +424,9 @@ window.enterRunMode = function() {
             window.enterEditMode();
             return;
         }
-        
-        if (window.orderStyle === 'random') {
-            for (let i = validPages.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [validPages[i], validPages[j]] = [validPages[j], validPages[i]];
-            }
+        for (let i = validPages.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [validPages[i], validPages[j]] = [validPages[j], validPages[i]];
         }
         window.runProblemSet = validPages;
     } 
@@ -461,11 +445,9 @@ window.enterRunMode = function() {
             return;
         }
         
-        if (window.orderStyle === 'random') {
-            for (let i = csvLines.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [csvLines[i], csvLines[j]] = [csvLines[j], csvLines[i]];
-            }
+        for (let i = csvLines.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [csvLines[i], csvLines[j]] = [csvLines[j], csvLines[i]];
         }
         
         csvLines = csvLines.slice(0, 10);
@@ -488,6 +470,7 @@ window.loadRunPage = function(index) {
     isSolved = false;
     window.loadPageToDOM(window.runProblemSet[index]);
 
+    // ★パターン3の動的データ割り当て処理
     if (window.playMode === 'pattern3' && window.csvLinesForRun[index]) {
         const csvLine = window.csvLinesForRun[index];
         const parts = csvLine.split(',').map(s => s.trim());
@@ -546,7 +529,7 @@ window.loadRunPage = function(index) {
             const formulas = container.querySelectorAll('.draggable[data-type="formula"]');
             formulas.forEach(f => {
                 f.style.display = 'none';
-                f.dataset.evalContent = `[${correctBoxId}]=1`; 
+                f.dataset.evalContent = `[${correctBoxId}]=1`; // 動的に判定式を上書き
                 const rect = f.querySelector('.formula-rect');
                 if(rect) rect.textContent = `[${correctBoxId}]=1`;
             });
@@ -630,22 +613,17 @@ if (loadFileEl) {
         reader.onload = function(evt) {
             try {
                 const data = JSON.parse(evt.target.result);
-                container.querySelectorAll('.draggable').forEach(w => w.remove());
-                count = 0; 
                 variableRanges = {}; 
                 
-                // データ構造の判定
-                if (data.config && data.pages) {
-                    // 新形式: config と pages が独立
-                    variableRanges = data.config.variableRanges || {};
-                    window.enableEmptyCheck = data.config.enableEmptyCheck === true; 
-                    window.transitionStyle = data.config.transitionStyle || 'none'; 
-                    window.playMode = data.config.playMode || 'pattern2'; 
-                    window.orderStyle = data.config.orderStyle || 'random';
-                    window.judgeSettings = data.config.judgeSettings || window.judgeSettings;
+                if (data.pages) {
+                    const config = data.config || {};
+                    variableRanges = config.variableRanges || {};
+                    window.enableEmptyCheck = config.enableEmptyCheck === true; 
+                    window.transitionStyle = config.transitionStyle || 'none'; 
+                    window.playMode = config.playMode || 'pattern2'; 
+                    if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
                     window.problemSet = data.pages;
                 } else {
-                    // 旧形式: 配列をそのまま読み込む（もしくは単一ページ）
                     const items = [];
                     data.forEach(item => {
                         if (item.type === 'config') {
@@ -653,7 +631,6 @@ if (loadFileEl) {
                             window.enableEmptyCheck = item.enableEmptyCheck === true; 
                             window.transitionStyle = item.transitionStyle || 'none'; 
                             window.playMode = item.playMode || 'pattern1'; 
-                            window.orderStyle = item.orderStyle || 'random';
                             if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
                         } else {
                             items.push(item);
@@ -667,8 +644,7 @@ if (loadFileEl) {
                 window.updatePageUI();
 
             } catch (err) {
-                console.error("JSON解析エラー:", err);
-                alert("JSONファイルの読み込みに失敗しました。" + err.message);
+                alert("JSONファイルの読み込みに失敗しました。");
             }
             e.target.value = ''; 
         };
@@ -681,58 +657,64 @@ window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDrag
 /* ==========================================
    ★公開版書出 (単一HTMLへの全内包処理)
    ========================================== */
-/* script_main.js の export-html-btn 部分を以下のように修正 */
 addClick('export-html-btn', async () => {
     try {
         const cssRes = await fetch('style.css');
+        if (!cssRes.ok) throw new Error("style.css が取得できませんでした。");
         const cssText = await cssRes.text();
 
-        // 1. 各ファイルの読み込み
         const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_main.js'];
-        let jsContent = '';
-        /* 修正版：結合ロジック */
+        let combinedJsText = '';
         for (const file of jsFiles) {
             const res = await fetch(file);
-            const code = await res.text();
-            // 各ファイルを独立したスコープ(IIFE)で囲むことで、関数定義の競合と読み込み順序を保護
-            combinedJsText += `(function(){ ${code} })();\n\n`;
+            if (!res.ok) throw new Error(`${file} が取得できませんでした。`);
+            combinedJsText += await res.text() + '\n\n';
         }
 
         const data = generateLayoutData();
         const jsonString = JSON.stringify(data);
 
         const htmlClone = document.documentElement.cloneNode(true);
-        // コンテナやサイドバーの不要な初期状態をクリア
-        htmlClone.querySelector('#container').innerHTML = '';
-        htmlClone.querySelector('.sidebar')?.remove();
-        htmlClone.querySelector('.toast-msg')?.remove();
+
+        const containerClone = htmlClone.querySelector('#container');
+        if (containerClone) containerClone.innerHTML = ''; 
+        
+        const oldToast = htmlClone.querySelector('.toast-msg');
+        if (oldToast) oldToast.remove(); 
+
+        const sidebarClone = htmlClone.querySelector('.sidebar');
+        if (sidebarClone) sidebarClone.remove();
+
+        htmlClone.querySelectorAll('link[rel="stylesheet"]').forEach(el => {
+            if (el.href && el.href.includes('style.css')) el.remove();
+        });
+        htmlClone.querySelectorAll('script').forEach(el => {
+            el.remove(); 
+        });
 
         const styleTag = document.createElement('style');
         styleTag.textContent = cssText;
         htmlClone.querySelector('head').appendChild(styleTag);
 
         const scriptTag = document.createElement('script');
-        
-        // ★重要: すべてのJSを結合し、最後に初期化処理を確実に実行する
-        scriptTag.textContent = `
-            window.__INIT_DATA__ = ${jsonString};
-            ${jsContent}
-            // ページロード完了後に確実に初期化
-            document.addEventListener('DOMContentLoaded', () => {
-                if (typeof window.initApp === 'function') window.initApp();
-            });
-        `;
+        scriptTag.textContent = `window.__INIT_DATA__ = ${jsonString};\n\n${combinedJsText}`;
         htmlClone.querySelector('body').appendChild(scriptTag);
 
-        const blob = new Blob(["<!DOCTYPE html>\n" + htmlClone.outerHTML], { type: 'text/html' });
+        const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
+
+        const blob = new Blob([htmlText], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'published_grid.html';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
+
     } catch (e) {
-        alert("書き出し失敗: " + e.message);
+        console.error(e);
+        alert("書き出しに失敗しました。サーバー環境(http/https)で実行しているか確認してください。\n詳細: " + e.message);
     }
 });
 
@@ -752,7 +734,6 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
         window.enableEmptyCheck = config.enableEmptyCheck === true; 
         window.transitionStyle = config.transitionStyle || 'none'; 
         window.playMode = config.playMode || 'pattern2';
-        window.orderStyle = config.orderStyle || 'random';
         if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
         window.problemSet = data.pages;
     } else {
@@ -763,7 +744,6 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
                 window.enableEmptyCheck = item.enableEmptyCheck === true; 
                 window.transitionStyle = item.transitionStyle || 'none'; 
                 window.playMode = item.playMode || 'pattern1';
-                window.orderStyle = item.orderStyle || 'random';
                 if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
             } else {
                 items.push(item);
@@ -777,49 +757,7 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
     }, 50);
 }
 
-
-// 初期起動時のUI更新（編集モード用）
+// 初期起動時のUI更新
 if (typeof window.updatePageUI === 'function') {
     window.updatePageUI();
 }
-
-// 読み込み完了後に動作を制御する仕組み
-document.addEventListener('DOMContentLoaded', () => {
-    // 公開版HTMLとして開かれた場合の初期化
-    if (typeof window.__INIT_DATA__ !== 'undefined') {
-        const sidebar = document.querySelector('.sidebar');
-        if (sidebar) sidebar.remove();
-
-        const data = window.__INIT_DATA__;
-        variableRanges = {}; 
-        
-        if (data.pages) {
-            const config = data.config || {};
-            variableRanges = config.variableRanges || {};
-            window.enableEmptyCheck = config.enableEmptyCheck === true; 
-            window.transitionStyle = config.transitionStyle || 'none'; 
-            window.playMode = config.playMode || 'pattern2';
-            window.orderStyle = config.orderStyle || 'random';
-            if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
-            window.problemSet = data.pages;
-        } else {
-            const items = [];
-            data.forEach(item => {
-                if (item.type === 'config') {
-                    variableRanges = item.variableRanges || {};
-                    window.enableEmptyCheck = item.enableEmptyCheck === true; 
-                    window.transitionStyle = item.transitionStyle || 'none'; 
-                    window.playMode = item.playMode || 'pattern1';
-                    window.orderStyle = item.orderStyle || 'random';
-                    if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
-                } else {
-                    items.push(item);
-                }
-            });
-            window.problemSet = [items];
-        }
-
-        // ページ構築後に実行モードへ移行
-        window.enterRunMode();
-    }
-});
