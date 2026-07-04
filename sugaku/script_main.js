@@ -679,15 +679,16 @@ window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDrag
 addClick('export-html-btn', async () => {
     try {
         const cssRes = await fetch('style.css');
-        if (!cssRes.ok) throw new Error("style.css が取得できませんでした。");
         const cssText = await cssRes.text();
 
+        // 読み込み順序を厳守した結合
         const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_main.js'];
         let combinedJsText = '';
         for (const file of jsFiles) {
             const res = await fetch(file);
-            if (!res.ok) throw new Error(`${file} が取得できませんでした。`);
-            combinedJsText += await res.text() + '\n\n';
+            const text = await res.text();
+            // 即時関数(IIFE)で囲むとスコープが混ざらず安全です
+            combinedJsText += `(function() {\n${text}\n})();\n\n`;
         }
 
         const data = generateLayoutData();
