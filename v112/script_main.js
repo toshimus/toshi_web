@@ -774,7 +774,49 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
     }, 50);
 }
 
-// 初期起動時のUI更新
+
+// 初期起動時のUI更新（編集モード用）
 if (typeof window.updatePageUI === 'function') {
     window.updatePageUI();
 }
+
+// 読み込み完了後に動作を制御する仕組み
+document.addEventListener('DOMContentLoaded', () => {
+    // 公開版HTMLとして開かれた場合の初期化
+    if (typeof window.__INIT_DATA__ !== 'undefined') {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.remove();
+
+        const data = window.__INIT_DATA__;
+        variableRanges = {}; 
+        
+        if (data.pages) {
+            const config = data.config || {};
+            variableRanges = config.variableRanges || {};
+            window.enableEmptyCheck = config.enableEmptyCheck === true; 
+            window.transitionStyle = config.transitionStyle || 'none'; 
+            window.playMode = config.playMode || 'pattern2';
+            window.orderStyle = config.orderStyle || 'random';
+            if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
+            window.problemSet = data.pages;
+        } else {
+            const items = [];
+            data.forEach(item => {
+                if (item.type === 'config') {
+                    variableRanges = item.variableRanges || {};
+                    window.enableEmptyCheck = item.enableEmptyCheck === true; 
+                    window.transitionStyle = item.transitionStyle || 'none'; 
+                    window.playMode = item.playMode || 'pattern1';
+                    window.orderStyle = item.orderStyle || 'random';
+                    if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
+                } else {
+                    items.push(item);
+                }
+            });
+            window.problemSet = [items];
+        }
+
+        // ページ構築後に実行モードへ移行
+        window.enterRunMode();
+    }
+});
