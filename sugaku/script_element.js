@@ -355,7 +355,6 @@ function createDraggable(type, itemData = null) {
             el.addEventListener('click', (e) => {
                 if (isEditMode) return;
                 
-                // ★追加: 問題文として展開されたBoxはクリックに反応しない
                 if (wrapper.dataset.isQuestion === "true") return; 
 
                 const allBoxes = container.querySelectorAll('.draggable[data-type="box"]');
@@ -397,7 +396,6 @@ function createDraggable(type, itemData = null) {
             if (typeof window.renderAnswer === 'function') window.renderAnswer(wrapper);
 
         } else if (type === 'formula') {
-            // ★変更: 初期値が複数行テキストをサポートするように
             let txt = itemData ? itemData.content : initialContent;
             el.classList.add('formula-rect');
             el.textContent = txt;
@@ -406,7 +404,6 @@ function createDraggable(type, itemData = null) {
                 if (!isEditMode) return; 
                 if (e) e.stopPropagation();
                 activeFormulaWrapper = wrapper;
-                // ★変更: textareaに値をセット
                 document.getElementById('formula-prop-content').value = el.textContent;
                 
                 const idContainer = document.getElementById('formula-id-btns');

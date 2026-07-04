@@ -18,8 +18,9 @@ window.MAX_QUESTIONS = 10;
 window.usedVarHistory = new Set();
 window.lastCheckTime = 0;
 window.transitionStyle = 'none'; 
-window.playMode = 'pattern2'; // ★追加: 出題パターンのデフォルト
-window.csvLinesForRun = [];   // ★追加: パターン3用
+window.playMode = 'pattern2'; 
+window.orderStyle = 'random'; // ★追加: 出題順序の設定
+window.csvLinesForRun = [];   
 
 window.mistakeCount = 0;
 window.isToastShowing = false;

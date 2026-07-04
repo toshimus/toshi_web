@@ -6,6 +6,7 @@ window.problemSet = [ [] ];
 window.currentEditPage = 0;
 window.runProblemSet = [];
 window.playMode = window.playMode || 'pattern2';
+window.orderStyle = window.orderStyle || 'random';
 
 function addClick(id, handler) {
     const btn = document.getElementById(id);
@@ -263,6 +264,11 @@ addClick('var-settings-btn', () => {
         playModeSelect.value = window.playMode || 'pattern2';
     }
 
+    const orderSelect = document.getElementById('order-style-select');
+    if (orderSelect) {
+        orderSelect.value = window.orderStyle || 'random';
+    }
+
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
     const knownAnswerIds = new Set();
     answerWrappers.forEach(w => {
@@ -326,6 +332,11 @@ addClick('save-var-settings-btn', () => {
     const playModeSelect = document.getElementById('play-mode-select');
     if (playModeSelect) {
         window.playMode = playModeSelect.value;
+    }
+
+    const orderSelect = document.getElementById('order-style-select');
+    if (orderSelect) {
+        window.orderStyle = orderSelect.value;
     }
 
     const listContainer = document.getElementById('var-list-container');
@@ -393,6 +404,7 @@ function generateLayoutData() {
             enableEmptyCheck: window.enableEmptyCheck === true,
             transitionStyle: window.transitionStyle, 
             playMode: window.playMode, 
+            orderStyle: window.orderStyle, 
             judgeSettings: window.judgeSettings 
         },
         pages: window.problemSet
@@ -410,6 +422,7 @@ window.enterRunMode = function() {
     window.saveCurrentPage();
 
     window.playMode = window.playMode || 'pattern2';
+    window.orderStyle = window.orderStyle || 'random';
     window.runProblemSet = [];
     window.csvLinesForRun = [];
 
@@ -424,9 +437,12 @@ window.enterRunMode = function() {
             window.enterEditMode();
             return;
         }
-        for (let i = validPages.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [validPages[i], validPages[j]] = [validPages[j], validPages[i]];
+        
+        if (window.orderStyle === 'random') {
+            for (let i = validPages.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [validPages[i], validPages[j]] = [validPages[j], validPages[i]];
+            }
         }
         window.runProblemSet = validPages;
     } 
@@ -445,9 +461,11 @@ window.enterRunMode = function() {
             return;
         }
         
-        for (let i = csvLines.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [csvLines[i], csvLines[j]] = [csvLines[j], csvLines[i]];
+        if (window.orderStyle === 'random') {
+            for (let i = csvLines.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [csvLines[i], csvLines[j]] = [csvLines[j], csvLines[i]];
+            }
         }
         
         csvLines = csvLines.slice(0, 10);
@@ -470,7 +488,6 @@ window.loadRunPage = function(index) {
     isSolved = false;
     window.loadPageToDOM(window.runProblemSet[index]);
 
-    // ★パターン3の動的データ割り当て処理
     if (window.playMode === 'pattern3' && window.csvLinesForRun[index]) {
         const csvLine = window.csvLinesForRun[index];
         const parts = csvLine.split(',').map(s => s.trim());
@@ -529,7 +546,7 @@ window.loadRunPage = function(index) {
             const formulas = container.querySelectorAll('.draggable[data-type="formula"]');
             formulas.forEach(f => {
                 f.style.display = 'none';
-                f.dataset.evalContent = `[${correctBoxId}]=1`; // 動的に判定式を上書き
+                f.dataset.evalContent = `[${correctBoxId}]=1`; 
                 const rect = f.querySelector('.formula-rect');
                 if(rect) rect.textContent = `[${correctBoxId}]=1`;
             });
@@ -621,6 +638,7 @@ if (loadFileEl) {
                     window.enableEmptyCheck = config.enableEmptyCheck === true; 
                     window.transitionStyle = config.transitionStyle || 'none'; 
                     window.playMode = config.playMode || 'pattern2'; 
+                    window.orderStyle = config.orderStyle || 'random';
                     if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
                     window.problemSet = data.pages;
                 } else {
@@ -631,6 +649,7 @@ if (loadFileEl) {
                             window.enableEmptyCheck = item.enableEmptyCheck === true; 
                             window.transitionStyle = item.transitionStyle || 'none'; 
                             window.playMode = item.playMode || 'pattern1'; 
+                            window.orderStyle = item.orderStyle || 'random';
                             if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
                         } else {
                             items.push(item);
@@ -655,24 +674,28 @@ if (loadFileEl) {
 window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDraggable === 'function' && createDraggable('box'); });
 
 /* ==========================================
-   ★公開版書出 (単一HTMLへの全内包処理)
+   ★公開版書出 (単一HTMLへの全内包処理) - 修正済
    ========================================== */
 addClick('export-html-btn', async () => {
     try {
-        const cssRes = await fetch('style.css');
-        if (!cssRes.ok) throw new Error("style.css が取得できませんでした。");
+        // キャッシュ回避用のパラメータを付与します
+        const t = new Date().getTime();
+        const cssRes = await fetch('style.css?t=' + t);
+        // ローカル環境(file://)ではステータスが0になる場合があるため、許容します
+        if (!cssRes.ok && cssRes.status !== 0) throw new Error("style.css が取得できませんでした。");
         const cssText = await cssRes.text();
 
         const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_main.js'];
         let combinedJsText = '';
         for (const file of jsFiles) {
-            const res = await fetch(file);
-            if (!res.ok) throw new Error(`${file} が取得できませんでした。`);
+            const res = await fetch(file + '?t=' + t);
+            if (!res.ok && res.status !== 0) throw new Error(`${file} が取得できませんでした。`);
             combinedJsText += await res.text() + '\n\n';
         }
 
         const data = generateLayoutData();
-        const jsonString = JSON.stringify(data);
+        // HTML構造が破壊されないよう </script> をエスケープ処理します
+        const jsonString = JSON.stringify(data).replace(/<\/script>/gi, '<\\/script>');
 
         const htmlClone = document.documentElement.cloneNode(true);
 
@@ -702,7 +725,8 @@ addClick('export-html-btn', async () => {
 
         const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
 
-        const blob = new Blob([htmlText], { type: 'text/html' });
+        // 文字化け対策として charset を明記します
+        const blob = new Blob([htmlText], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -714,7 +738,7 @@ addClick('export-html-btn', async () => {
 
     } catch (e) {
         console.error(e);
-        alert("書き出しに失敗しました。サーバー環境(http/https)で実行しているか確認してください。\n詳細: " + e.message);
+        alert("書き出しに失敗しました。ローカル環境(file://)のセキュリティ制限によりファイルが読み込めない可能性があります。Webサーバー(http/https)上で実行しているか確認してください。\n詳細: " + e.message);
     }
 });
 
@@ -734,6 +758,7 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
         window.enableEmptyCheck = config.enableEmptyCheck === true; 
         window.transitionStyle = config.transitionStyle || 'none'; 
         window.playMode = config.playMode || 'pattern2';
+        window.orderStyle = config.orderStyle || 'random';
         if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
         window.problemSet = data.pages;
     } else {
@@ -744,6 +769,7 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
                 window.enableEmptyCheck = item.enableEmptyCheck === true; 
                 window.transitionStyle = item.transitionStyle || 'none'; 
                 window.playMode = item.playMode || 'pattern1';
+                window.orderStyle = item.orderStyle || 'random';
                 if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
             } else {
                 items.push(item);

@@ -27,9 +27,9 @@
 
         <button id="add-box-btn" class="edit-only">選択肢追加</button>
         <button id="add-ans-btn" class="edit-only">解答欄追加</button>
-        <button id="add-formula-btn" class="edit-only">計算式追加</button>
         <button id="add-text-btn" class="edit-only">文字追加</button>
         <button id="add-line-btn" class="edit-only" style="background-color: #f39c12;">直線追加</button>
+        <button id="add-formula-btn" class="edit-only" style="background-color: #1abc9c;">計算式追加</button>
         <button id="var-settings-btn" class="edit-only" style="background-color: #8e44ad;">動作・変数設定</button>
         <button id="judge-settings-btn" class="edit-only" style="background-color: #e84393;">判定設定</button>
         <button id="add-check-btn" class="edit-only" style="background-color: #e67e22;">できた追加</button>
@@ -240,6 +240,14 @@
                 <option value="pattern1">1: 変数ランダム (単一ページ)</option>
                 <option value="pattern2">2: ページ切り替え (複数ページ)</option>
                 <option value="pattern3">3: CSV動的選択問題展開</option>
+            </select>
+        </div>
+
+        <div class="prop-setting-row" style="margin-bottom: 15px;">
+            <strong style="font-size: 1.1rem; color:#333;">出題順序</strong>
+            <select id="order-style-select" class="prop-select" style="width: 150px;">
+                <option value="random">ランダム</option>
+                <option value="sequential">順番通り</option>
             </select>
         </div>
         
