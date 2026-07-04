@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>4:3 Grid Interface - Extended</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="box-container" id="container"></div>
+    </div>
+
+    <div class="sidebar">
+        <div id="page-nav" class="edit-only" style="display:flex; flex-direction:column; align-items:center; width:90%; margin: 0 auto 10px auto; background:#444; padding:8px; border-radius:5px; box-sizing:border-box;">
+            <div style="color:white; margin-bottom:5px; font-weight:bold; font-size:0.9rem;" id="page-indicator">問題 1 / 1</div>
+            <div style="display:flex; gap:5px; width:100%;">
+                <button id="prev-page-btn" style="width:50%; padding:5px; font-size:0.8rem; margin:0; background-color:#7f8c8d;">前へ</button>
+                <button id="next-page-btn" style="width:50%; padding:5px; font-size:0.8rem; margin:0; background-color:#7f8c8d;">次へ</button>
+            </div>
+            <div style="display:flex; gap:5px; width:100%; margin-top:5px;">
+                <button id="add-page-btn" style="width:50%; padding:5px; font-size:0.8rem; background-color:#2980b9; margin:0;">追加</button>
+                <button id="del-page-btn" style="width:50%; padding:5px; font-size:0.8rem; background-color:#c0392b; margin:0;">削除</button>
+            </div>
+        </div>
+
+        <button id="add-box-btn" class="edit-only">選択肢追加</button>
+        <button id="add-ans-btn" class="edit-only">解答欄追加</button>
+        <button id="add-formula-btn" class="edit-only">計算式追加</button>
+        <button id="add-text-btn" class="edit-only">文字追加</button>
+        <button id="add-line-btn" class="edit-only" style="background-color: #f39c12;">直線追加</button>
+        <button id="var-settings-btn" class="edit-only" style="background-color: #8e44ad;">動作・変数設定</button>
+        <button id="judge-settings-btn" class="edit-only" style="background-color: #e84393;">判定設定</button>
+        <button id="add-check-btn" class="edit-only" style="background-color: #e67e22;">できた追加</button>
+        <button id="delete-item-btn" class="edit-only" style="background-color: #c0392b;">削除</button>
+        
+        <button id="export-html-btn" class="edit-only" style="background-color: #16a085;">公開版書出</button>
+
+        <button id="run-btn" style="background-color: #2ecc71;">実行モードへ</button>
+        
+        <button id="save-btn" class="edit-only" style="background-color: #9b59b6;">保存</button>
+        <button id="load-btn" class="edit-only" style="background-color: #34495e;">読込</button>
+    </div>
+
+    <input type="file" id="load-file" style="display:none;" accept=".json">
+
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="pieces-container" id="calc-container">
+        <div id="calc-0-20-view" style="width: 100%; display: none;"></div>
+        <div id="calc-quick-view" style="width: 100%; display: none;">
+            <div class="num-pad-square" id="quick-pad-inner"></div>
+        </div>
+        <div id="calc-standard-view" style="width: 100%; max-width: 400px; display: none;">
+            <div class="calc-display" id="std-calc-display"></div>
+            <div class="standard-pad">
+                <div class="piece std-btn" data-val="7">7</div>
+                <div class="piece std-btn" data-val="8">8</div>
+                <div class="piece std-btn" data-val="9">9</div>
+                <div class="piece std-btn" data-val="C" style="background-color:#e74c3c; color:white; border-color:#c0392b; box-shadow:0 4px 0 #c0392b;">C</div>
+                
+                <div class="piece std-btn" data-val="4">4</div>
+                <div class="piece std-btn" data-val="5">5</div>
+                <div class="piece std-btn" data-val="6">6</div>
+                <div class="piece std-btn" data-val="BS" style="background-color:#e67e22; color:white; border-color:#d35400; box-shadow:0 4px 0 #d35400;">BS</div>
+                
+                <div class="piece std-btn" data-val="1">1</div>
+                <div class="piece std-btn" data-val="2">2</div>
+                <div class="piece std-btn" data-val="3">3</div>
+                <div class="piece std-btn" data-val="-">-</div>
+                
+                <div class="piece std-btn" data-val="0" style="grid-column: span 2;">0</div>
+                <div class="piece std-btn" data-val=".">.</div>
+                <div class="piece std-btn" data-val="OK" style="background-color:#2ecc71; color:white; border-color:#27ae60; box-shadow:0 4px 0 #27ae60;">OK</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pieces-container" id="ans-prop-container" style="max-width: 350px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">解答欄プロパティ</h3>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">ID</strong>
+            <input type="text" id="ans-prop-id" class="prop-setting-input" style="text-align: left; width: 120px;" placeholder="例: [q1]">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">桁分割(0で無効)</strong>
+            <input type="number" id="ans-prop-digits" class="prop-setting-input" style="width: 70px;" min="0">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">入力モード</strong>
+            <select id="ans-prop-mode" class="prop-select" style="width: 130px;">
+                <option value="0-20">0〜20入力</option>
+                <option value="standard">通常の電卓</option>
+                <option value="quick-0-9">即決0〜9</option>
+            </select>
+        </div>
+        <button id="save-ans-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+    </div>
+
+    <div class="pieces-container" id="text-prop-container" style="max-width: 350px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">文字プロパティ</h3>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">内容</strong>
+            <input type="text" id="text-prop-content" class="prop-setting-input" style="text-align: left; width: 180px;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">文字サイズ(倍)</strong>
+            <input type="number" step="0.1" id="text-prop-size" class="prop-setting-input" style="width: 70px;" value="1.0" min="0.1">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">桁分割(0で無効)</strong>
+            <input type="number" id="text-prop-digits" class="prop-setting-input" style="width: 70px;" min="0">
+        </div>
+        <button id="save-text-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+    </div>
+
+    <div class="pieces-container" id="line-prop-container" style="max-width: 300px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">直線プロパティ</h3>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">太さ</strong>
+            <input type="number" id="line-prop-thickness" class="prop-setting-input" style="width: 70px;" min="1" max="20">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">色</strong>
+            <input type="color" id="line-prop-color" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">種類</strong>
+            <select id="line-prop-style" class="prop-select" style="width: 130px;">
+                <option value="solid">実線</option>
+                <option value="dashed">破線</option>
+                <option value="dotted">点線</option>
+            </select>
+        </div>
+        <button id="save-line-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+    </div>
+
+    <div class="pieces-container" id="box-prop-container" style="max-width: 300px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">選択肢プロパティ</h3>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">表示名</strong>
+            <input type="text" id="box-prop-name" class="prop-setting-input" style="width: 120px;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">選択ID</strong>
+            <input type="text" id="box-prop-id" class="prop-setting-input" style="width: 120px;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">背景色</strong>
+            <input type="color" id="box-prop-bgcolor" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">枠線の色</strong>
+            <input type="color" id="box-prop-bordercolor" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">枠線の太さ</strong>
+            <input type="number" id="box-prop-borderwidth" class="prop-setting-input" style="width: 70px;" min="0" max="20" value="0">
+        </div>
+        <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">最後に押した状態</strong>
+            <input type="checkbox" id="box-prop-last" style="width: 25px; height: 25px;">
+        </div>
+        <button id="save-box-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+    </div>
+
+    <div class="pieces-container" id="formula-prop-container" style="max-width: 550px; width: 95%; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">計算式・データプロパティ</h3>
+        <div class="prop-setting-row" style="flex-direction: column; align-items: stretch; background: transparent; box-shadow: none; padding: 0;">
+            
+            <strong style="font-size: 1.1rem; color:#333; margin-bottom: 5px;">判定・表示用の式 または CSV問題データ(パターン3用)</strong>
+            <textarea id="formula-prop-content" class="prop-setting-input" style="width: 100%; height: 100px; text-align: left; margin-bottom: 15px; font-size: 1.2rem; padding: 8px; box-sizing: border-box;" placeholder="例（判定式）: [q1]=[x1]+[x2]&#10;例（CSV）: 日本の首都は？,4,東京,大阪,京都,福岡"></textarea>
+            
+            <strong style="font-size: 1rem; color:#555; margin-bottom: 5px;">記号 (クリックで挿入)</strong>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">
+                <button class="insert-btn" onclick="insertIntoFormula('+')">＋</button>
+                <button class="insert-btn" onclick="insertIntoFormula('-')">－</button>
+                <button class="insert-btn" onclick="insertIntoFormula('*')">＊</button>
+                <button class="insert-btn" onclick="insertIntoFormula('/')">／</button>
+                <button class="insert-btn" onclick="insertIntoFormula('=')">＝</button>
+                <button class="insert-btn" onclick="insertIntoFormula('=1')">選択された(=1)</button>
+            </div>
+            
+            <strong style="font-size: 1rem; color:#555; margin-bottom: 5px;">画面上の変数・ID (クリックで挿入)</strong>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; max-height: 150px; overflow-y: auto; background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7;" id="formula-id-btns">
+            </div>
+        </div>
+        <button id="save-formula-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 15px;">設定を保存</button>
+    </div>
+
+    <div class="pieces-container" id="judge-prop-container" style="max-width: 400px; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">判定表示設定</h3>
+        
+        <h4 style="margin-top: 10px; margin-bottom: 5px; color: #e74c3c; border-bottom: 1px solid #ccc;">正解時</h4>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">テキスト</strong>
+            <input type="text" id="judge-correct-text" class="prop-setting-input" style="width: 140px;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">文字色</strong>
+            <input type="color" id="judge-correct-color" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">渕色</strong>
+            <input type="color" id="judge-correct-stroke" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 15px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">背景色</strong>
+            <input type="text" id="judge-correct-bg" class="prop-setting-input" style="width: 140px;" placeholder="例: transparent">
+        </div>
+
+        <h4 style="margin-bottom: 5px; color: #3498db; border-bottom: 1px solid #ccc;">不正解時</h4>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">テキスト</strong>
+            <input type="text" id="judge-incorrect-text" class="prop-setting-input" style="width: 140px;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">文字色</strong>
+            <input type="color" id="judge-incorrect-color" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 5px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">渕色</strong>
+            <input type="color" id="judge-incorrect-stroke" style="width: 50px; height: 35px; border:none; cursor:pointer;">
+        </div>
+        <div class="prop-setting-row" style="margin-bottom: 15px; padding: 5px 10px;">
+            <strong style="font-size: 1.1rem; color:#333;">背景色</strong>
+            <input type="text" id="judge-incorrect-bg" class="prop-setting-input" style="width: 140px;" placeholder="例: transparent">
+        </div>
+
+        <button id="save-judge-prop-btn" class="piece" style="width:100%; height:50px; background-color:#e84393; border-color:#d63031; color:white; box-shadow:0 4px 0 #d63031; margin-top: 10px;">設定を保存</button>
+    </div>
+
+    <div class="pieces-container" id="var-settings-container" style="max-width: 500px; cursor: default; overflow-y: auto; max-height: 80vh;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">動作・変数設定</h3>
+
+        <div class="prop-setting-row" style="margin-bottom: 15px;">
+            <strong style="font-size: 1.1rem; color:#333;">出題パターン</strong>
+            <select id="play-mode-select" class="prop-select" style="width: 250px;">
+                <option value="pattern1">1: 変数ランダム (単一ページ)</option>
+                <option value="pattern2">2: ページ切り替え (複数ページ)</option>
+                <option value="pattern3">3: CSV動的選択問題展開</option>
+            </select>
+        </div>
+        
+        <div style="background: #fff; padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+            <label style="font-weight:bold; color:#333; font-size: 1.1rem; cursor: pointer;">
+                <input type="checkbox" id="empty-check-toggle" style="transform: scale(1.3); margin-right: 8px;"> 「空欄があります」の判定を有効にする
+            </label>
+        </div>
+
+        <div class="prop-setting-row" style="margin-bottom: 15px;">
+            <strong style="font-size: 1.1rem; color:#333;">画面切り替え</strong>
+            <select id="transition-style-select" class="prop-select" style="width: 150px;">
+                <option value="none">なし</option>
+                <option value="fade">フェード</option>
+                <option value="left">右から左へ(←)</option>
+                <option value="right">左から右へ(→)</option>
+                <option value="up">下から上へ(↑)</option>
+                <option value="down">上から下へ(↓)</option>
+            </select>
+        </div>
+
+        <div id="var-list-container" style="width: 100%; margin-bottom: 20px;"></div>
+        <button id="save-var-settings-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9;">設定を保存</button>
+    </div>
+
+    <script src="script_core.js"></script>
+    <script src="script_element.js"></script>
+    <script src="script_game.js"></script>
+    <script src="script_drag.js"></script>
+    <script src="script_main.js"></script>
+</body>
+</html>
