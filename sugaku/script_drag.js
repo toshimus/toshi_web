@@ -84,10 +84,6 @@ document.addEventListener('touchmove', handleGlobalMove, { passive: false });
 document.addEventListener('mouseup', handleGlobalEnd);
 document.addEventListener('touchend', handleGlobalEnd);
 
-
-/* ==========================================
-   矩形選択機能
-   ========================================== */
 let isSelecting = false;
 let selectionStartX = 0;
 let selectionStartY = 0;

@@ -1,15 +1,21 @@
 /* ==========================================
-   script_game.js (ゲーム進行・正解判定・リザルト制御)
+   script_game.js (ゲーム進行・判定・CSV動的生成・リザルト制御)
    ========================================== */
 
 function runValidation() {
+    if (isSolved || window.isToastShowing) return;
+
     const answers = Array.from(container.querySelectorAll('.draggable[data-type="answer"]'));
     const formulas = Array.from(container.querySelectorAll('.draggable[data-type="formula"]'));
+    const boxes = Array.from(container.querySelectorAll('.draggable[data-type="box"]'));
+
+    const hasSelection = boxes.length === 0 || boxes.some(b => b.dataset.isLastPressed === "true" && b.dataset.isQuestion !== "true");
 
     let allCorrect = true;
     let hasCheckable = false;
-
     let ansValues = {};
+    let hasEmpty = false;
+
     answers.forEach(wAns => {
         const id = wAns.dataset.answerId;
         const el = wAns.querySelector('.ans-rect');
@@ -25,22 +31,32 @@ function runValidation() {
             
             if (firstFilled === -1) {
                 val = NaN; 
+                hasEmpty = true;
             } else {
                 let isValid = true;
                 for (let i = firstFilled + 1; i < vals.length; i++) {
-                    if (vals[i] === "") isValid = false; 
+                    if (vals[i] === "") {
+                        isValid = false; 
+                        hasEmpty = true;
+                    }
                 }
                 val = isValid ? parseFloat(vals.slice(firstFilled).join('')) : NaN;
             }
         } else {
-            val = parseFloat(el.textContent);
+            const txt = el.textContent.trim();
+            if (txt === "") hasEmpty = true;
+            val = parseFloat(txt);
         }
         ansValues[normalizedId] = isNaN(val) ? 0 : val;
     });
 
+    if (!hasSelection || hasEmpty) {
+        window.showToast("解答を選択または入力してください", "system");
+        return;
+    }
+
     const getCombinedValueForId = (id) => {
         const cleanId = id.replace(/[\[\]]/g, '');
-
         const targetBox = container.querySelector(`.draggable[data-type="box"][data-box-id="${cleanId}"]`);
         if (targetBox) {
             return targetBox.dataset.isLastPressed === "true" ? 1 : 0;
@@ -78,7 +94,9 @@ function runValidation() {
     };
 
     formulas.forEach(wForm => {
-        const formulaStr = wForm.querySelector('.formula-rect').textContent;
+        const formulaStr = wForm.querySelector('.formula-rect') ? wForm.querySelector('.formula-rect').textContent : wForm.dataset.evalContent;
+        if(!formulaStr) return;
+        
         const parts = formulaStr.split('=');
         if (parts.length === 2) {
             hasCheckable = true;
@@ -98,11 +116,8 @@ function runValidation() {
         return;
     }
 
-    let hasEmpty = false;
-    
     if (window.enableEmptyCheck === true) {
         let groupStatus = {}; 
-
         answers.forEach(w => {
             const id = w.dataset.answerId;
             const el = w.querySelector('.ans-rect');
@@ -144,14 +159,11 @@ function runValidation() {
             const maxDigit = arr.length - 1;
             for (let i = maxDigit; i >= 1; i--) {
                 const val = arr[i] === undefined ? "" : arr[i];
-                
                 if (val !== "") {
                     started = true;
                     allEmpty = false;
                 } else {
-                    if (started) {
-                        hasEmpty = true; 
-                    }
+                    if (started) hasEmpty = true; 
                 }
             }
             if (allEmpty) hasEmpty = true; 
@@ -164,11 +176,11 @@ function runValidation() {
         if (allCorrect) {
             window.showToast(window.judgeSettings.correct.text, "correct");
             isSolved = true;
-            const checkRect = document.querySelector('.check-rect');
+            const checkRect = container.querySelector('.check-rect');
             if (checkRect) checkRect.textContent = "次の問題へ";
         } else {
             window.showToast(window.judgeSettings.incorrect.text, "incorrect");
-            window.mistakeCount++; // ★追加: ミス回数を加算
+            window.mistakeCount++; 
         }
     }
 }
@@ -176,7 +188,9 @@ window.runValidation = runValidation;
 
 window.generateProblemVars = function() {
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+    const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+    
     const knownAnswerIds = new Set();
     answerWrappers.forEach(w => {
         if (w.dataset.answerId) knownAnswerIds.add(w.dataset.answerId);
@@ -188,8 +202,8 @@ window.generateProblemVars = function() {
     
     do {
         newVars = {};
-        textWrappers.forEach(wrapper => {
-            const content = wrapper.dataset.originalContent;
+        
+        const extractVars = (content) => {
             if (content) {
                 const matches = content.match(/\[[^\]]+\]/g);
                 if (matches) {
@@ -203,8 +217,11 @@ window.generateProblemVars = function() {
                     });
                 }
             }
-        });
-        
+        };
+
+        textWrappers.forEach(w => extractVars(w.dataset.originalContent));
+        boxWrappers.forEach(w => extractVars(w.dataset.boxName));
+
         signature = JSON.stringify(newVars, Object.keys(newVars).sort());
         attempts++;
     } while (window.usedVarHistory.has(signature) && Object.keys(newVars).length > 0 && attempts < 100);
@@ -218,6 +235,8 @@ window.generateProblemVars = function() {
 window.shuffleBoxes = function() {
     const boxes = Array.from(container.querySelectorAll('.draggable[data-type="box"]'));
     if (boxes.length < 2) return; 
+
+    if (window.playMode === 'pattern3') return;
 
     const positions = boxes.map(b => ({ x: b.dataset.gridX, y: b.dataset.gridY }));
     
@@ -262,24 +281,15 @@ window.loadNextProblem = function() {
 };
 
 function processNextProblem() {
-    window.currentQuestionNum++;
-    isSolved = false;
-    const checkRect = document.querySelector('.check-rect');
-    if (checkRect) checkRect.textContent = "できた";
-
     const toastMsg = document.querySelector('.toast-msg');
     if (toastMsg) toastMsg.classList.remove('show');
 
-    window.generateProblemVars();
-    if (typeof window.shuffleBoxes === 'function') window.shuffleBoxes();
-
-    const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
-    const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
-    textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : renderText(wrapper));
-    answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : renderAnswer(wrapper));
+    window.currentQuestionNum++;
+    if (typeof window.loadRunPage === 'function') {
+        window.loadRunPage(window.currentQuestionNum - 1);
+    }
 }
 
-// ★追加: リザルト画面に成績情報を表示
 window.showResultScreen = function() {
     const toastMsg = document.querySelector('.toast-msg');
     if (toastMsg) toastMsg.classList.remove('show');
@@ -312,9 +322,8 @@ window.showResultScreen = function() {
         subText.style.fontSize = '1.5rem';
         subText.style.marginBottom = '20px';
 
-        // ★新規: 成績の表示ブロック
         const statsContainer = document.createElement('div');
-        statsContainer.id = 'result-stats'; // IDを付与して後から更新可能にする
+        statsContainer.id = 'result-stats';
         statsContainer.style.textAlign = 'center';
         statsContainer.style.marginBottom = '40px';
 
@@ -363,12 +372,11 @@ window.showResultScreen = function() {
         document.body.appendChild(resultOverlay);
     }
     
-    // 成績情報の計算と更新
     const statsContainer = document.getElementById('result-stats');
     const totalQuestions = window.MAX_QUESTIONS;
     const mistakes = window.mistakeCount || 0;
     const totalAttempts = totalQuestions + mistakes;
-    const accuracy = Math.round((totalQuestions / totalAttempts) * 100);
+    const accuracy = totalAttempts > 0 ? Math.round((totalQuestions / totalAttempts) * 100) : 100;
 
     statsContainer.innerHTML = `
         <div style="font-size: 1.8rem; margin-bottom: 10px;">正解: <span style="color:#2ecc71;">${totalQuestions} 回</span></div>

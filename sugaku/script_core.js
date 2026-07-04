@@ -18,8 +18,10 @@ window.MAX_QUESTIONS = 10;
 window.usedVarHistory = new Set();
 window.lastCheckTime = 0;
 window.transitionStyle = 'none'; 
+window.playMode = 'pattern2'; 
+window.orderStyle = 'random'; // ★追加: 出題順序の設定
+window.csvLinesForRun = [];   
 
-// ★追加: 成績カウントとトースト表示状態のフラグ
 window.mistakeCount = 0;
 window.isToastShowing = false;
 
@@ -175,7 +177,7 @@ let calcDragStartX, calcDragStartY, calcInitialLeft, calcInitialTop;
 let currentDragTarget = null;
 
 function startModalDrag(e) {
-    if (e.target.classList.contains('piece') || e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'select') return;
+    if (e.target.classList.contains('piece') || e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'select' || e.target.tagName.toLowerCase() === 'textarea') return;
     isCalcDragging = true;
     currentDragTarget = e.currentTarget;
     let clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -247,11 +249,11 @@ function showToast(message, type = 'system') {
     }
     
     toast.classList.add('show');
-    window.isToastShowing = true; // ★追加: 表示中フラグを立てる
+    window.isToastShowing = true; 
 
     toastTimer = setTimeout(() => {
         toast.classList.remove('show');
-        window.isToastShowing = false; // ★追加: 非表示時にフラグを下ろす
+        window.isToastShowing = false; 
     }, 2500);
 }
 window.showToast = showToast; 
@@ -260,7 +262,7 @@ const hideToast = (e) => {
     if (toast.classList.contains('show') && !e.target.closest('.check-rect')) {
         toast.classList.remove('show');
         if (toastTimer) clearTimeout(toastTimer);
-        window.isToastShowing = false; // ★追加: 即座に消した場合もフラグを下ろす
+        window.isToastShowing = false; 
     }
 };
 document.addEventListener('mousedown', hideToast);

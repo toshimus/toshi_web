@@ -13,11 +13,23 @@
     </div>
 
     <div class="sidebar">
+        <div id="page-nav" class="edit-only" style="display:flex; flex-direction:column; align-items:center; width:90%; margin: 0 auto 10px auto; background:#444; padding:8px; border-radius:5px; box-sizing:border-box;">
+            <div style="color:white; margin-bottom:5px; font-weight:bold; font-size:0.9rem;" id="page-indicator">問題 1 / 1</div>
+            <div style="display:flex; gap:5px; width:100%;">
+                <button id="prev-page-btn" style="width:50%; padding:5px; font-size:0.8rem; margin:0; background-color:#7f8c8d;">前へ</button>
+                <button id="next-page-btn" style="width:50%; padding:5px; font-size:0.8rem; margin:0; background-color:#7f8c8d;">次へ</button>
+            </div>
+            <div style="display:flex; gap:5px; width:100%; margin-top:5px;">
+                <button id="add-page-btn" style="width:50%; padding:5px; font-size:0.8rem; background-color:#2980b9; margin:0;">追加</button>
+                <button id="del-page-btn" style="width:50%; padding:5px; font-size:0.8rem; background-color:#c0392b; margin:0;">削除</button>
+            </div>
+        </div>
+
         <button id="add-box-btn" class="edit-only">選択肢追加</button>
         <button id="add-ans-btn" class="edit-only">解答欄追加</button>
-        <button id="add-formula-btn" class="edit-only">計算式追加</button>
         <button id="add-text-btn" class="edit-only">文字追加</button>
         <button id="add-line-btn" class="edit-only" style="background-color: #f39c12;">直線追加</button>
+        <button id="add-formula-btn" class="edit-only" style="background-color: #1abc9c;">計算式追加</button>
         <button id="var-settings-btn" class="edit-only" style="background-color: #8e44ad;">動作・変数設定</button>
         <button id="judge-settings-btn" class="edit-only" style="background-color: #e84393;">判定設定</button>
         <button id="add-check-btn" class="edit-only" style="background-color: #e67e22;">できた追加</button>
@@ -153,11 +165,12 @@
         <button id="save-box-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
     </div>
 
-    <div class="pieces-container" id="formula-prop-container" style="max-width: 500px; width: 90%; cursor: default;">
-        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">計算式プロパティ</h3>
+    <div class="pieces-container" id="formula-prop-container" style="max-width: 550px; width: 95%; cursor: default;">
+        <h3 style="margin-top:0; color:#2c3e50; text-align:center;">計算式・データプロパティ</h3>
         <div class="prop-setting-row" style="flex-direction: column; align-items: stretch; background: transparent; box-shadow: none; padding: 0;">
-            <strong style="font-size: 1.1rem; color:#333; margin-bottom: 5px;">判定・表示用の式</strong>
-            <input type="text" id="formula-prop-content" class="prop-setting-input" style="width: 100%; text-align: left; margin-bottom: 15px; font-size: 1.2rem; padding: 8px; box-sizing: border-box;">
+            
+            <strong style="font-size: 1.1rem; color:#333; margin-bottom: 5px;">判定・表示用の式 または CSV問題データ(パターン3用)</strong>
+            <textarea id="formula-prop-content" class="prop-setting-input" style="width: 100%; height: 100px; text-align: left; margin-bottom: 15px; font-size: 1.2rem; padding: 8px; box-sizing: border-box;" placeholder="例（判定式）: [q1]=[x1]+[x2]&#10;例（CSV）: 日本の首都は？,4,東京,大阪,京都,福岡"></textarea>
             
             <strong style="font-size: 1rem; color:#555; margin-bottom: 5px;">記号 (クリックで挿入)</strong>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">
@@ -220,6 +233,23 @@
 
     <div class="pieces-container" id="var-settings-container" style="max-width: 500px; cursor: default; overflow-y: auto; max-height: 80vh;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">動作・変数設定</h3>
+
+        <div class="prop-setting-row" style="margin-bottom: 15px;">
+            <strong style="font-size: 1.1rem; color:#333;">出題パターン</strong>
+            <select id="play-mode-select" class="prop-select" style="width: 250px;">
+                <option value="pattern1">1: 変数ランダム (単一ページ)</option>
+                <option value="pattern2">2: ページ切り替え (複数ページ)</option>
+                <option value="pattern3">3: CSV動的選択問題展開</option>
+            </select>
+        </div>
+
+        <div class="prop-setting-row" style="margin-bottom: 15px;">
+            <strong style="font-size: 1.1rem; color:#333;">出題順序</strong>
+            <select id="order-style-select" class="prop-select" style="width: 150px;">
+                <option value="random">ランダム</option>
+                <option value="sequential">順番通り</option>
+            </select>
+        </div>
         
         <div style="background: #fff; padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
             <label style="font-weight:bold; color:#333; font-size: 1.1rem; cursor: pointer;">
@@ -227,7 +257,6 @@
             </label>
         </div>
 
-        <!-- ★追加: 画面切り替え設定 -->
         <div class="prop-setting-row" style="margin-bottom: 15px;">
             <strong style="font-size: 1.1rem; color:#333;">画面切り替え</strong>
             <select id="transition-style-select" class="prop-select" style="width: 150px;">

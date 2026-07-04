@@ -12,6 +12,28 @@ window.insertIntoFormula = function(text) {
     input.selectionStart = input.selectionEnd = start + text.length;
 };
 
+// 選択肢(Box)の変数置換用レンダリング関数
+window.renderBox = function(wrapper) {
+    const el = wrapper.querySelector('.rect');
+    if (!el) return;
+    
+    let originalContent = wrapper.dataset.boxName || '';
+    
+    if (isEditMode) {
+        el.textContent = originalContent;
+    } else {
+        let replacedText = originalContent;
+        const sortedVars = Object.keys(currentVarValues).sort((a, b) => b.length - a.length);
+        for (const varName of sortedVars) {
+            const val = currentVarValues[varName];
+            if (val !== undefined) {
+                replacedText = replacedText.split(varName).join(val);
+            }
+        }
+        el.textContent = replacedText;
+    }
+};
+
 function renderText(wrapper) {
     const el = wrapper.querySelector('.text-rect');
     if (!el) return;
@@ -282,8 +304,7 @@ function createDraggable(type, itemData = null) {
 
         if (type === 'box') {
             if (itemData) {
-                el.textContent = itemData.content;
-                wrapper.dataset.boxName = itemData.boxName || itemData.content;
+                wrapper.dataset.boxName = itemData.boxName || itemData.content || "";
                 wrapper.dataset.boxId = itemData.boxId || "";
                 wrapper.dataset.isLastPressed = itemData.isLastPressed || "false";
                 wrapper.dataset.bgColor = itemData.bgColor || "#44FFFF";
@@ -298,7 +319,6 @@ function createDraggable(type, itemData = null) {
                 wrapper.dataset.bgColor = "#44FFFF";
                 wrapper.dataset.borderColor = "#000000";
                 wrapper.dataset.borderwidth = "0";
-                el.textContent = wrapper.dataset.boxName;
             }
             el.classList.add('rect');
 
@@ -327,6 +347,7 @@ function createDraggable(type, itemData = null) {
                 document.getElementById('box-prop-bordercolor').value = wrapper.dataset.borderColor;
                 document.getElementById('box-prop-borderwidth').value = wrapper.dataset.borderwidth;
                 document.getElementById('box-prop-last').checked = (wrapper.dataset.isLastPressed === "true");
+                
                 document.getElementById('box-prop-container').style.display = 'flex';
                 document.getElementById('overlay').style.display = 'block';
             });
@@ -334,8 +355,11 @@ function createDraggable(type, itemData = null) {
             el.addEventListener('click', (e) => {
                 if (isEditMode) return;
                 
+                if (wrapper.dataset.isQuestion === "true") return; 
+
                 const allBoxes = container.querySelectorAll('.draggable[data-type="box"]');
                 allBoxes.forEach(w => {
+                    if (w.dataset.isQuestion === "true") return; 
                     w.dataset.isLastPressed = "false";
                     const wEl = w.querySelector('.rect');
                     if (wEl) wEl.style.outline = "none";
@@ -347,6 +371,7 @@ function createDraggable(type, itemData = null) {
             });
 
             wrapper.appendChild(el);
+            if (typeof window.renderBox === 'function') window.renderBox(wrapper);
 
         } else if (type === 'answer') {
             el.classList.add('ans-rect');
@@ -667,7 +692,6 @@ function createDraggable(type, itemData = null) {
                 
             } else if (type === 'check') {
                 if (!isEditMode) {
-                    // ★追加: トースト表示中（判定結果表示中）は操作を無効化
                     if (window.isToastShowing) return;
 
                     const now = Date.now();

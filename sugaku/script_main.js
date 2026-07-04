@@ -1,13 +1,19 @@
 /* ==========================================
-   script_main.js (UIイベント・保存・エクスポート・全体初期化)
+   script_main.js (UIイベント・保存・エクスポート・複数ページ管理・出題エンジン)
    ========================================== */
 window.enableEmptyCheck = window.enableEmptyCheck || false; 
+window.problemSet = [ [] ]; 
+window.currentEditPage = 0;
+window.runProblemSet = [];
+window.playMode = window.playMode || 'pattern2';
+window.orderStyle = window.orderStyle || 'random';
 
 function addClick(id, handler) {
     const btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', handler);
 }
 
+/* --- プロパティ保存 --- */
 addClick('save-box-prop-btn', () => {
     if (activeBoxWrapper) {
         activeBoxWrapper.dataset.boxName = document.getElementById('box-prop-name').value.trim();
@@ -102,6 +108,7 @@ addClick('save-formula-prop-btn', () => {
     activeFormulaWrapper = null;
 });
 
+/* --- 要素追加・削除 --- */
 addClick('add-box-btn', () => typeof createDraggable === 'function' && createDraggable('box'));
 addClick('add-ans-btn', () => typeof createDraggable === 'function' && createDraggable('answer'));
 addClick('add-formula-btn', () => typeof createDraggable === 'function' && createDraggable('formula'));
@@ -121,7 +128,125 @@ addClick('delete-item-btn', () => {
 });
 
 /* ==========================================
-   動作・変数設定機能
+   ★複数問題(ページ)の管理ロジック
+   ========================================== */
+window.saveCurrentPage = function() {
+    const wrappers = container.querySelectorAll('.draggable');
+    const items = [];
+    wrappers.forEach(wrapper => {
+        const type = wrapper.dataset.type;
+        const el = wrapper.querySelector('div');
+        let itemData = { type: type };
+        
+        if (type === 'line') {
+            itemData.startX = parseFloat(wrapper.dataset.startX);
+            itemData.startY = parseFloat(wrapper.dataset.startY);
+            itemData.endX = parseFloat(wrapper.dataset.endX);
+            itemData.endY = parseFloat(wrapper.dataset.endY);
+            itemData.thickness = wrapper.dataset.thickness;
+            itemData.lineColor = wrapper.dataset.lineColor;
+            itemData.lineStyle = wrapper.dataset.lineStyle;
+        } else {
+            itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
+            itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
+            itemData.wCells = parseInt(wrapper.dataset.wCells) || 2;
+            itemData.hCells = parseInt(wrapper.dataset.hCells) || 2;
+            itemData.content = type === 'text' ? (wrapper.dataset.originalContent || (el ? el.innerHTML : '')) : (el ? el.textContent : '');
+            
+            if (type === 'box') {
+                itemData.boxName = wrapper.dataset.boxName || itemData.content;
+                itemData.boxId = wrapper.dataset.boxId || "";
+                itemData.isLastPressed = wrapper.dataset.isLastPressed || "false";
+                itemData.bgColor = wrapper.dataset.bgColor || "#44FFFF";
+                itemData.borderColor = wrapper.dataset.borderColor || "#000000";
+                itemData.borderwidth = wrapper.dataset.borderwidth || "0";
+            }
+            
+            if (type === 'answer') {
+                itemData.answerId = wrapper.dataset.answerId || '';
+                itemData.calcMode = wrapper.dataset.calcMode || '0-20';
+                itemData.formula = wrapper.dataset.formula || ''; 
+                itemData.digits = parseInt(wrapper.dataset.digits) || 0;
+                itemData.content = ''; 
+            }
+            if (type === 'text') {
+                itemData.digits = parseInt(wrapper.dataset.digits) || 0;
+                itemData.fontSize = parseFloat(wrapper.dataset.fontSize) || 1.0; 
+            }
+        }
+        items.push(itemData);
+    });
+    window.problemSet[window.currentEditPage] = items;
+};
+
+window.loadPageToDOM = function(items) {
+    container.querySelectorAll('.draggable').forEach(w => w.remove());
+    count = 0; 
+    if (items) {
+        items.forEach(item => {
+            if (typeof createDraggable === 'function') createDraggable(item.type, item);
+        });
+    }
+    if (isEditMode) {
+        const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+        const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+        const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
+        textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
+        answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
+        boxWrappers.forEach(wrapper => window.renderBox ? window.renderBox(wrapper) : null);
+    }
+};
+
+window.updatePageUI = function() {
+    const indicator = document.getElementById('page-indicator');
+    if (indicator) {
+        indicator.textContent = `問題 ${window.currentEditPage + 1} / ${window.problemSet.length}`;
+    }
+};
+
+addClick('prev-page-btn', () => {
+    if (window.currentEditPage > 0) {
+        window.saveCurrentPage();
+        window.currentEditPage--;
+        window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+        window.updatePageUI();
+    }
+});
+
+addClick('next-page-btn', () => {
+    if (window.currentEditPage < window.problemSet.length - 1) {
+        window.saveCurrentPage();
+        window.currentEditPage++;
+        window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+        window.updatePageUI();
+    }
+});
+
+addClick('add-page-btn', () => {
+    window.saveCurrentPage();
+    window.problemSet.push([]);
+    window.currentEditPage = window.problemSet.length - 1;
+    window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+    window.updatePageUI();
+});
+
+addClick('del-page-btn', () => {
+    if (window.problemSet.length <= 1) {
+        alert("最後の問題は削除できません。");
+        return;
+    }
+    if (confirm(`問題 ${window.currentEditPage + 1} を削除しますか？`)) {
+        window.problemSet.splice(window.currentEditPage, 1);
+        if (window.currentEditPage >= window.problemSet.length) {
+            window.currentEditPage = window.problemSet.length - 1;
+        }
+        window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+        window.updatePageUI();
+    }
+});
+
+/* ==========================================
+   動作・変数設定・判定設定
    ========================================== */
 addClick('var-settings-btn', () => {
     const emptyCheckToggle = document.getElementById('empty-check-toggle');
@@ -132,6 +257,16 @@ addClick('var-settings-btn', () => {
     const transitionSelect = document.getElementById('transition-style-select');
     if (transitionSelect) {
         transitionSelect.value = window.transitionStyle || 'none';
+    }
+
+    const playModeSelect = document.getElementById('play-mode-select');
+    if (playModeSelect) {
+        playModeSelect.value = window.playMode || 'pattern2';
+    }
+
+    const orderSelect = document.getElementById('order-style-select');
+    if (orderSelect) {
+        orderSelect.value = window.orderStyle || 'random';
     }
 
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
@@ -194,6 +329,16 @@ addClick('save-var-settings-btn', () => {
         window.transitionStyle = transitionSelect.value;
     }
 
+    const playModeSelect = document.getElementById('play-mode-select');
+    if (playModeSelect) {
+        window.playMode = playModeSelect.value;
+    }
+
+    const orderSelect = document.getElementById('order-style-select');
+    if (orderSelect) {
+        window.orderStyle = orderSelect.value;
+    }
+
     const listContainer = document.getElementById('var-list-container');
     if(listContainer) {
         const minInputs = listContainer.querySelectorAll('.var-min-input');
@@ -249,128 +394,213 @@ addClick('save-judge-prop-btn', () => {
 });
 
 // ==========================================
-// レイアウトデータ生成関数
+// レイアウトデータ生成関数 (保存用)
 // ==========================================
 function generateLayoutData() {
-    const data = [];
-    data.push({ 
-        type: 'config', 
-        variableRanges: variableRanges,
-        enableEmptyCheck: window.enableEmptyCheck === true,
-        transitionStyle: window.transitionStyle, 
-        judgeSettings: window.judgeSettings 
-    });
-    
-    const wrappers = container.querySelectorAll('.draggable');
-    wrappers.forEach(wrapper => {
-        const type = wrapper.dataset.type;
-        const el = wrapper.querySelector('div');
-        
-        let itemData = { type: type };
-        
-        if (type === 'line') {
-            itemData.startX = parseFloat(wrapper.dataset.startX);
-            itemData.startY = parseFloat(wrapper.dataset.startY);
-            itemData.endX = parseFloat(wrapper.dataset.endX);
-            itemData.endY = parseFloat(wrapper.dataset.endY);
-            itemData.thickness = wrapper.dataset.thickness;
-            itemData.lineColor = wrapper.dataset.lineColor;
-            itemData.lineStyle = wrapper.dataset.lineStyle;
-        } else {
-            itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
-            itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
-            itemData.wCells = parseInt(wrapper.dataset.wCells) || 2;
-            itemData.hCells = parseInt(wrapper.dataset.hCells) || 2;
-            itemData.content = type === 'text' ? (wrapper.dataset.originalContent || (el ? el.innerHTML : '')) : (el ? el.textContent : '');
-            
-            if (type === 'box') {
-                itemData.boxName = wrapper.dataset.boxName || itemData.content;
-                itemData.boxId = wrapper.dataset.boxId || "";
-                itemData.isLastPressed = wrapper.dataset.isLastPressed || "false";
-                itemData.bgColor = wrapper.dataset.bgColor || "#44FFFF";
-                itemData.borderColor = wrapper.dataset.borderColor || "#000000";
-                itemData.borderwidth = wrapper.dataset.borderwidth || "0";
-            }
-            
-            if (type === 'answer') {
-                itemData.answerId = wrapper.dataset.answerId || '';
-                itemData.calcMode = wrapper.dataset.calcMode || '0-20';
-                itemData.formula = wrapper.dataset.formula || ''; 
-                itemData.digits = parseInt(wrapper.dataset.digits) || 0;
-                itemData.content = ''; 
-            }
-            if (type === 'text') {
-                itemData.digits = parseInt(wrapper.dataset.digits) || 0;
-                itemData.fontSize = parseFloat(wrapper.dataset.fontSize) || 1.0; 
-            }
-        }
-        data.push(itemData);
-    });
-    return data;
+    window.saveCurrentPage(); 
+    return { 
+        config: {
+            variableRanges: variableRanges,
+            enableEmptyCheck: window.enableEmptyCheck === true,
+            transitionStyle: window.transitionStyle, 
+            playMode: window.playMode, 
+            orderStyle: window.orderStyle, 
+            judgeSettings: window.judgeSettings 
+        },
+        pages: window.problemSet
+    };
 }
 
 // ==========================================
-// モード移行処理関数化（10問対応リザルト連携）
+// ★モード移行・出題エンジン (3パターンの統合)
 // ==========================================
-function enterRunMode() {
+window.enterRunMode = function() {
     isEditMode = false;
     document.body.classList.add('run-mode');
     document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
     
-    // ★追加: 成績の初期化処理
+    window.saveCurrentPage();
+
+    window.playMode = window.playMode || 'pattern2';
+    window.orderStyle = window.orderStyle || 'random';
+    window.runProblemSet = [];
+    window.csvLinesForRun = [];
+
+    if (window.playMode === 'pattern1') {
+        const page0 = window.problemSet[0] || [];
+        for(let i = 0; i < 10; i++) window.runProblemSet.push(page0);
+    } 
+    else if (window.playMode === 'pattern2') {
+        const validPages = [...window.problemSet].filter(p => p && p.length > 0);
+        if (validPages.length === 0) {
+            alert("問題が設定されていません。");
+            window.enterEditMode();
+            return;
+        }
+        
+        if (window.orderStyle === 'random') {
+            for (let i = validPages.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [validPages[i], validPages[j]] = [validPages[j], validPages[i]];
+            }
+        }
+        window.runProblemSet = validPages;
+    } 
+    else if (window.playMode === 'pattern3') {
+        const page0 = window.problemSet[0] || [];
+        let csvLines = [];
+        
+        const formulaItem = page0.find(item => item.type === 'formula');
+        if (formulaItem && formulaItem.content) {
+            csvLines = formulaItem.content.split('\n').filter(l => l.trim() !== '');
+        }
+        
+        if (csvLines.length === 0) {
+            alert("パターン3を実行するには、計算式プロパティにCSVデータを入力してください。");
+            window.enterEditMode();
+            return;
+        }
+        
+        if (window.orderStyle === 'random') {
+            for (let i = csvLines.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [csvLines[i], csvLines[j]] = [csvLines[j], csvLines[i]];
+            }
+        }
+        
+        csvLines = csvLines.slice(0, 10);
+        csvLines.forEach(line => {
+            window.runProblemSet.push(page0); 
+            window.csvLinesForRun.push(line);
+        });
+    }
+
     window.currentQuestionNum = 1;
+    window.MAX_QUESTIONS = window.runProblemSet.length;
     window.mistakeCount = 0; 
     
     if (window.usedVarHistory) window.usedVarHistory.clear();
     
+    window.loadRunPage(0);
+};
+
+window.loadRunPage = function(index) {
     isSolved = false;
+    window.loadPageToDOM(window.runProblemSet[index]);
+
+    if (window.playMode === 'pattern3' && window.csvLinesForRun[index]) {
+        const csvLine = window.csvLinesForRun[index];
+        const parts = csvLine.split(',').map(s => s.trim());
+        const qText = parts[0] || "";
+        const cCount = parseInt(parts[1]) || 2;
+        const correctAns = parts[2] || "";
+        const dummies = parts.slice(3); 
+        
+        const choiceBoxes = Array.from(container.querySelectorAll('.draggable[data-type="box"]'));
+        
+        if (choiceBoxes.length > 0) {
+            const qItem = {
+                type: 'text',
+                content: qText,
+                gridX: 2, gridY: 1, 
+                wCells: 28, hCells: 4,
+                fontSize: 1.5,
+                digits: 0
+            };
+            if (typeof createDraggable === 'function') createDraggable('text', qItem);
+            
+            let choices = [{text: correctAns, isCorrect: true}];
+            let availableDummies = [...dummies];
+            
+            for (let i = 0; i < choiceBoxes.length - 1; i++) {
+                if (availableDummies.length > 0) {
+                    const rIdx = Math.floor(Math.random() * availableDummies.length);
+                    choices.push({text: availableDummies[rIdx], isCorrect: false});
+                    availableDummies.splice(rIdx, 1);
+                } else {
+                    choices.push({text: "", isCorrect: false});
+                }
+            }
+            
+            choices.sort(() => Math.random() - 0.5); 
+            
+            let correctBoxId = "";
+            choiceBoxes.forEach((b, i) => {
+                const cObj = choices[i];
+                if (cObj) {
+                    b.dataset.boxName = cObj.text; 
+                    b.dataset.originalContent = cObj.text; 
+                    
+                    const el = b.querySelector('.rect');
+                    if (el) el.textContent = cObj.text;
+                    
+                    if (cObj.isCorrect) correctBoxId = b.dataset.boxId;
+                    
+                    if (cObj.text === "") {
+                        b.style.display = 'none'; 
+                        b.dataset.isLastPressed = "false";
+                    }
+                }
+            });
+
+            const formulas = container.querySelectorAll('.draggable[data-type="formula"]');
+            formulas.forEach(f => {
+                f.style.display = 'none';
+                f.dataset.evalContent = `[${correctBoxId}]=1`; 
+                const rect = f.querySelector('.formula-rect');
+                if(rect) rect.textContent = `[${correctBoxId}]=1`;
+            });
+        }
+    }
+
     const checkRect = document.querySelector('.check-rect');
     if (checkRect) checkRect.textContent = "できた";
-    
+
     if (typeof window.generateProblemVars === 'function') {
         window.generateProblemVars();
     } else {
         currentVarValues = {};
     }
 
-    if (typeof window.shuffleBoxes === 'function') window.shuffleBoxes();
+    if (window.playMode !== 'pattern3' && typeof window.shuffleBoxes === 'function') {
+        window.shuffleBoxes();
+    }
 
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+    const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
     textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
     answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
-}
-window.enterRunMode = enterRunMode; 
+    boxWrappers.forEach(wrapper => window.renderBox ? window.renderBox(wrapper) : null);
+};
 
-function enterEditMode() {
+window.enterEditMode = function() {
     isEditMode = true;
     document.body.classList.remove('run-mode');
-
     isSolved = false;
-    const checkRect = document.querySelector('.check-rect');
-    if (checkRect) checkRect.textContent = "できた";
 
-    const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
-    const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
-    
-    textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
-    answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
-    
+    if (window.problemSet[window.currentEditPage]) {
+        window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+    }
+    window.updatePageUI();
+
     currentVarValues = {};
-}
-window.enterEditMode = enterEditMode; 
+};
 
 addClick('run-btn', () => {
     const runBtn = document.getElementById('run-btn');
     if (isEditMode) {
-        enterRunMode();
+        window.enterRunMode();
         if (runBtn) { runBtn.textContent = '編集モードへ戻る'; runBtn.style.backgroundColor = '#e74c3c'; }
     } else {
-        enterEditMode();
+        window.enterEditMode();
         if (runBtn) { runBtn.textContent = '実行モードへ'; runBtn.style.backgroundColor = '#2ecc71'; }
     }
 });
 
+/* ==========================================
+   データ保存・読込処理
+   ========================================== */
 addClick('save-btn', () => {
     const data = generateLayoutData();
     const jsonString = JSON.stringify(data, null, 2);
@@ -400,20 +630,38 @@ if (loadFileEl) {
         reader.onload = function(evt) {
             try {
                 const data = JSON.parse(evt.target.result);
-                container.querySelectorAll('.draggable').forEach(w => w.remove());
-                count = 0; 
                 variableRanges = {}; 
                 
-                data.forEach(item => {
-                    if (item.type === 'config') {
-                        variableRanges = item.variableRanges || {};
-                        window.enableEmptyCheck = item.enableEmptyCheck === true; 
-                        window.transitionStyle = item.transitionStyle || 'none'; 
-                        if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
-                    } else {
-                        if (typeof createDraggable === 'function') createDraggable(item.type, item);
-                    }
-                });
+                if (data.pages) {
+                    const config = data.config || {};
+                    variableRanges = config.variableRanges || {};
+                    window.enableEmptyCheck = config.enableEmptyCheck === true; 
+                    window.transitionStyle = config.transitionStyle || 'none'; 
+                    window.playMode = config.playMode || 'pattern2'; 
+                    window.orderStyle = config.orderStyle || 'random';
+                    if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
+                    window.problemSet = data.pages;
+                } else {
+                    const items = [];
+                    data.forEach(item => {
+                        if (item.type === 'config') {
+                            variableRanges = item.variableRanges || {};
+                            window.enableEmptyCheck = item.enableEmptyCheck === true; 
+                            window.transitionStyle = item.transitionStyle || 'none'; 
+                            window.playMode = item.playMode || 'pattern1'; 
+                            window.orderStyle = item.orderStyle || 'random';
+                            if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
+                        } else {
+                            items.push(item);
+                        }
+                    });
+                    window.problemSet = [items];
+                }
+
+                window.currentEditPage = 0;
+                window.loadPageToDOM(window.problemSet[0]);
+                window.updatePageUI();
+
             } catch (err) {
                 alert("JSONファイルの読み込みに失敗しました。");
             }
@@ -425,9 +673,8 @@ if (loadFileEl) {
 
 window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDraggable === 'function' && createDraggable('box'); });
 
-
 /* ==========================================
-   公開版書出 (HTMLエクスポート) 機能
+   ★公開版書出 (単一HTMLへの全内包処理)
    ========================================== */
 addClick('export-html-btn', async () => {
     try {
@@ -491,28 +738,47 @@ addClick('export-html-btn', async () => {
 });
 
 /* ==========================================
-   公開版HTMLとしての初期化処理
+   公開版HTMLとしての初期化処理 (ロード時)
    ========================================== */
 if (typeof window.__INIT_DATA__ !== 'undefined') {
     const sidebar = document.querySelector('.sidebar');
     if (sidebar) sidebar.remove();
 
-    container.querySelectorAll('.draggable').forEach(w => w.remove());
-    count = 0; 
+    const data = window.__INIT_DATA__;
     variableRanges = {}; 
     
-    window.__INIT_DATA__.forEach(item => {
-        if (item.type === 'config') {
-            variableRanges = item.variableRanges || {};
-            window.enableEmptyCheck = item.enableEmptyCheck === true; 
-            window.transitionStyle = item.transitionStyle || 'none'; 
-            if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
-        } else {
-            if (typeof createDraggable === 'function') createDraggable(item.type, item);
-        }
-    });
+    if (data.pages) {
+        const config = data.config || {};
+        variableRanges = config.variableRanges || {};
+        window.enableEmptyCheck = config.enableEmptyCheck === true; 
+        window.transitionStyle = config.transitionStyle || 'none'; 
+        window.playMode = config.playMode || 'pattern2';
+        window.orderStyle = config.orderStyle || 'random';
+        if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
+        window.problemSet = data.pages;
+    } else {
+        const items = [];
+        data.forEach(item => {
+            if (item.type === 'config') {
+                variableRanges = item.variableRanges || {};
+                window.enableEmptyCheck = item.enableEmptyCheck === true; 
+                window.transitionStyle = item.transitionStyle || 'none'; 
+                window.playMode = item.playMode || 'pattern1';
+                window.orderStyle = item.orderStyle || 'random';
+                if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
+            } else {
+                items.push(item);
+            }
+        });
+        window.problemSet = [items];
+    }
 
     setTimeout(() => {
         if (typeof window.enterRunMode === 'function') window.enterRunMode();
     }, 50);
+}
+
+// 初期起動時のUI更新
+if (typeof window.updatePageUI === 'function') {
+    window.updatePageUI();
 }
