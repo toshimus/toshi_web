@@ -690,9 +690,12 @@ addClick('export-html-btn', async () => {
         // 1. 各ファイルの読み込み
         const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_main.js'];
         let jsContent = '';
+        /* 修正版：結合ロジック */
         for (const file of jsFiles) {
             const res = await fetch(file);
-            jsContent += await res.text() + '\n';
+            const code = await res.text();
+            // 各ファイルを独立したスコープ(IIFE)で囲むことで、関数定義の競合と読み込み順序を保護
+            combinedJsText += `(function(){ ${code} })();\n\n`;
         }
 
         const data = generateLayoutData();
