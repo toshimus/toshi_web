@@ -413,13 +413,17 @@ function generateLayoutData() {
 
 // ==========================================
 // ★モード移行・出題エンジン (3パターンの統合)
+// ★修正点：引数 isInit を追加し、初回ロード時の空上書きを防止
 // ==========================================
-window.enterRunMode = function() {
+window.enterRunMode = function(isInit = false) {
     isEditMode = false;
     document.body.classList.add('run-mode');
     document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
     
-    window.saveCurrentPage();
+    // 初回ロード時(isInit === true)以外のみセーブを実行
+    if (!isInit) {
+        window.saveCurrentPage();
+    }
 
     window.playMode = window.playMode || 'pattern2';
     window.orderStyle = window.orderStyle || 'random';
@@ -590,7 +594,7 @@ window.enterEditMode = function() {
 addClick('run-btn', () => {
     const runBtn = document.getElementById('run-btn');
     if (isEditMode) {
-        window.enterRunMode();
+        window.enterRunMode(false); // 手動での実行モード移行時はセーブする
         if (runBtn) { runBtn.textContent = '編集モードへ戻る'; runBtn.style.backgroundColor = '#e74c3c'; }
     } else {
         window.enterEditMode();
@@ -674,14 +678,34 @@ if (loadFileEl) {
 window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDraggable === 'function' && createDraggable('box'); });
 
 /* ==========================================
-   ★公開版書出 (単一HTMLへの全内包処理) - 修正済
+   ★公開版書出 (単一HTMLへの全内包処理)
    ========================================== */
 addClick('export-html-btn', async () => {
+    // --- 事前整合性チェック ---
+    window.saveCurrentPage(); 
+
+    if (window.playMode === 'pattern2') {
+        const validPages = [...window.problemSet].filter(p => p && p.length > 0);
+        if (validPages.length === 0) {
+            alert("書き出しエラー：問題が設定されていないため、書き出しを中止しました。画面に要素を配置してください。");
+            return;
+        }
+    } else if (window.playMode === 'pattern3') {
+        const page0 = window.problemSet[0] || [];
+        let csvLines = [];
+        const formulaItem = page0.find(item => item.type === 'formula');
+        if (formulaItem && formulaItem.content) {
+            csvLines = formulaItem.content.split('\n').filter(l => l.trim() !== '');
+        }
+        if (csvLines.length === 0) {
+            alert("書き出しエラー：パターン3で書き出すには、画面上に「計算式追加」からアイテムを配置し、プロパティにCSVデータを入力する必要があります。書き出しを中止しました。");
+            return;
+        }
+    }
+
     try {
-        // キャッシュ回避用のパラメータを付与します
         const t = new Date().getTime();
         const cssRes = await fetch('style.css?t=' + t);
-        // ローカル環境(file://)ではステータスが0になる場合があるため、許容します
         if (!cssRes.ok && cssRes.status !== 0) throw new Error("style.css が取得できませんでした。");
         const cssText = await cssRes.text();
 
@@ -694,7 +718,6 @@ addClick('export-html-btn', async () => {
         }
 
         const data = generateLayoutData();
-        // HTML構造が破壊されないようスクリプトの閉じタグをエスケープ処理します
         const jsonString = JSON.stringify(data).replace(/<\/(s)(cript)>/gi, '<\\/$1$2>');
 
         const htmlClone = document.documentElement.cloneNode(true);
@@ -725,7 +748,6 @@ addClick('export-html-btn', async () => {
 
         const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
 
-        // 文字化け対策として charset を明記します
         const blob = new Blob([htmlText], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -778,8 +800,9 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
         window.problemSet = [items];
     }
 
+    // 初回起動用のフラグとして true を渡して実行モードへ
     setTimeout(() => {
-        if (typeof window.enterRunMode === 'function') window.enterRunMode();
+        if (typeof window.enterRunMode === 'function') window.enterRunMode(true);
     }, 50);
 }
 
