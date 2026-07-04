@@ -694,8 +694,8 @@ addClick('export-html-btn', async () => {
         }
 
         const data = generateLayoutData();
-        // HTML構造が破壊されないよう </script> をエスケープ処理します
-        const jsonString = JSON.stringify(data).replace(/<\/script>/gi, '<\\/script>');
+        // HTML構造が破壊されないようスクリプトの閉じタグをエスケープ処理します
+        const jsonString = JSON.stringify(data).replace(/<\/(s)(cript)>/gi, '<\\/$1$2>');
 
         const htmlClone = document.documentElement.cloneNode(true);
 
