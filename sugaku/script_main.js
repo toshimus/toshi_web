@@ -413,14 +413,12 @@ function generateLayoutData() {
 
 // ==========================================
 // ★モード移行・出題エンジン (3パターンの統合)
-// ★修正点：引数 isInit を追加し、初回ロード時の空上書きを防止
 // ==========================================
 window.enterRunMode = function(isInit = false) {
     isEditMode = false;
     document.body.classList.add('run-mode');
     document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
     
-    // 初回ロード時(isInit === true)以外のみセーブを実行
     if (!isInit) {
         window.saveCurrentPage();
     }
@@ -576,6 +574,9 @@ window.loadRunPage = function(index) {
     textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
     answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
     boxWrappers.forEach(wrapper => window.renderBox ? window.renderBox(wrapper) : null);
+    
+    // ★時間の計測リセット(iPad連動用)
+    window.problemStartTime = new Date();
 };
 
 window.enterEditMode = function() {
@@ -594,7 +595,7 @@ window.enterEditMode = function() {
 addClick('run-btn', () => {
     const runBtn = document.getElementById('run-btn');
     if (isEditMode) {
-        window.enterRunMode(false); // 手動での実行モード移行時はセーブする
+        window.enterRunMode(false); 
         if (runBtn) { runBtn.textContent = '編集モードへ戻る'; runBtn.style.backgroundColor = '#e74c3c'; }
     } else {
         window.enterEditMode();
@@ -681,7 +682,6 @@ window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDrag
    ★公開版書出 (単一HTMLへの全内包処理)
    ========================================== */
 addClick('export-html-btn', async () => {
-    // --- 事前整合性チェック ---
     window.saveCurrentPage(); 
 
     if (window.playMode === 'pattern2') {
@@ -742,8 +742,57 @@ addClick('export-html-btn', async () => {
         styleTag.textContent = cssText;
         htmlClone.querySelector('head').appendChild(styleTag);
 
+        // --- ★公開版の初期スタート画面のHTML構造を挿入 ---
+        const startScreenHtml = `
+        <div id="start-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f0f8ff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000;">
+            <h1 style="font-size: 3rem; color: #2c3e50; margin-bottom: 40px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">問題スタート</h1>
+            <button id="start-btn" style="padding: 20px 60px; font-size: 2.5rem; font-weight: bold; color: #fff; background-color: #3498db; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 8px 0 #2980b9; transition: transform 0.1s, box-shadow 0.1s;">スタート</button>
+            <br><br><a href="index.html" style="margin-top: 20px; padding: 12px 30px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; background-color: #95a5a6; color: #fff; text-decoration: none; font-weight: bold;">メニューへ戻る</a>
+        </div>
+        `;
+        htmlClone.querySelector('body').insertAdjacentHTML('afterbegin', startScreenHtml);
+
+        // スタート画面に隠れるようにメインコンテナを初期非表示にする
+        const mainContainer = htmlClone.querySelector('.main-container');
+        if (mainContainer) mainContainer.style.display = 'none';
+
         const scriptTag = document.createElement('script');
-        scriptTag.textContent = `window.__INIT_DATA__ = ${jsonString};\n\n${combinedJsText}`;
+        
+        // ★スタート画面のボタン動作と時間計測開始スクリプトを追加
+        scriptTag.textContent = `
+window.__INIT_DATA__ = ${jsonString};
+
+${combinedJsText}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const startBtn = document.getElementById('start-btn');
+    if(startBtn) {
+        startBtn.addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            const mc = document.querySelector('.main-container');
+            if(mc) mc.style.display = 'flex';
+            window.problemStartTime = new Date();
+        });
+        
+        startBtn.addEventListener('mousedown', function() {
+            this.style.transform = 'translateY(8px)';
+            this.style.boxShadow = 'none';
+        });
+        startBtn.addEventListener('mouseup', function() {
+            this.style.transform = 'none';
+            this.style.boxShadow = '0 8px 0 #2980b9';
+        });
+        startBtn.addEventListener('touchstart', function() {
+            this.style.transform = 'translateY(8px)';
+            this.style.boxShadow = 'none';
+        });
+        startBtn.addEventListener('touchend', function() {
+            this.style.transform = 'none';
+            this.style.boxShadow = '0 8px 0 #2980b9';
+        });
+    }
+});
+`;
         htmlClone.querySelector('body').appendChild(scriptTag);
 
         const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
@@ -800,7 +849,6 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
         window.problemSet = [items];
     }
 
-    // 初回起動用のフラグとして true を渡して実行モードへ
     setTimeout(() => {
         if (typeof window.enterRunMode === 'function') window.enterRunMode(true);
     }, 50);

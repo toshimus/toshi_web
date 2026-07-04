@@ -173,6 +173,53 @@ function runValidation() {
     if (hasEmpty) {
         window.showToast("まだ空欄があります", "system");
     } else {
+        // ====== iPad連動 & CSV記録処理 ======
+        const endTime = new Date();
+        const formatTime = (date) => {
+            if(!date) return "";
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        };
+        const startTime = window.problemStartTime || new Date();
+        const yyyy = startTime.getFullYear();
+        const mm = String(startTime.getMonth() + 1).padStart(2, '0');
+        const dd = String(startTime.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}/${mm}/${dd}`;
+
+        let problemContentText = "Q" + window.currentQuestionNum;
+        if (window.playMode === 'pattern3' && window.csvLinesForRun && window.csvLinesForRun[window.currentQuestionNum - 1]) {
+            problemContentText = window.csvLinesForRun[window.currentQuestionNum - 1].split(',')[0] || problemContentText;
+        } else {
+            const formulasStr = formulas.map(f => {
+                const rect = f.querySelector('.formula-rect');
+                return rect ? rect.textContent : (f.dataset.evalContent || "");
+            }).join(" | ");
+            if(formulasStr) problemContentText = formulasStr;
+        }
+
+        let userAnswerStr = Object.keys(ansValues).map(k => `${k}:${ansValues[k]}`).join(" ");
+        if (userAnswerStr === "") {
+             const pressedBox = boxes.find(b => b.dataset.isLastPressed === "true");
+             if (pressedBox) userAnswerStr = pressedBox.dataset.boxName || "";
+        }
+
+        const csvLine = `"${dateStr}","自作グリッド問題","${problemContentText}","${userAnswerStr}",${formatTime(startTime)},${formatTime(endTime)},"グリッド入力","${allCorrect ? '正解' : '不正解'}"\n`;
+
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.appBridge) {
+            window.webkit.messageHandlers.appBridge.postMessage({
+                action: "saveCSV",
+                csvLine: csvLine
+            });
+        } else {
+            const storageKey = "grid_custom_history";
+            let history = localStorage.getItem(storageKey) || "";
+            history += csvLine;
+            localStorage.setItem(storageKey, history);
+            console.log("LocalStorageに保存しました: " + csvLine);
+        }
+        // ===================================
+
         if (allCorrect) {
             window.showToast(window.judgeSettings.correct.text, "correct");
             isSolved = true;
@@ -343,7 +390,7 @@ window.showResultScreen = function() {
         replayBtn.style.fontWeight = 'bold';
         replayBtn.onclick = () => {
             resultOverlay.style.display = 'none';
-            if (typeof window.enterRunMode === 'function') window.enterRunMode();
+            if (typeof window.enterRunMode === 'function') window.enterRunMode(true); // 時間リセットのためtrue
         };
 
         const editBtn = document.createElement('button');
@@ -362,9 +409,27 @@ window.showResultScreen = function() {
             const runBtn = document.getElementById('run-btn');
             if (runBtn) { runBtn.textContent = '実行モードへ'; runBtn.style.backgroundColor = '#2ecc71'; }
         };
+
+        const menuBtn = document.createElement('a');
+        menuBtn.textContent = 'メニューへ戻る';
+        menuBtn.href = 'index.html';
+        menuBtn.style.padding = '15px 30px';
+        menuBtn.style.fontSize = '1.2rem';
+        menuBtn.style.backgroundColor = '#95a5a6';
+        menuBtn.style.color = '#fff';
+        menuBtn.style.border = 'none';
+        menuBtn.style.borderRadius = '8px';
+        menuBtn.style.textDecoration = 'none';
+        menuBtn.style.fontWeight = 'bold';
+        menuBtn.style.display = 'inline-block';
         
         btnContainer.appendChild(replayBtn);
-        btnContainer.appendChild(editBtn);
+        // 公開版(実行専用)としてロードされた場合は「編集に戻る」を非表示にする
+        if (typeof window.__INIT_DATA__ === 'undefined') {
+            btnContainer.appendChild(editBtn);
+        }
+        btnContainer.appendChild(menuBtn);
+
         resultOverlay.appendChild(title);
         resultOverlay.appendChild(subText);
         resultOverlay.appendChild(statsContainer);
