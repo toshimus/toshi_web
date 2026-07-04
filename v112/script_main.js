@@ -630,18 +630,22 @@ if (loadFileEl) {
         reader.onload = function(evt) {
             try {
                 const data = JSON.parse(evt.target.result);
+                container.querySelectorAll('.draggable').forEach(w => w.remove());
+                count = 0; 
                 variableRanges = {}; 
                 
-                if (data.pages) {
-                    const config = data.config || {};
-                    variableRanges = config.variableRanges || {};
-                    window.enableEmptyCheck = config.enableEmptyCheck === true; 
-                    window.transitionStyle = config.transitionStyle || 'none'; 
-                    window.playMode = config.playMode || 'pattern2'; 
-                    window.orderStyle = config.orderStyle || 'random';
-                    if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
+                // データ構造の判定
+                if (data.config && data.pages) {
+                    // 新形式: config と pages が独立
+                    variableRanges = data.config.variableRanges || {};
+                    window.enableEmptyCheck = data.config.enableEmptyCheck === true; 
+                    window.transitionStyle = data.config.transitionStyle || 'none'; 
+                    window.playMode = data.config.playMode || 'pattern2'; 
+                    window.orderStyle = data.config.orderStyle || 'random';
+                    window.judgeSettings = data.config.judgeSettings || window.judgeSettings;
                     window.problemSet = data.pages;
                 } else {
+                    // 旧形式: 配列をそのまま読み込む（もしくは単一ページ）
                     const items = [];
                     data.forEach(item => {
                         if (item.type === 'config') {
@@ -663,7 +667,8 @@ if (loadFileEl) {
                 window.updatePageUI();
 
             } catch (err) {
-                alert("JSONファイルの読み込みに失敗しました。");
+                console.error("JSON解析エラー:", err);
+                alert("JSONファイルの読み込みに失敗しました。" + err.message);
             }
             e.target.value = ''; 
         };
