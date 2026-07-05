@@ -150,7 +150,7 @@ body, html {
     position: relative;
 }
 
-.ans-rect.is-split {
+.ans-rect.is-split, .ans-rect.is-fraction {
     width: 100% !important;
     height: 100% !important;
     border: none !important;
@@ -161,6 +161,73 @@ body, html {
 
 body.run-mode .ans-rect {
     font-size: calc(var(--grid-cell-h) * 1.2);
+}
+
+/* 解答欄用分数レイアウト CSS */
+.fraction-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    box-sizing: border-box;
+}
+.fraction-num, .fraction-den {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    width: 100%;
+}
+.fraction-line {
+    width: 90%;
+    height: 4px;
+    background-color: #333;
+    margin: 4px 0;
+    border-radius: 2px;
+}
+.fraction-input {
+    min-width: 30px;
+    height: 90%;
+    border: 2px dashed #3498db;
+    background-color: #f0f8ff;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: calc(var(--grid-cell-h) * 0.8);
+    padding: 0 4px;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+body.run-mode .fraction-input {
+    border: 2px solid #3498db;
+}
+.frac-op {
+    font-size: calc(var(--grid-cell-h) * 0.9);
+    margin: 0 6px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* ★追加: テキスト中のインライン分数表示用CSS */
+.inline-frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    vertical-align: middle;
+    margin: 0 4px;
+    line-height: 1.1;
+    font-size: 0.9em;
+}
+.inline-frac-num {
+    border-bottom: 2px solid currentColor;
+    padding: 0 4px;
+}
+.inline-frac-den {
+    padding: 0 4px;
 }
 
 .text-rect {
@@ -384,9 +451,7 @@ body.run-mode .draggable[data-type="formula"] { display: none !important; }
 .insert-btn:active { background-color: #bdc3c7; }
 .insert-btn:hover { background-color: #dfe6e9; }
 
-/* ==========================================
-   アニメーション
-   ========================================== */
+/* アニメーション */
 .anim-out-left { animation: slideOutLeft 0.3s ease-in forwards; }
 .anim-in-left { animation: slideInLeft 0.3s ease-out forwards; }
 @keyframes slideOutLeft { to { transform: translateX(-30%); opacity: 0; } }

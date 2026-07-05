@@ -20,34 +20,46 @@ function runValidation() {
         const id = wAns.dataset.answerId;
         const el = wAns.querySelector('.ans-rect');
         const normalizedId = id.replace(/[\[\]]/g, '');
-        const digits = parseInt(wAns.dataset.digits) || 0;
+        const style = wAns.dataset.ansStyle || 'normal';
         
-        let val;
-        if (digits > 0) {
-            const cells = Array.from(el.querySelectorAll('.split-cell'));
-            const vals = cells.map(c => c.textContent.trim());
-            
-            const firstFilled = vals.findIndex(v => v !== "");
-            
-            if (firstFilled === -1) {
-                val = NaN; 
-                hasEmpty = true;
-            } else {
-                let isValid = true;
-                for (let i = firstFilled + 1; i < vals.length; i++) {
-                    if (vals[i] === "") {
-                        isValid = false; 
-                        hasEmpty = true;
-                    }
-                }
-                val = isValid ? parseFloat(vals.slice(firstFilled).join('')) : NaN;
-            }
+        if (style !== 'normal') {
+            const inputs = Array.from(el.querySelectorAll('.fraction-input'));
+            inputs.forEach(inp => {
+                const subId = inp.dataset.subId;
+                const txt = inp.textContent.trim();
+                if (txt === "") hasEmpty = true;
+                const val = parseFloat(txt);
+                ansValues[`${normalizedId}_${subId}`] = isNaN(val) ? 0 : val;
+            });
         } else {
-            const txt = el.textContent.trim();
-            if (txt === "") hasEmpty = true;
-            val = parseFloat(txt);
+            const digits = parseInt(wAns.dataset.digits) || 0;
+            let val;
+            if (digits > 0) {
+                const cells = Array.from(el.querySelectorAll('.split-cell'));
+                const vals = cells.map(c => c.textContent.trim());
+                
+                const firstFilled = vals.findIndex(v => v !== "");
+                
+                if (firstFilled === -1) {
+                    val = NaN; 
+                    hasEmpty = true;
+                } else {
+                    let isValid = true;
+                    for (let i = firstFilled + 1; i < vals.length; i++) {
+                        if (vals[i] === "") {
+                            isValid = false; 
+                            hasEmpty = true;
+                        }
+                    }
+                    val = isValid ? parseFloat(vals.slice(firstFilled).join('')) : NaN;
+                }
+            } else {
+                const txt = el.textContent.trim();
+                if (txt === "") hasEmpty = true;
+                val = parseFloat(txt);
+            }
+            ansValues[normalizedId] = isNaN(val) ? 0 : val;
         }
-        ansValues[normalizedId] = isNaN(val) ? 0 : val;
     });
 
     if (!hasSelection || hasEmpty) {
@@ -57,6 +69,22 @@ function runValidation() {
 
     const getCombinedValueForId = (id) => {
         const cleanId = id.replace(/[\[\]]/g, '');
+
+        // ★追加・修正: ツールの値（_sel, _num: 選択数, _div, _den: 分割数）の取得
+        if (cleanId.endsWith('_sel') || cleanId.endsWith('_num') || cleanId.endsWith('_div') || cleanId.endsWith('_den')) {
+            const baseId = cleanId.replace(/_(sel|num|div|den)$/, '');
+            const targetTool = container.querySelector(`.draggable[data-type="tool"][data-obj-id="${baseId}"]`);
+            if (targetTool) {
+                if (cleanId.endsWith('_sel') || cleanId.endsWith('_num')) {
+                    return targetTool.querySelectorAll('[data-filled="true"]').length;
+                } else if (cleanId.endsWith('_div') || cleanId.endsWith('_den')) {
+                    return parseInt(targetTool.dataset.currentDivisions) || 1;
+                }
+            }
+        }
+
+        if (ansValues.hasOwnProperty(cleanId)) return ansValues[cleanId];
+
         const targetBox = container.querySelector(`.draggable[data-type="box"][data-box-id="${cleanId}"]`);
         if (targetBox) {
             return targetBox.dataset.isLastPressed === "true" ? 1 : 0;
@@ -73,7 +101,6 @@ function runValidation() {
             }
         }
         if (foundAns) return totalAns;
-        if (ansValues.hasOwnProperty(cleanId)) return ansValues[cleanId];
 
         let totalVar = 0;
         let foundVar = false;
@@ -122,8 +149,12 @@ function runValidation() {
             const id = w.dataset.answerId;
             const el = w.querySelector('.ans-rect');
             const digits = parseInt(w.dataset.digits) || 0;
+            const style = w.dataset.ansStyle || 'normal';
             
-            if (digits > 0) {
+            if (style !== 'normal') {
+                const inputs = Array.from(el.querySelectorAll('.fraction-input'));
+                if (inputs.some(inp => inp.textContent.trim() === "")) hasEmpty = true;
+            } else if (digits > 0) {
                 const cells = Array.from(el.querySelectorAll('.split-cell'));
                 const vals = cells.map(c => c.textContent.trim());
                 const firstFilled = vals.findIndex(v => v !== "");
@@ -173,7 +204,6 @@ function runValidation() {
     if (hasEmpty) {
         window.showToast("まだ空欄があります", "system");
     } else {
-        // ====== iPad連動 & CSV記録処理 ======
         const endTime = new Date();
         const formatTime = (date) => {
             if(!date) return "";
@@ -216,9 +246,7 @@ function runValidation() {
             let history = localStorage.getItem(storageKey) || "";
             history += csvLine;
             localStorage.setItem(storageKey, history);
-            console.log("LocalStorageに保存しました: " + csvLine);
         }
-        // ===================================
 
         if (allCorrect) {
             window.showToast(window.judgeSettings.correct.text, "correct");
@@ -390,7 +418,7 @@ window.showResultScreen = function() {
         replayBtn.style.fontWeight = 'bold';
         replayBtn.onclick = () => {
             resultOverlay.style.display = 'none';
-            if (typeof window.enterRunMode === 'function') window.enterRunMode(true); // 時間リセットのためtrue
+            if (typeof window.enterRunMode === 'function') window.enterRunMode(true); 
         };
 
         const editBtn = document.createElement('button');
@@ -424,7 +452,6 @@ window.showResultScreen = function() {
         menuBtn.style.display = 'inline-block';
         
         btnContainer.appendChild(replayBtn);
-        // 公開版(実行専用)としてロードされた場合は「編集に戻る」を非表示にする
         if (typeof window.__INIT_DATA__ === 'undefined') {
             btnContainer.appendChild(editBtn);
         }

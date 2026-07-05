@@ -11,6 +11,7 @@ let activeTextWrapper = null;
 let activeLineWrapper = null; 
 let activeBoxWrapper = null; 
 let activeFormulaWrapper = null; 
+let activeToolWrapper = null; // ★追加：ツールプロパティ用
 let isSolved = false; 
 
 window.currentQuestionNum = 1;
@@ -19,7 +20,7 @@ window.usedVarHistory = new Set();
 window.lastCheckTime = 0;
 window.transitionStyle = 'none'; 
 window.playMode = 'pattern2'; 
-window.orderStyle = 'random'; // ★追加: 出題順序の設定
+window.orderStyle = 'random'; 
 window.csvLinesForRun = [];   
 
 window.mistakeCount = 0;
@@ -161,6 +162,8 @@ overlay.addEventListener('click', () => {
     if (formulaProp) formulaProp.style.display = 'none';
     const judgeProp = document.getElementById('judge-prop-container');
     if (judgeProp) judgeProp.style.display = 'none';
+    const toolProp = document.getElementById('tool-prop-container'); // ★追加
+    if (toolProp) toolProp.style.display = 'none';
     
     overlay.style.display = 'none';
     
@@ -170,6 +173,7 @@ overlay.addEventListener('click', () => {
     activeLineWrapper = null;
     activeBoxWrapper = null;
     activeFormulaWrapper = null;
+    activeToolWrapper = null; // ★追加
 });
 
 let isCalcDragging = false;
@@ -213,7 +217,8 @@ const modals = [
     document.getElementById('line-prop-container'),
     document.getElementById('box-prop-container'),
     document.getElementById('formula-prop-container'),
-    document.getElementById('judge-prop-container')
+    document.getElementById('judge-prop-container'),
+    document.getElementById('tool-prop-container') // ★追加
 ];
 modals.forEach(modal => {
     if (modal) {

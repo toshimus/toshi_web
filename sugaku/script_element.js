@@ -12,6 +12,40 @@ window.insertIntoFormula = function(text) {
     input.selectionStart = input.selectionEnd = start + text.length;
 };
 
+// ★追加：文字プロパティ用の入力補助関数（変数追加）
+window.insertVarIntoText = function() {
+    const varName = prompt("追加する変数の名前を入力してください（例: x1）:");
+    if (varName && varName.trim() !== "") {
+        const textToInsert = `[${varName.trim()}]`;
+        const input = document.getElementById('text-prop-content');
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const val = input.value;
+        input.value = val.substring(0, start) + textToInsert + val.substring(end);
+        input.focus();
+        input.selectionStart = input.selectionEnd = start + textToInsert.length;
+    }
+};
+
+// ★追加：文字プロパティ用の入力補助関数（分数追加）
+window.insertFracIntoText = function() {
+    const num = prompt("分子を入力してください（例: 2 または [x1]）:");
+    if (num === null) return;
+    const den = prompt("分母を入力してください（例: 3 または [x2]）:");
+    if (den === null) return;
+    
+    if (num.trim() !== "" && den.trim() !== "") {
+        const textToInsert = `{${den.trim()}分の${num.trim()}}`;
+        const input = document.getElementById('text-prop-content');
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const val = input.value;
+        input.value = val.substring(0, start) + textToInsert + val.substring(end);
+        input.focus();
+        input.selectionStart = input.selectionEnd = start + textToInsert.length;
+    }
+};
+
 // 選択肢(Box)の変数置換用レンダリング関数
 window.renderBox = function(wrapper) {
     const el = wrapper.querySelector('.rect');
@@ -45,6 +79,11 @@ function renderText(wrapper) {
     
     el.innerHTML = '';
     
+    const fracRegex = /\{(.*?)分の(.*?)\}/g;
+    const fracReplacer = (match, den, num) => {
+        return `<span class="inline-frac"><span class="inline-frac-num">${num}</span><span class="inline-frac-den">${den}</span></span>`;
+    };
+    
     if (isEditMode) {
         if (digits > 0) {
             const container = document.createElement('div');
@@ -60,10 +99,10 @@ function renderText(wrapper) {
             el.appendChild(container);
             const label = document.createElement('div');
             label.className = 'id-label';
-            label.innerHTML = originalContent; 
+            label.innerHTML = originalContent.replace(fracRegex, fracReplacer); 
             el.appendChild(label);
         } else {
-            el.innerHTML = originalContent;
+            el.innerHTML = originalContent.replace(fracRegex, fracReplacer);
         }
     } else {
         if (digits > 0 && /^\s*\[[^\]]+\]\s*$/.test(originalContent)) {
@@ -101,7 +140,7 @@ function renderText(wrapper) {
                 replacedText = replacedText.split(varName).join(styledHTML);
             }
         }
-        el.innerHTML = replacedText;
+        el.innerHTML = replacedText.replace(fracRegex, fracReplacer);
     }
 }
 window.renderText = renderText; 
@@ -149,9 +188,61 @@ function renderAnswer(wrapper) {
     if (!el) return;
     const digits = parseInt(wrapper.dataset.digits) || 0;
     const answerId = wrapper.dataset.answerId || '';
+    const style = wrapper.dataset.ansStyle || 'normal'; 
     
     el.innerHTML = '';
     
+    if (style !== 'normal') {
+        el.classList.add('is-fraction');
+        const fracContainer = document.createElement('div');
+        fracContainer.className = 'fraction-container';
+        
+        const numDiv = document.createElement('div');
+        numDiv.className = 'fraction-num';
+        
+        const denDiv = document.createElement('div');
+        denDiv.className = 'fraction-den';
+        
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'fraction-line';
+        
+        const createInput = (subId) => {
+            const inp = document.createElement('div');
+            inp.className = 'fraction-input';
+            inp.dataset.subId = subId;
+            if (isEditMode) {
+                inp.textContent = `${answerId.replace(/[\[\]]/g, '')}_${subId}`;
+                inp.style.fontSize = '0.4em';
+                inp.style.color = '#999';
+            }
+            return inp;
+        };
+
+        if (style === 'frac-1') {
+            numDiv.appendChild(createInput('num'));
+        } else if (style === 'frac-add') {
+            numDiv.appendChild(createInput('num1'));
+            const op = document.createElement('span'); op.textContent = '+'; op.className = 'frac-op';
+            numDiv.appendChild(op);
+            numDiv.appendChild(createInput('num2'));
+        } else if (style === 'frac-sub') {
+            numDiv.appendChild(createInput('num1'));
+            const op = document.createElement('span'); op.textContent = '-'; op.className = 'frac-op';
+            numDiv.appendChild(op);
+            numDiv.appendChild(createInput('num2'));
+        }
+        
+        denDiv.appendChild(createInput('den'));
+        
+        fracContainer.appendChild(numDiv);
+        fracContainer.appendChild(lineDiv);
+        fracContainer.appendChild(denDiv);
+        
+        el.appendChild(fracContainer);
+        return; 
+    }
+
+    el.classList.remove('is-fraction'); 
     if (digits > 0) {
         el.classList.add('is-split'); 
         const container = document.createElement('div');
@@ -270,17 +361,29 @@ function createDraggable(type, itemData = null) {
         wrapper.dataset.gridY = gridY;
         wrapper.dataset.toolId = itemData.toolId;
         wrapper.dataset.currentDivisions = itemData.currentDivisions || 1;
+
+        const currentTools = container.querySelectorAll('.draggable[data-type="tool"]').length + 1;
+        wrapper.dataset.objId = itemData.objId || ('t' + currentTools);
         
         wrapper.style.width = `calc(${wCells} * (100% / 32))`;
         wrapper.style.height = `calc(${hCells} * (100% / 24))`;
         wrapper.style.left = `calc(${gridX} * (100% / 32))`;
         wrapper.style.top = `calc(${gridY} * (100% / 24))`;
 
-        // ★追加: tool用の基盤要素を確実にアペンドする
         el.style.width = '100%';
         el.style.height = '100%';
-        el.style.pointerEvents = 'none'; // 子要素（ツール本体）にイベントを任せる
+        el.style.pointerEvents = 'none'; 
         wrapper.appendChild(el);
+
+        wrapper.addEventListener('dblclick', (e) => {
+            if (!isEditMode) return;
+            e.stopPropagation();
+            activeToolWrapper = wrapper;
+            document.getElementById('tool-prop-id').value = wrapper.dataset.objId;
+            document.getElementById('tool-prop-divs').value = wrapper.dataset.currentDivisions;
+            document.getElementById('tool-prop-container').style.display = 'flex';
+            document.getElementById('overlay').style.display = 'block';
+        });
 
         const handles = ['tl', 'tr', 'bl', 'br'];
         handles.forEach(pos => {
@@ -324,7 +427,7 @@ function createDraggable(type, itemData = null) {
             };
 
             if (type === 'text') {
-                initialContent = prompt("追加する文字を入力してください (例: [x1]＋[x2]＝):");
+                initialContent = prompt("追加する文字を入力してください\n(分数は {[x1]分の[x2]} のように { } で囲みます):");
                 if (initialContent === null || initialContent.trim() === "") return;
                 wCells = getCellsByText(initialContent, 1);
             } else if (type === 'formula') {
@@ -428,6 +531,7 @@ function createDraggable(type, itemData = null) {
             wrapper.dataset.calcMode = itemData ? (itemData.calcMode || '0-20') : '0-20';
             wrapper.dataset.formula = itemData ? (itemData.formula || '') : ''; 
             wrapper.dataset.digits = itemData ? (itemData.digits || 0) : 0;
+            wrapper.dataset.ansStyle = itemData ? (itemData.ansStyle || 'normal') : 'normal'; 
             
             const ansHandler = (e) => {
                 if (!isEditMode) return; 
@@ -436,6 +540,7 @@ function createDraggable(type, itemData = null) {
                 document.getElementById('ans-prop-id').value = wrapper.dataset.answerId;
                 document.getElementById('ans-prop-mode').value = wrapper.dataset.calcMode;
                 document.getElementById('ans-prop-digits').value = wrapper.dataset.digits;
+                document.getElementById('ans-prop-style').value = wrapper.dataset.ansStyle || 'normal'; 
                 document.getElementById('ans-prop-container').style.display = 'flex';
                 document.getElementById('overlay').style.display = 'block';
             };
@@ -478,8 +583,21 @@ function createDraggable(type, itemData = null) {
 
                 const ansWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
                 ansWrappers.forEach(w => {
-                    const id = w.dataset.answerId;
-                    if (id) addInsertBtn(`解答欄: ${id}`, id, '#81ecec');
+                    let id = w.dataset.answerId;
+                    const style = w.dataset.ansStyle || 'normal';
+                    if (id) {
+                        const cleanId = id.replace(/[\[\]]/g, '');
+                        if (style === 'normal') {
+                            addInsertBtn(`解答欄: ${id}`, id, '#81ecec');
+                        } else if (style === 'frac-1') {
+                            addInsertBtn(`解答欄: ${id} 分子`, `[${cleanId}_num]`, '#81ecec');
+                            addInsertBtn(`解答欄: ${id} 分母`, `[${cleanId}_den]`, '#81ecec');
+                        } else if (style === 'frac-add' || style === 'frac-sub') {
+                            addInsertBtn(`解答欄: ${id} 分子1`, `[${cleanId}_num1]`, '#81ecec');
+                            addInsertBtn(`解答欄: ${id} 分子2`, `[${cleanId}_num2]`, '#81ecec');
+                            addInsertBtn(`解答欄: ${id} 分母`, `[${cleanId}_den]`, '#81ecec');
+                        }
+                    }
                 });
 
                 const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
@@ -489,8 +607,22 @@ function createDraggable(type, itemData = null) {
                     if (id) addInsertBtn(`選択肢: ${name}(${id})`, `[${id}]`, '#fab1a0');
                 });
 
+                const toolWrappers = container.querySelectorAll('.draggable[data-type="tool"]');
+                toolWrappers.forEach(w => {
+                    const objId = w.dataset.objId;
+                    const toolId = w.dataset.toolId;
+                    let toolName = "教具";
+                    if(typeof ToolManager !== 'undefined' && ToolManager.tools[toolId]) {
+                        toolName = ToolManager.tools[toolId].name;
+                    }
+                    if (objId) {
+                        addInsertBtn(`${toolName}(${objId}) 分子(塗った数)`, `[${objId}_num]`, '#55efc4');
+                        addInsertBtn(`${toolName}(${objId}) 分母(分割数)`, `[${objId}_den]`, '#55efc4');
+                    }
+                });
+
                 if (idContainer.innerHTML === '') {
-                    idContainer.innerHTML = '<span style="color:#7f8c8d; font-size:0.9rem;">設定されている変数・解答欄・選択肢はありません。</span>';
+                    idContainer.innerHTML = '<span style="color:#7f8c8d; font-size:0.9rem;">設定されている変数・解答欄・選択肢・教具はありません。</span>';
                 }
 
                 document.getElementById('formula-prop-container').style.display = 'flex';
@@ -537,7 +669,6 @@ function createDraggable(type, itemData = null) {
             el.textContent = "できた";
             wrapper.appendChild(el);
         } else if (type === 'menu') {
-            // ★追加: 表示は「メニューへ」のまま
             el.classList.add('check-rect');
             el.style.backgroundColor = '#95a5a6';
             el.textContent = "メニューへ";
@@ -696,16 +827,27 @@ function createDraggable(type, itemData = null) {
 
         if (!hasMoved) {
             if (type === 'answer' && !isEditMode) {
-                const digits = parseInt(wrapper.dataset.digits) || 0;
-                if (digits > 0) {
-                    const cell = e.target.closest('.split-cell');
+                const style = wrapper.dataset.ansStyle || 'normal';
+                
+                if (style !== 'normal') {
+                    const cell = e.target.closest('.fraction-input');
                     if (cell && wrapper.contains(cell)) {
                         activeInputBox = cell;
                     } else {
                         return; 
                     }
                 } else {
-                    activeInputBox = el;
+                    const digits = parseInt(wrapper.dataset.digits) || 0;
+                    if (digits > 0) {
+                        const cell = e.target.closest('.split-cell');
+                        if (cell && wrapper.contains(cell)) {
+                            activeInputBox = cell;
+                        } else {
+                            return; 
+                        }
+                    } else {
+                        activeInputBox = el;
+                    }
                 }
                 
                 const mode = wrapper.dataset.calcMode || '0-20';
@@ -715,7 +857,7 @@ function createDraggable(type, itemData = null) {
 
                 if (mode === 'standard') {
                     calcStandardView.style.display = 'block';
-                    stdCalcValue = el.textContent || "";
+                    stdCalcValue = activeInputBox.textContent || "";
                     stdCalcDisplay.textContent = stdCalcValue;
                 } else if (mode === 'quick-0-9') {
                     document.getElementById('calc-quick-view').style.display = 'block';

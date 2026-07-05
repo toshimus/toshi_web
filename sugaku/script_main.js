@@ -55,6 +55,7 @@ addClick('save-ans-prop-btn', () => {
         activeAnsWrapper.dataset.answerId = document.getElementById('ans-prop-id').value.trim();
         activeAnsWrapper.dataset.calcMode = document.getElementById('ans-prop-mode').value;
         activeAnsWrapper.dataset.digits = document.getElementById('ans-prop-digits').value;
+        activeAnsWrapper.dataset.ansStyle = document.getElementById('ans-prop-style').value; // ★追加
         if (typeof window.renderAnswer === 'function') window.renderAnswer(activeAnsWrapper);
     }
     document.getElementById('ans-prop-container').style.display = 'none';
@@ -108,6 +109,21 @@ addClick('save-formula-prop-btn', () => {
     activeFormulaWrapper = null;
 });
 
+// ★追加：ツールプロパティ保存
+addClick('save-tool-prop-btn', () => {
+    if (activeToolWrapper) {
+        activeToolWrapper.dataset.objId = document.getElementById('tool-prop-id').value.trim();
+        const newDivs = parseInt(document.getElementById('tool-prop-divs').value);
+        if (newDivs >= 1 && newDivs <= 20) {
+            activeToolWrapper.dataset.currentDivisions = newDivs;
+            if (typeof ToolManager !== 'undefined') ToolManager.renderTool(activeToolWrapper);
+        }
+    }
+    document.getElementById('tool-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeToolWrapper = null;
+});
+
 /* --- 要素追加・削除 --- */
 addClick('add-box-btn', () => typeof createDraggable === 'function' && createDraggable('box'));
 addClick('add-ans-btn', () => typeof createDraggable === 'function' && createDraggable('answer'));
@@ -115,8 +131,6 @@ addClick('add-formula-btn', () => typeof createDraggable === 'function' && creat
 addClick('add-text-btn', () => typeof createDraggable === 'function' && createDraggable('text'));
 addClick('add-line-btn', () => typeof createDraggable === 'function' && createDraggable('line'));
 addClick('add-check-btn', () => typeof createDraggable === 'function' && createDraggable('check'));
-
-// ★追加：メニューボタン配置の処理
 addClick('add-menu-btn', () => typeof createDraggable === 'function' && createDraggable('menu'));
 
 addClick('add-tool-bar-btn', () => {
@@ -159,6 +173,7 @@ window.saveCurrentPage = function() {
             itemData.lineStyle = wrapper.dataset.lineStyle;
         } else if (type === 'tool') {
             itemData.toolId = wrapper.dataset.toolId;
+            itemData.objId = wrapper.dataset.objId;
             itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
             itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
             itemData.wCells = parseInt(wrapper.dataset.wCells) || 10;
@@ -185,6 +200,7 @@ window.saveCurrentPage = function() {
                 itemData.calcMode = wrapper.dataset.calcMode || '0-20';
                 itemData.formula = wrapper.dataset.formula || ''; 
                 itemData.digits = parseInt(wrapper.dataset.digits) || 0;
+                itemData.ansStyle = wrapper.dataset.ansStyle || 'normal'; // ★追加
                 itemData.content = ''; 
             }
             if (type === 'text') {
@@ -210,6 +226,7 @@ window.loadPageToDOM = function(items) {
         const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
         const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
         const toolWrappers = container.querySelectorAll('.draggable[data-type="tool"]');
+        
         textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
         answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
         boxWrappers.forEach(wrapper => window.renderBox ? window.renderBox(wrapper) : null);
@@ -578,7 +595,7 @@ window.loadRunPage = function(index) {
     }
 
     const checkRect = document.querySelector('.check-rect');
-    if (checkRect) checkRect.textContent = "できた";
+    if (checkRect && checkRect.textContent === 'できた') checkRect.textContent = "できた";
 
     if (typeof window.generateProblemVars === 'function') {
         window.generateProblemVars();
