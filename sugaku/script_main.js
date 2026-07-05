@@ -116,6 +116,17 @@ addClick('add-text-btn', () => typeof createDraggable === 'function' && createDr
 addClick('add-line-btn', () => typeof createDraggable === 'function' && createDraggable('line'));
 addClick('add-check-btn', () => typeof createDraggable === 'function' && createDraggable('check'));
 
+// ★追加：メニューボタン配置の処理
+addClick('add-menu-btn', () => typeof createDraggable === 'function' && createDraggable('menu'));
+
+addClick('add-tool-bar-btn', () => {
+    if (typeof ToolManager !== 'undefined') ToolManager.addTool('fraction-bar');
+});
+
+addClick('add-tool-circle-btn', () => {
+    if (typeof ToolManager !== 'undefined') ToolManager.addTool('fraction-circle');
+});
+
 addClick('delete-item-btn', () => {
     const selectedItems = document.querySelectorAll('.wrapper-selected');
     if (selectedItems.length > 0) {
@@ -146,6 +157,13 @@ window.saveCurrentPage = function() {
             itemData.thickness = wrapper.dataset.thickness;
             itemData.lineColor = wrapper.dataset.lineColor;
             itemData.lineStyle = wrapper.dataset.lineStyle;
+        } else if (type === 'tool') {
+            itemData.toolId = wrapper.dataset.toolId;
+            itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
+            itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
+            itemData.wCells = parseInt(wrapper.dataset.wCells) || 10;
+            itemData.hCells = parseInt(wrapper.dataset.hCells) || 6;
+            itemData.currentDivisions = parseInt(wrapper.dataset.currentDivisions) || 1;
         } else {
             itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
             itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
@@ -191,9 +209,13 @@ window.loadPageToDOM = function(items) {
         const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
         const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
         const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
+        const toolWrappers = container.querySelectorAll('.draggable[data-type="tool"]');
         textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
         answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
         boxWrappers.forEach(wrapper => window.renderBox ? window.renderBox(wrapper) : null);
+        toolWrappers.forEach(wrapper => {
+            if (typeof ToolManager !== 'undefined') ToolManager.renderTool(wrapper);
+        });
     }
 };
 
@@ -571,11 +593,15 @@ window.loadRunPage = function(index) {
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
     const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
+    const toolWrappers = container.querySelectorAll('.draggable[data-type="tool"]');
+    
     textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
     answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
     boxWrappers.forEach(wrapper => window.renderBox ? window.renderBox(wrapper) : null);
-    
-    // ★時間の計測リセット(iPad連動用)
+    toolWrappers.forEach(wrapper => {
+        if (typeof ToolManager !== 'undefined') ToolManager.renderTool(wrapper);
+    });
+
     window.problemStartTime = new Date();
 };
 
@@ -709,7 +735,7 @@ addClick('export-html-btn', async () => {
         if (!cssRes.ok && cssRes.status !== 0) throw new Error("style.css が取得できませんでした。");
         const cssText = await cssRes.text();
 
-        const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_main.js'];
+        const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_tools.js', 'script_main.js'];
         let combinedJsText = '';
         for (const file of jsFiles) {
             const res = await fetch(file + '?t=' + t);
@@ -742,7 +768,6 @@ addClick('export-html-btn', async () => {
         styleTag.textContent = cssText;
         htmlClone.querySelector('head').appendChild(styleTag);
 
-        // --- ★公開版の初期スタート画面のHTML構造を挿入 ---
         const startScreenHtml = `
         <div id="start-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f0f8ff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000;">
             <h1 style="font-size: 3rem; color: #2c3e50; margin-bottom: 40px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">問題スタート</h1>
@@ -752,13 +777,10 @@ addClick('export-html-btn', async () => {
         `;
         htmlClone.querySelector('body').insertAdjacentHTML('afterbegin', startScreenHtml);
 
-        // スタート画面に隠れるようにメインコンテナを初期非表示にする
         const mainContainer = htmlClone.querySelector('.main-container');
         if (mainContainer) mainContainer.style.display = 'none';
 
         const scriptTag = document.createElement('script');
-        
-        // ★スタート画面のボタン動作と時間計測開始スクリプトを追加
         scriptTag.textContent = `
 window.__INIT_DATA__ = ${jsonString};
 

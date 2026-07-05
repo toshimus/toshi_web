@@ -258,6 +258,53 @@ function createDraggable(type, itemData = null) {
         container.appendChild(wrapper);
         if (typeof window.updateLineVisuals === 'function') window.updateLineVisuals(wrapper);
 
+    } else if (type === 'tool') {
+        let wCells = itemData ? itemData.wCells : 10;
+        let hCells = itemData ? itemData.hCells : 6;
+        const gridX = itemData ? itemData.gridX : 2;
+        const gridY = itemData ? itemData.gridY : 2;
+        
+        wrapper.dataset.wCells = wCells;
+        wrapper.dataset.hCells = hCells;
+        wrapper.dataset.gridX = gridX;
+        wrapper.dataset.gridY = gridY;
+        wrapper.dataset.toolId = itemData.toolId;
+        wrapper.dataset.currentDivisions = itemData.currentDivisions || 1;
+        
+        wrapper.style.width = `calc(${wCells} * (100% / 32))`;
+        wrapper.style.height = `calc(${hCells} * (100% / 24))`;
+        wrapper.style.left = `calc(${gridX} * (100% / 32))`;
+        wrapper.style.top = `calc(${gridY} * (100% / 24))`;
+
+        // ★追加: tool用の基盤要素を確実にアペンドする
+        el.style.width = '100%';
+        el.style.height = '100%';
+        el.style.pointerEvents = 'none'; // 子要素（ツール本体）にイベントを任せる
+        wrapper.appendChild(el);
+
+        const handles = ['tl', 'tr', 'bl', 'br'];
+        handles.forEach(pos => {
+            const h = document.createElement('div');
+            h.classList.add('resize-handle', `handle-${pos}`);
+            const startResize = (e) => {
+                if (!isEditMode) return; 
+                e.stopPropagation();
+                activeResizeWrapper = wrapper;
+                activeHandlePos = pos;
+                rStartX = e.touches ? e.touches[0].clientX : e.clientX;
+                rStartY = e.touches ? e.touches[0].clientY : e.clientY;
+                rStartWCells = parseInt(wrapper.dataset.wCells) || 2;
+                rStartHCells = parseInt(wrapper.dataset.hCells) || 2;
+                rStartGridX = parseInt(wrapper.dataset.gridX) || 0;
+                rStartGridY = parseInt(wrapper.dataset.gridY) || 0;
+            };
+            h.addEventListener('mousedown', startResize);
+            h.addEventListener('touchstart', startResize, {passive: false});
+            wrapper.appendChild(h);
+        });
+
+        container.appendChild(wrapper);
+        
     } else {
         let wCells = itemData ? itemData.wCells : 2;
         let hCells = itemData ? itemData.hCells : 2;
@@ -285,6 +332,8 @@ function createDraggable(type, itemData = null) {
                 wCells = getCellsByText(initialContent, 1);
             } else if (type === 'check') {
                 wCells = getCellsByText("次の問題へ", 1); 
+            } else if (type === 'menu') {
+                wCells = getCellsByText("メニューへ", 1); 
             } else if (type === 'box') {
                 count++;
                 initialContent = count.toString();
@@ -487,6 +536,12 @@ function createDraggable(type, itemData = null) {
             el.classList.add('check-rect');
             el.textContent = "できた";
             wrapper.appendChild(el);
+        } else if (type === 'menu') {
+            // ★追加: 表示は「メニューへ」のまま
+            el.classList.add('check-rect');
+            el.style.backgroundColor = '#95a5a6';
+            el.textContent = "メニューへ";
+            wrapper.appendChild(el);
         }
         
         const handles = ['tl', 'tr', 'bl', 'br'];
@@ -518,7 +573,7 @@ function createDraggable(type, itemData = null) {
     let startX, startY;
     
     const dragStart = (e) => {
-        if (!isEditMode && type !== 'answer' && type !== 'check') return; 
+        if (!isEditMode && type !== 'answer' && type !== 'check' && type !== 'menu') return; 
         if (e.target.classList.contains('resize-handle') || e.target.classList.contains('line-handle')) return; 
 
         isDragging = true;
@@ -552,7 +607,7 @@ function createDraggable(type, itemData = null) {
                     });
                 } else {
                     const innerDiv = item.querySelector('div');
-                    if (innerDiv && itemType !== 'check') innerDiv.style.cursor = 'grabbing';
+                    if (innerDiv && itemType !== 'check' && itemType !== 'menu') innerDiv.style.cursor = 'grabbing';
                     window.activeDragItems.push({
                         element: item,
                         type: itemType,
@@ -631,7 +686,7 @@ function createDraggable(type, itemData = null) {
                 if (dragData.type === 'line') {
                     const lineEl = item.querySelector('line');
                     if (lineEl) lineEl.style.cursor = 'grab';
-                } else if (dragData.type !== 'check') {
+                } else if (dragData.type !== 'check' && dragData.type !== 'menu') {
                     const innerDiv = item.querySelector('div');
                     if (innerDiv) innerDiv.style.cursor = 'grab';
                 }
@@ -690,8 +745,13 @@ function createDraggable(type, itemData = null) {
                 calcContainer.style.left = left + 'px';
                 calcContainer.style.top = top + 'px';
                 
-            } else if (type === 'check') {
+            } else if (type === 'check' || type === 'menu') {
                 if (!isEditMode) {
+                    if (type === 'menu') {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+
                     if (window.isToastShowing) return;
 
                     const now = Date.now();
