@@ -212,7 +212,7 @@ body.run-mode .fraction-input {
     color: #333;
 }
 
-/* ★追加: テキスト中のインライン分数表示用CSS */
+/* テキスト中のインライン分数表示用CSS */
 .inline-frac {
     display: inline-flex;
     flex-direction: column;
@@ -292,6 +292,22 @@ body.run-mode .text-rect.single-var-text {
     transition: transform 0.1s;
 }
 .check-rect:active { transform: translateY(2px); }
+
+/* ★追加: 進捗表示用のスタイル */
+.progress-rect {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333;
+    font-weight: bold;
+    font-size: calc(var(--grid-cell-h) * 1.0);
+    font-family: sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    background-color: transparent;
+}
 
 @media (orientation: landscape) {
     body { flex-direction: row; }

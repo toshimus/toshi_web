@@ -12,7 +12,6 @@ window.insertIntoFormula = function(text) {
     input.selectionStart = input.selectionEnd = start + text.length;
 };
 
-// ★追加：文字プロパティ用の入力補助関数（変数追加）
 window.insertVarIntoText = function() {
     const varName = prompt("追加する変数の名前を入力してください（例: x1）:");
     if (varName && varName.trim() !== "") {
@@ -27,7 +26,6 @@ window.insertVarIntoText = function() {
     }
 };
 
-// ★追加：文字プロパティ用の入力補助関数（分数追加）
 window.insertFracIntoText = function() {
     const num = prompt("分子を入力してください（例: 2 または [x1]）:");
     if (num === null) return;
@@ -46,7 +44,6 @@ window.insertFracIntoText = function() {
     }
 };
 
-// 選択肢(Box)の変数置換用レンダリング関数
 window.renderBox = function(wrapper) {
     const el = wrapper.querySelector('.rect');
     if (!el) return;
@@ -437,6 +434,9 @@ function createDraggable(type, itemData = null) {
                 wCells = getCellsByText("次の問題へ", 1); 
             } else if (type === 'menu') {
                 wCells = getCellsByText("メニューへ", 1); 
+            } else if (type === 'progress') {
+                // ★追加: 進捗表示の初期サイズ
+                wCells = getCellsByText("第10問 / 全10問", 1); 
             } else if (type === 'box') {
                 count++;
                 initialContent = count.toString();
@@ -673,6 +673,11 @@ function createDraggable(type, itemData = null) {
             el.style.backgroundColor = '#95a5a6';
             el.textContent = "メニューへ";
             wrapper.appendChild(el);
+        } else if (type === 'progress') {
+            // ★追加: 進捗表示用アイテム
+            el.classList.add('progress-rect');
+            el.textContent = typeof isEditMode !== 'undefined' && !isEditMode ? `第${window.currentQuestionNum || 1}問 / 全${window.MAX_QUESTIONS || 1}問` : "第?問 / 全?問";
+            wrapper.appendChild(el);
         }
         
         const handles = ['tl', 'tr', 'bl', 'br'];
@@ -704,6 +709,7 @@ function createDraggable(type, itemData = null) {
     let startX, startY;
     
     const dragStart = (e) => {
+        // ★修正: 実行モードでドラッグ操作を受け付けないように制限 (progress も追加)
         if (!isEditMode && type !== 'answer' && type !== 'check' && type !== 'menu') return; 
         if (e.target.classList.contains('resize-handle') || e.target.classList.contains('line-handle')) return; 
 

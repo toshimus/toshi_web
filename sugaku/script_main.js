@@ -55,7 +55,7 @@ addClick('save-ans-prop-btn', () => {
         activeAnsWrapper.dataset.answerId = document.getElementById('ans-prop-id').value.trim();
         activeAnsWrapper.dataset.calcMode = document.getElementById('ans-prop-mode').value;
         activeAnsWrapper.dataset.digits = document.getElementById('ans-prop-digits').value;
-        activeAnsWrapper.dataset.ansStyle = document.getElementById('ans-prop-style').value; // ★追加
+        activeAnsWrapper.dataset.ansStyle = document.getElementById('ans-prop-style').value; 
         if (typeof window.renderAnswer === 'function') window.renderAnswer(activeAnsWrapper);
     }
     document.getElementById('ans-prop-container').style.display = 'none';
@@ -109,7 +109,6 @@ addClick('save-formula-prop-btn', () => {
     activeFormulaWrapper = null;
 });
 
-// ★追加：ツールプロパティ保存
 addClick('save-tool-prop-btn', () => {
     if (activeToolWrapper) {
         activeToolWrapper.dataset.objId = document.getElementById('tool-prop-id').value.trim();
@@ -132,6 +131,9 @@ addClick('add-text-btn', () => typeof createDraggable === 'function' && createDr
 addClick('add-line-btn', () => typeof createDraggable === 'function' && createDraggable('line'));
 addClick('add-check-btn', () => typeof createDraggable === 'function' && createDraggable('check'));
 addClick('add-menu-btn', () => typeof createDraggable === 'function' && createDraggable('menu'));
+
+// ★追加：進捗表示追加ボタンの処理
+addClick('add-progress-btn', () => typeof createDraggable === 'function' && createDraggable('progress'));
 
 addClick('add-tool-bar-btn', () => {
     if (typeof ToolManager !== 'undefined') ToolManager.addTool('fraction-bar');
@@ -200,7 +202,7 @@ window.saveCurrentPage = function() {
                 itemData.calcMode = wrapper.dataset.calcMode || '0-20';
                 itemData.formula = wrapper.dataset.formula || ''; 
                 itemData.digits = parseInt(wrapper.dataset.digits) || 0;
-                itemData.ansStyle = wrapper.dataset.ansStyle || 'normal'; // ★追加
+                itemData.ansStyle = wrapper.dataset.ansStyle || 'normal'; 
                 itemData.content = ''; 
             }
             if (type === 'text') {
@@ -774,7 +776,7 @@ addClick('export-html-btn', async () => {
         const sidebarClone = htmlClone.querySelector('.sidebar');
         if (sidebarClone) sidebarClone.remove();
 
-        htmlClone.querySelectorAll('link[rel="stylesheet"]').forEach(el => {
+        htmlClone.querySelectorAll('link[relstylesheet"]').forEach(el => {
             if (el.href && el.href.includes('style.css')) el.remove();
         });
         htmlClone.querySelectorAll('script').forEach(el => {

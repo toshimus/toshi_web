@@ -70,7 +70,6 @@ function runValidation() {
     const getCombinedValueForId = (id) => {
         const cleanId = id.replace(/[\[\]]/g, '');
 
-        // ★追加・修正: ツールの値（_sel, _num: 選択数, _div, _den: 分割数）の取得
         if (cleanId.endsWith('_sel') || cleanId.endsWith('_num') || cleanId.endsWith('_div') || cleanId.endsWith('_den')) {
             const baseId = cleanId.replace(/_(sel|num|div|den)$/, '');
             const targetTool = container.querySelector(`.draggable[data-type="tool"][data-obj-id="${baseId}"]`);
