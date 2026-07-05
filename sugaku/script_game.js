@@ -270,31 +270,94 @@ window.generateProblemVars = function() {
         if (w.dataset.answerId) knownAnswerIds.add(w.dataset.answerId);
     });
 
+    let targetVars = new Set();
+    const extractTargetVars = (content) => {
+        if (content) {
+            const matches = content.match(/\[[^\]]+\]/g);
+            if (matches) {
+                matches.forEach(varName => {
+                    if (!knownAnswerIds.has(varName)) {
+                        targetVars.add(varName);
+                    }
+                });
+            }
+        }
+    };
+    textWrappers.forEach(w => extractTargetVars(w.dataset.originalContent));
+    boxWrappers.forEach(w => extractTargetVars(w.dataset.boxName));
+
     let newVars = {};
     let attempts = 0;
     let signature = "";
     
+    // ★強化：全角文字を半角に自動変換してから数式を評価するエンジン
+    const evaluateRangeExpr = (expr, contextVars) => {
+        let e = String(expr).trim();
+        if (e === "") return NaN;
+        
+        // 全角数字・記号を半角に安全に変換
+        e = e.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+             .replace(/＋/g, '+')
+             .replace(/[－−ー]/g, '-')
+             .replace(/[＊×]/g, '*')
+             .replace(/[／÷]/g, '/');
+             
+        const varMatches = e.match(/\[[^\]]+\]/g);
+        if (varMatches) {
+            for (let m of varMatches) {
+                if (contextVars[m] === undefined) {
+                    return null; // 依存する変数がまだ決まっていない場合は待機
+                }
+                // マイナス値などで計算が壊れないようにカッコで包んで置換
+                e = e.split(m).join(`(${contextVars[m]})`);
+            }
+        }
+        try {
+            return new Function(`return (${e})`)();
+        } catch (err) {
+            return NaN;
+        }
+    };
+
     do {
         newVars = {};
-        
-        const extractVars = (content) => {
-            if (content) {
-                const matches = content.match(/\[[^\]]+\]/g);
-                if (matches) {
-                    matches.forEach(varName => {
-                        if (!knownAnswerIds.has(varName) && !(varName in newVars)) {
-                            const range = variableRanges[varName] || { min: 1, max: 9 };
-                            const min = range.min !== undefined ? range.min : 1;
-                            const max = range.max !== undefined ? range.max : 9;
-                            newVars[varName] = Math.floor(Math.random() * (max - min + 1)) + min;
-                        }
-                    });
+        let varsToGenerate = Array.from(targetVars);
+        let resolveAttempts = 0;
+
+        // まだ生成していない変数がなくなるまでループ（最大100回）
+        while (varsToGenerate.length > 0 && resolveAttempts < 100) {
+            resolveAttempts++;
+            let generatedInThisRound = false;
+
+            for (let i = 0; i < varsToGenerate.length; i++) {
+                const varName = varsToGenerate[i];
+                const range = variableRanges[varName] || { min: "1", max: "9" };
+                
+                let minRaw = (range.min === undefined || String(range.min).trim() === "") ? "1" : range.min;
+                let maxRaw = (range.max === undefined || String(range.max).trim() === "") ? "9" : range.max;
+
+                let minVal = evaluateRangeExpr(minRaw, newVars);
+                let maxVal = evaluateRangeExpr(maxRaw, newVars);
+
+                // MinとMaxが両方とも現在のコンテキストで計算可能な場合のみ生成
+                if (minVal !== null && maxVal !== null && !isNaN(minVal) && !isNaN(maxVal)) {
+                    let min = Math.floor(Math.min(minVal, maxVal));
+                    let max = Math.floor(Math.max(minVal, maxVal));
+                    newVars[varName] = Math.floor(Math.random() * (max - min + 1)) + min;
+                    varsToGenerate.splice(i, 1);
+                    i--; 
+                    generatedInThisRound = true;
                 }
             }
-        };
 
-        textWrappers.forEach(w => extractVars(w.dataset.originalContent));
-        boxWrappers.forEach(w => extractVars(w.dataset.boxName));
+            // 依存関係が壊れている等で1つも生成できなかった場合は、強制的に数値を割り当てて脱出
+            if (!generatedInThisRound && varsToGenerate.length > 0) {
+                varsToGenerate.forEach(v => {
+                    newVars[v] = Math.floor(Math.random() * 9) + 1;
+                });
+                break;
+            }
+        }
 
         signature = JSON.stringify(newVars, Object.keys(newVars).sort());
         attempts++;
