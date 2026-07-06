@@ -16,6 +16,7 @@ function runValidation() {
     let ansValues = {};
     let hasEmpty = false;
 
+    // 解答欄の値取得ロジック
     answers.forEach(wAns => {
         const id = wAns.dataset.answerId;
         const el = wAns.querySelector('.ans-rect');
@@ -84,6 +85,7 @@ function runValidation() {
 
         if (ansValues.hasOwnProperty(cleanId)) return ansValues[cleanId];
 
+        // 最後に押されたボックスの判定
         const targetBox = container.querySelector(`.draggable[data-type="box"][data-box-id="${cleanId}"]`);
         if (targetBox) {
             return targetBox.dataset.isLastPressed === "true" ? 1 : 0;
@@ -119,18 +121,17 @@ function runValidation() {
         return 0; 
     };
 
-    // ★修正: 判定式の評価エンジンを、より汎用的なJavaScriptコード処理に変更
+    // ★修正: クラッシュを防ぎつつ、どんな条件式（>, <, and, or, !=）も評価できる安全なエンジン
     formulas.forEach(wForm => {
         const formulaStr = wForm.querySelector('.formula-rect') ? wForm.querySelector('.formula-rect').textContent : wForm.dataset.evalContent;
         if(!formulaStr) return;
         
         hasCheckable = true;
 
-        // ★強化された判定エンジン
         const evaluateCondition = (exprStr) => {
             let e = exprStr.trim();
             
-            // 記号の正規化
+            // 記号の正規化 (全角を半角に)
             e = e.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
                  .replace(/＋/g, '+')
                  .replace(/[－−ー]/g, '-')
@@ -144,7 +145,7 @@ function runValidation() {
             // 変数の置換
             const varMatches = e.match(/\[[^\]]+\]/g);
             if (varMatches) {
-                // 長いIDから順に置換（[t1_num]などを先に処理し、[t1]が残らないようにする）
+                // 長いIDから順に置換し、[x11] が [x1] に誤って置換されるのを防ぐ
                 const sortedMatches = Array.from(new Set(varMatches)).sort((a, b) => b.length - a.length);
                 for (let m of sortedMatches) {
                     let val = getCombinedValueForId(m);
@@ -153,18 +154,28 @@ function runValidation() {
                 }
             }
 
-            // "=" を "==" に置換する際、"==" や "!=" は除外する (正規表現)
-            e = e.replace(/(?<![=<>!])=(?![=])/g, '==='); // 厳密等価に変更
+            // 安全な「=」の変換処理 (否定後読み (?<!...) を使わない方式)
+            // 一旦 == や === を = にし、!= などを統一
+            e = e.replace(/={2,}/g, '=');
+            e = e.replace(/!={1,}/g, '!=');
+            
+            // 単独の = を === に変換し、>= や <= や != は適切なJavaScript演算子にする
+            e = e.replace(/([><!])?=/g, (match, prefix) => {
+                if (prefix === '!') return '!==';
+                if (prefix === '>') return '>=';
+                if (prefix === '<') return '<=';
+                return '==='; // prefixが無い場合は === にする
+            });
 
             // 論理演算子の変換
             e = e.replace(/\band\b/gi, '&&').replace(/\bor\b/gi, '||');
 
             try {
-                // 安全な評価
+                // ブール値（true / false）として安全に数式を評価
                 return !!(new Function(`return (${e})`)());
             } catch (err) {
                 console.error("Formula eval error:", e, err);
-                return false;
+                return false; // エラー時は不正解扱いにする
             }
         };
 
@@ -402,22 +413,18 @@ window.generateProblemVars = function() {
 };
 
 window.shuffleBoxes = function() {
-    // ★許可フラグがあるボックスのみを抽出
     const shuffleableBoxes = Array.from(container.querySelectorAll('.draggable[data-type="box"][data-is-shuffleable="true"]'));
     if (shuffleableBoxes.length < 2) return; 
 
     if (window.playMode === 'pattern3') return;
 
-    // 位置情報だけを抽出
     const positions = shuffleableBoxes.map(b => ({ x: b.dataset.gridX, y: b.dataset.gridY }));
     
-    // 位置をシャッフル
     for (let i = positions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [positions[i], positions[j]] = [positions[j], positions[i]];
     }
     
-    // シャッフルした位置を適用
     shuffleableBoxes.forEach((b, index) => {
         b.dataset.gridX = positions[index].x;
         b.dataset.gridY = positions[index].y;
