@@ -131,7 +131,6 @@ addClick('add-text-btn', () => typeof createDraggable === 'function' && createDr
 addClick('add-line-btn', () => typeof createDraggable === 'function' && createDraggable('line'));
 addClick('add-check-btn', () => typeof createDraggable === 'function' && createDraggable('check'));
 addClick('add-menu-btn', () => typeof createDraggable === 'function' && createDraggable('menu'));
-
 addClick('add-progress-btn', () => typeof createDraggable === 'function' && createDraggable('progress'));
 
 addClick('add-tool-bar-btn', () => {
@@ -334,23 +333,25 @@ addClick('var-settings-btn', () => {
         if (foundVars.size === 0) {
             listContainer.innerHTML = '<p style="text-align:center; color:#555; font-weight:bold;">テキスト内に設定可能な変数が見つかりません。</p>';
         } else {
-            // ★変更: 数式が入力可能である旨を注記として追加
+            // ★変更: 数式入力が可能である旨のガイドを追加
             const note = document.createElement('div');
             note.style.fontSize = '0.9rem';
             note.style.color = '#e67e22';
             note.style.marginBottom = '10px';
+            note.style.textAlign = 'center';
             note.textContent = '※Min/Maxには [x1]-1 のように他の変数を含めた数式も入力可能です。';
             listContainer.appendChild(note);
 
             foundVars.forEach(v => {
                 const range = variableRanges[v] || { min: "1", max: "9", color: "#e74c3c", size: 1.0 };
-                // 互換性のため数値を文字列として扱う
+                // 値を文字列として安全に取り出す
                 const minStr = range.min !== undefined ? String(range.min) : "1";
                 const maxStr = range.max !== undefined ? String(range.max) : "9";
 
                 const row = document.createElement('div');
                 row.className = 'prop-setting-row';
                 row.style.flexWrap = 'wrap';
+                // ★変更: input type="number" を type="text" に変更し、数式を受け入れる
                 row.innerHTML = `
                     <strong style="font-size: 1.2rem; color:#333; width: 100%; margin-bottom: 8px; border-bottom: 1px solid #eee;">${v}</strong>
                     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom: 5px;">
@@ -400,7 +401,7 @@ addClick('save-var-settings-btn', () => {
         
         minInputs.forEach((minInput, index) => {
             const v = minInput.dataset.var;
-            // ★変更: min/maxを文字列として保存する
+            // ★変更: 数式をそのまま文字列として保存（parseIntを使用しない）
             variableRanges[v] = {
                 min: minInput.value.trim(),
                 max: maxInputs[index].value.trim(),

@@ -260,6 +260,7 @@ function runValidation() {
 }
 window.runValidation = runValidation;
 
+// ★変更: 依存関係を解決して変数を生成する強力なエンジンに刷新
 window.generateProblemVars = function() {
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
@@ -290,12 +291,12 @@ window.generateProblemVars = function() {
     let attempts = 0;
     let signature = "";
     
-    // ★強化：全角文字を半角に自動変換してから数式を評価するエンジン
+    // 変数を含む数式文字列を評価し、全角記号などを半角に自動補正する内部関数
     const evaluateRangeExpr = (expr, contextVars) => {
         let e = String(expr).trim();
         if (e === "") return NaN;
         
-        // 全角数字・記号を半角に安全に変換
+        // 全角数字・記号を半角に安全に変換（[x1]－1 などに対応）
         e = e.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
              .replace(/＋/g, '+')
              .replace(/[－−ー]/g, '-')
@@ -306,14 +307,15 @@ window.generateProblemVars = function() {
         if (varMatches) {
             for (let m of varMatches) {
                 if (contextVars[m] === undefined) {
-                    return null; // 依存する変数がまだ決まっていない場合は待機
+                    return null; // 依存する変数がまだ生成されていない場合は待機
                 }
                 // マイナス値などで計算が壊れないようにカッコで包んで置換
                 e = e.split(m).join(`(${contextVars[m]})`);
             }
         }
         try {
-            return new Function(`return (${e})`)();
+            const val = new Function(`return (${e})`)();
+            return typeof val === 'number' ? val : NaN;
         } catch (err) {
             return NaN;
         }
@@ -350,7 +352,7 @@ window.generateProblemVars = function() {
                 }
             }
 
-            // 依存関係が壊れている等で1つも生成できなかった場合は、強制的に数値を割り当てて脱出
+            // 循環参照などで1つも生成できなかった場合は、強制的に数値を割り当てて脱出
             if (!generatedInThisRound && varsToGenerate.length > 0) {
                 varsToGenerate.forEach(v => {
                     newVars[v] = Math.floor(Math.random() * 9) + 1;
