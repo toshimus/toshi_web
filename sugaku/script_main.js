@@ -243,6 +243,7 @@ window.updatePageUI = function() {
     }
 };
 
+/* --- ページ遷移制御 --- */
 addClick('prev-page-btn', () => {
     if (window.currentEditPage > 0) {
         window.saveCurrentPage();
@@ -288,6 +289,12 @@ addClick('del-page-btn', () => {
    動作・変数設定・判定設定
    ========================================== */
 addClick('var-settings-btn', () => {
+    // ★追加: 開く際に現在の教材タイトルを入力欄にセット
+    const quizTitleInput = document.getElementById('quiz-title-input');
+    if (quizTitleInput) {
+        quizTitleInput.value = window.quizTitle || '自作グリッド問題';
+    }
+
     const emptyCheckToggle = document.getElementById('empty-check-toggle');
     if (emptyCheckToggle) {
         emptyCheckToggle.checked = window.enableEmptyCheck === true;
@@ -333,7 +340,6 @@ addClick('var-settings-btn', () => {
         if (foundVars.size === 0) {
             listContainer.innerHTML = '<p style="text-align:center; color:#555; font-weight:bold;">テキスト内に設定可能な変数が見つかりません。</p>';
         } else {
-            // ★変更: 数式入力が可能である旨のガイドを追加
             const note = document.createElement('div');
             note.style.fontSize = '0.9rem';
             note.style.color = '#e67e22';
@@ -344,14 +350,12 @@ addClick('var-settings-btn', () => {
 
             foundVars.forEach(v => {
                 const range = variableRanges[v] || { min: "1", max: "9", color: "#e74c3c", size: 1.0 };
-                // 値を文字列として安全に取り出す
                 const minStr = range.min !== undefined ? String(range.min) : "1";
                 const maxStr = range.max !== undefined ? String(range.max) : "9";
 
                 const row = document.createElement('div');
                 row.className = 'prop-setting-row';
                 row.style.flexWrap = 'wrap';
-                // ★変更: input type="number" を type="text" に変更し、数式を受け入れる
                 row.innerHTML = `
                     <strong style="font-size: 1.2rem; color:#333; width: 100%; margin-bottom: 8px; border-bottom: 1px solid #eee;">${v}</strong>
                     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom: 5px;">
@@ -372,6 +376,12 @@ addClick('var-settings-btn', () => {
 });
 
 addClick('save-var-settings-btn', () => {
+    // ★追加: 保存時に入力されたタイトルをグローバル変数に反映
+    const quizTitleInput = document.getElementById('quiz-title-input');
+    if (quizTitleInput) {
+        window.quizTitle = quizTitleInput.value.trim() || '自作グリッド問題';
+    }
+
     const emptyCheckToggle = document.getElementById('empty-check-toggle');
     if (emptyCheckToggle) {
         window.enableEmptyCheck = emptyCheckToggle.checked;
@@ -401,7 +411,6 @@ addClick('save-var-settings-btn', () => {
         
         minInputs.forEach((minInput, index) => {
             const v = minInput.dataset.var;
-            // ★変更: 数式をそのまま文字列として保存（parseIntを使用しない）
             variableRanges[v] = {
                 min: minInput.value.trim(),
                 max: maxInputs[index].value.trim(),
@@ -454,6 +463,7 @@ function generateLayoutData() {
     window.saveCurrentPage(); 
     return { 
         config: {
+            quizTitle: window.quizTitle, // ★追加: タイトルをJSONに内包
             variableRanges: variableRanges,
             enableEmptyCheck: window.enableEmptyCheck === true,
             transitionStyle: window.transitionStyle, 
@@ -697,6 +707,7 @@ if (loadFileEl) {
                 
                 if (data.pages) {
                     const config = data.config || {};
+                    window.quizTitle = config.quizTitle || '自作グリッド問題'; // ★追加: タイトル読込
                     variableRanges = config.variableRanges || {};
                     window.enableEmptyCheck = config.enableEmptyCheck === true; 
                     window.transitionStyle = config.transitionStyle || 'none'; 
@@ -708,6 +719,7 @@ if (loadFileEl) {
                     const items = [];
                     data.forEach(item => {
                         if (item.type === 'config') {
+                            window.quizTitle = item.quizTitle || '自作グリッド問題'; // ★追加: 旧形式フォールバック
                             variableRanges = item.variableRanges || {};
                             window.enableEmptyCheck = item.enableEmptyCheck === true; 
                             window.transitionStyle = item.transitionStyle || 'none'; 
@@ -756,7 +768,7 @@ addClick('export-html-btn', async () => {
             csvLines = formulaItem.content.split('\n').filter(l => l.trim() !== '');
         }
         if (csvLines.length === 0) {
-            alert("書き出しエラー：パターン3で書き出すには、画面上に「計算式追加」からアイテムを配置し、プロパティにCSVデータを入力する必要があります。書き出しを中止しました。");
+            alert("書き出しエラー：パターン3で書き出すするには、画面上に「計算式追加」からアイテムを配置し、プロパティにCSVデータを入力する必要があります。書き出しを中止しました。");
             return;
         }
     }
@@ -879,6 +891,7 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
     
     if (data.pages) {
         const config = data.config || {};
+        window.quizTitle = config.quizTitle || '自作グリッド問題'; // ★追加: 公開版のタイトル読込
         variableRanges = config.variableRanges || {};
         window.enableEmptyCheck = config.enableEmptyCheck === true; 
         window.transitionStyle = config.transitionStyle || 'none'; 
@@ -890,6 +903,7 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
         const items = [];
         data.forEach(item => {
             if (item.type === 'config') {
+                window.quizTitle = item.quizTitle || '自作グリッド問題';
                 variableRanges = item.variableRanges || {};
                 window.enableEmptyCheck = item.enableEmptyCheck === true; 
                 window.transitionStyle = item.transitionStyle || 'none'; 

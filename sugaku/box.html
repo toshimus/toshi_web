@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <div class="pieces-container" id="tool-prop-container" style="max-width: 300px; cursor: default;">
+    <div class="pieces-container" id="tool-prop-container" style="max-width: 300px; cursor: default; overflow-y: auto; max-height: 80vh; justify-content: flex-start;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">教具プロパティ</h3>
         <div class="prop-setting-row">
             <strong style="font-size: 1.1rem; color:#333;">ID</strong>
@@ -95,10 +95,10 @@
             <strong style="font-size: 1.1rem; color:#333;">分割数</strong>
             <input type="number" id="tool-prop-divs" class="prop-setting-input" style="width: 70px;" min="1" max="20">
         </div>
-        <button id="save-tool-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+        <button id="save-tool-prop-btn" class="piece" style="width:100%; height:50px; min-height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
     </div>
 
-    <div class="pieces-container" id="ans-prop-container" style="max-width: 350px; cursor: default;">
+    <div class="pieces-container" id="ans-prop-container" style="max-width: 350px; cursor: default; overflow-y: auto; max-height: 80vh; justify-content: flex-start;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">解答欄プロパティ</h3>
         <div class="prop-setting-row">
             <strong style="font-size: 1.1rem; color:#333;">ID</strong>
@@ -125,10 +125,10 @@
                 <option value="quick-0-9">即決0〜9</option>
             </select>
         </div>
-        <button id="save-ans-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+        <button id="save-ans-prop-btn" class="piece" style="width:100%; height:50px; min-height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
     </div>
 
-    <div class="pieces-container" id="text-prop-container" style="max-width: 450px; cursor: default;">
+    <div class="pieces-container" id="text-prop-container" style="max-width: 450px; cursor: default; overflow-y: auto; max-height: 80vh; justify-content: flex-start;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">文字プロパティ</h3>
         <div class="prop-setting-row" style="flex-direction: column; align-items: stretch; background: transparent; box-shadow: none; padding: 0;">
             <strong style="font-size: 1.1rem; color:#333; margin-bottom: 5px;">内容</strong>
@@ -147,10 +147,10 @@
             <strong style="font-size: 1.1rem; color:#333;">桁分割(0で無効)</strong>
             <input type="number" id="text-prop-digits" class="prop-setting-input" style="width: 70px;" min="0">
         </div>
-        <button id="save-text-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+        <button id="save-text-prop-btn" class="piece" style="width:100%; height:50px; min-height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
     </div>
 
-    <div class="pieces-container" id="line-prop-container" style="max-width: 300px; cursor: default;">
+    <div class="pieces-container" id="line-prop-container" style="max-width: 300px; cursor: default; overflow-y: auto; max-height: 80vh; justify-content: flex-start;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">直線プロパティ</h3>
         <div class="prop-setting-row">
             <strong style="font-size: 1.1rem; color:#333;">太さ</strong>
@@ -168,10 +168,10 @@
                 <option value="dotted">点線</option>
             </select>
         </div>
-        <button id="save-line-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+        <button id="save-line-prop-btn" class="piece" style="width:100%; height:50px; min-height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
     </div>
 
-    <div class="pieces-container" id="box-prop-container" style="max-width: 300px; cursor: default;">
+    <div class="pieces-container" id="box-prop-container" style="max-width: 300px; cursor: default; overflow-y: auto; max-height: 80vh; justify-content: flex-start;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">選択肢プロパティ</h3>
         <div class="prop-setting-row">
             <strong style="font-size: 1.1rem; color:#333;">表示名</strong>
@@ -194,18 +194,22 @@
             <input type="number" id="box-prop-borderwidth" class="prop-setting-input" style="width: 70px;" min="0" max="20" value="0">
         </div>
         <div class="prop-setting-row">
+            <strong style="font-size: 1.1rem; color:#333;">ランダム配置を許可</strong>
+            <input type="checkbox" id="box-prop-shuffle" style="width: 25px; height: 25px;">
+        </div>
+        <div class="prop-setting-row">
             <strong style="font-size: 1.1rem; color:#333;">最後に押した状態</strong>
             <input type="checkbox" id="box-prop-last" style="width: 25px; height: 25px;">
         </div>
-        <button id="save-box-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
+        <button id="save-box-prop-btn" class="piece" style="width:100%; height:50px; min-height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 10px;">設定を保存</button>
     </div>
 
-    <div class="pieces-container" id="formula-prop-container" style="max-width: 550px; width: 95%; cursor: default;">
+    <div class="pieces-container" id="formula-prop-container" style="max-width: 550px; width: 95%; cursor: default; overflow-y: auto; max-height: 80vh; justify-content: flex-start;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">計算式・データプロパティ</h3>
         <div class="prop-setting-row" style="flex-direction: column; align-items: stretch; background: transparent; box-shadow: none; padding: 0;">
             
             <strong style="font-size: 1.1rem; color:#333; margin-bottom: 5px;">判定・表示用の式 または CSV問題データ(パターン3用)</strong>
-            <textarea id="formula-prop-content" class="prop-setting-input" style="width: 100%; height: 100px; text-align: left; margin-bottom: 15px; font-size: 1.2rem; padding: 8px; box-sizing: border-box;" placeholder="例（判定式）: [q1]=[x1]+[x2]&#10;例（CSV）: 日本の首都は？,4,東京,大阪,京都,福岡"></textarea>
+            <textarea id="formula-prop-content" class="prop-setting-input" style="width: 100%; height: 100px; text-align: left; margin-bottom: 15px; font-size: 1.2rem; padding: 8px; box-sizing: border-box;" placeholder="例: [q1]=[x1]+[x2] または [x1]>[x2] and [q1]=1&#10;例（CSV）: 日本の首都は？,4,東京,大阪,京都,福岡"></textarea>
             
             <strong style="font-size: 1rem; color:#555; margin-bottom: 5px;">記号 (クリックで挿入)</strong>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">
@@ -214,7 +218,14 @@
                 <button class="insert-btn" onclick="insertIntoFormula('*')">＊</button>
                 <button class="insert-btn" onclick="insertIntoFormula('/')">／</button>
                 <button class="insert-btn" onclick="insertIntoFormula('=')">＝</button>
-                <button class="insert-btn" onclick="insertIntoFormula('=1')">選択された(=1)</button>
+                <button class="insert-btn" onclick="insertIntoFormula('>')">＞</button>
+                <button class="insert-btn" onclick="insertIntoFormula('<')">＜</button>
+                <button class="insert-btn" onclick="insertIntoFormula('!=')">≠(!=)</button>
+                <button class="insert-btn" onclick="insertIntoFormula(' and ')">and</button>
+                <button class="insert-btn" onclick="insertIntoFormula(' or ')">or</button>
+                <button class="insert-btn" onclick="insertIntoFormula('(')">(</button>
+                <button class="insert-btn" onclick="insertIntoFormula(')')">)</button>
+                <button class="insert-btn" onclick="insertIntoFormula('=1')">選択(=1)</button>
             </div>
             
             <strong style="font-size: 1rem; color:#555; margin-bottom: 5px;">画面上の変数・ID (クリックで挿入)</strong>
@@ -222,10 +233,10 @@
             <div style="display: flex; gap: 8px; flex-wrap: wrap; max-height: 150px; overflow-y: auto; background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7;" id="formula-id-btns">
             </div>
         </div>
-        <button id="save-formula-prop-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 15px;">設定を保存</button>
+        <button id="save-formula-prop-btn" class="piece" style="width:100%; height:50px; min-height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9; margin-top: 15px;">設定を保存</button>
     </div>
 
-    <div class="pieces-container" id="judge-prop-container" style="max-width: 400px; cursor: default;">
+    <div class="pieces-container" id="judge-prop-container" style="max-width: 400px; cursor: default; overflow-y: auto; max-height: 80vh; justify-content: flex-start;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">判定表示設定</h3>
         
         <h4 style="margin-top: 10px; margin-bottom: 5px; color: #e74c3c; border-bottom: 1px solid #ccc;">正解時</h4>
@@ -264,11 +275,16 @@
             <input type="text" id="judge-incorrect-bg" class="prop-setting-input" style="width: 140px;" placeholder="例: transparent">
         </div>
 
-        <button id="save-judge-prop-btn" class="piece" style="width:100%; height:50px; background-color:#e84393; border-color:#d63031; color:white; box-shadow:0 4px 0 #d63031; margin-top: 10px;">設定を保存</button>
+        <button id="save-judge-prop-btn" class="piece" style="width:100%; height:50px; min-height:50px; background-color:#e84393; border-color:#d63031; color:white; box-shadow:0 4px 0 #d63031; margin-top: 10px;">設定を保存</button>
     </div>
 
-    <div class="pieces-container" id="var-settings-container" style="max-width: 500px; cursor: default; overflow-y: auto; max-height: 80vh;">
+    <div class="pieces-container" id="var-settings-container" style="max-width: 500px; cursor: default; overflow-y: auto; max-height: 80vh; justify-content: flex-start;">
         <h3 style="margin-top:0; color:#2c3e50; text-align:center;">動作・変数設定</h3>
+
+        <div class="prop-setting-row" style="margin-bottom: 15px;">
+            <strong style="font-size: 1.1rem; color:#333;">教材タイトル</strong>
+            <input type="text" id="quiz-title-input" class="prop-setting-input" style="width: 250px; text-align: left;" placeholder="例: 自作グリッド問題">
+        </div>
 
         <div class="prop-setting-row" style="margin-bottom: 15px;">
             <strong style="font-size: 1.1rem; color:#333;">出題パターン</strong>
@@ -306,7 +322,7 @@
         </div>
 
         <div id="var-list-container" style="width: 100%; margin-bottom: 20px;"></div>
-        <button id="save-var-settings-btn" class="piece" style="width:100%; height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9;">設定を保存</button>
+        <button id="save-var-settings-btn" class="piece" style="width:100%; height:50px; min-height:50px; background-color:#3498db; border-color:#2980b9; color:white; box-shadow:0 4px 0 #2980b9;">設定を保存</button>
     </div>
 
     <script src="script_core.js"></script>

@@ -459,6 +459,7 @@ function createDraggable(type, itemData = null) {
                 wrapper.dataset.boxName = itemData.boxName || itemData.content || "";
                 wrapper.dataset.boxId = itemData.boxId || "";
                 wrapper.dataset.isLastPressed = itemData.isLastPressed || "false";
+                wrapper.dataset.isShuffleable = itemData.isShuffleable || "false"; // ★追加
                 wrapper.dataset.bgColor = itemData.bgColor || "#44FFFF";
                 wrapper.dataset.borderColor = itemData.borderColor || "#000000";
                 wrapper.dataset.borderwidth = itemData.borderwidth !== undefined ? itemData.borderwidth : "0";
@@ -499,6 +500,7 @@ function createDraggable(type, itemData = null) {
                 document.getElementById('box-prop-bordercolor').value = wrapper.dataset.borderColor;
                 document.getElementById('box-prop-borderwidth').value = wrapper.dataset.borderwidth;
                 document.getElementById('box-prop-last').checked = (wrapper.dataset.isLastPressed === "true");
+                document.getElementById('box-prop-shuffle').checked = (wrapper.dataset.isShuffleable === "true");
                 
                 document.getElementById('box-prop-container').style.display = 'flex';
                 document.getElementById('overlay').style.display = 'block';

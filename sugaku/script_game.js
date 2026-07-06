@@ -119,21 +119,57 @@ function runValidation() {
         return 0; 
     };
 
+    // ★修正: 判定式の評価エンジンを、より汎用的なJavaScriptコード処理に変更
     formulas.forEach(wForm => {
         const formulaStr = wForm.querySelector('.formula-rect') ? wForm.querySelector('.formula-rect').textContent : wForm.dataset.evalContent;
         if(!formulaStr) return;
         
-        const parts = formulaStr.split('=');
-        if (parts.length === 2) {
-            hasCheckable = true;
-            const evaluateExpr = (expr) => {
-                let e = expr.trim();
-                e = e.replace(/\[([^\]]+)\]/g, (match, id) => getCombinedValueForId(id));
-                try { return new Function(`return (${e})`)(); } catch (err) { return NaN; }
-            };
-            const left = evaluateExpr(parts[0]);
-            const right = evaluateExpr(parts[1]);
-            if (isNaN(left) || isNaN(right) || left !== right) allCorrect = false;
+        hasCheckable = true;
+
+        // ★強化された判定エンジン
+        const evaluateCondition = (exprStr) => {
+            let e = exprStr.trim();
+            
+            // 記号の正規化
+            e = e.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+                 .replace(/＋/g, '+')
+                 .replace(/[－−ー]/g, '-')
+                 .replace(/[＊×]/g, '*')
+                 .replace(/[／÷]/g, '/')
+                 .replace(/＜/g, '<')
+                 .replace(/＞/g, '>')
+                 .replace(/＝/g, '=')
+                 .replace(/！/g, '!');
+
+            // 変数の置換
+            const varMatches = e.match(/\[[^\]]+\]/g);
+            if (varMatches) {
+                // 長いIDから順に置換（[t1_num]などを先に処理し、[t1]が残らないようにする）
+                const sortedMatches = Array.from(new Set(varMatches)).sort((a, b) => b.length - a.length);
+                for (let m of sortedMatches) {
+                    let val = getCombinedValueForId(m);
+                    if (val === undefined || val === null || isNaN(val)) val = 0;
+                    e = e.split(m).join(`(${val})`);
+                }
+            }
+
+            // "=" を "==" に置換する際、"==" や "!=" は除外する (正規表現)
+            e = e.replace(/(?<![=<>!])=(?![=])/g, '==='); // 厳密等価に変更
+
+            // 論理演算子の変換
+            e = e.replace(/\band\b/gi, '&&').replace(/\bor\b/gi, '||');
+
+            try {
+                // 安全な評価
+                return !!(new Function(`return (${e})`)());
+            } catch (err) {
+                console.error("Formula eval error:", e, err);
+                return false;
+            }
+        };
+
+        if (!evaluateCondition(formulaStr)) {
+            allCorrect = false;
         }
     });
 
@@ -233,7 +269,8 @@ function runValidation() {
              if (pressedBox) userAnswerStr = pressedBox.dataset.boxName || "";
         }
 
-        const csvLine = `"${dateStr}","自作グリッド問題","${problemContentText}","${userAnswerStr}",${formatTime(startTime)},${formatTime(endTime)},"グリッド入力","${allCorrect ? '正解' : '不正解'}"\n`;
+        const currentTitle = window.quizTitle || "自作グリッド問題";
+        const csvLine = `"${dateStr}","${currentTitle}","${problemContentText}","${userAnswerStr}",${formatTime(startTime)},${formatTime(endTime)},"グリッド入力","${allCorrect ? '正解' : '不正解'}"\n`;
 
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.appBridge) {
             window.webkit.messageHandlers.appBridge.postMessage({
@@ -260,7 +297,6 @@ function runValidation() {
 }
 window.runValidation = runValidation;
 
-// ★変更: 依存関係を解決して変数を生成する強力なエンジンに刷新
 window.generateProblemVars = function() {
     const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
     const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
@@ -291,12 +327,10 @@ window.generateProblemVars = function() {
     let attempts = 0;
     let signature = "";
     
-    // 変数を含む数式文字列を評価し、全角記号などを半角に自動補正する内部関数
     const evaluateRangeExpr = (expr, contextVars) => {
         let e = String(expr).trim();
         if (e === "") return NaN;
         
-        // 全角数字・記号を半角に安全に変換（[x1]－1 などに対応）
         e = e.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
              .replace(/＋/g, '+')
              .replace(/[－−ー]/g, '-')
@@ -307,9 +341,8 @@ window.generateProblemVars = function() {
         if (varMatches) {
             for (let m of varMatches) {
                 if (contextVars[m] === undefined) {
-                    return null; // 依存する変数がまだ生成されていない場合は待機
+                    return null; 
                 }
-                // マイナス値などで計算が壊れないようにカッコで包んで置換
                 e = e.split(m).join(`(${contextVars[m]})`);
             }
         }
@@ -326,7 +359,6 @@ window.generateProblemVars = function() {
         let varsToGenerate = Array.from(targetVars);
         let resolveAttempts = 0;
 
-        // まだ生成していない変数がなくなるまでループ（最大100回）
         while (varsToGenerate.length > 0 && resolveAttempts < 100) {
             resolveAttempts++;
             let generatedInThisRound = false;
@@ -341,7 +373,6 @@ window.generateProblemVars = function() {
                 let minVal = evaluateRangeExpr(minRaw, newVars);
                 let maxVal = evaluateRangeExpr(maxRaw, newVars);
 
-                // MinとMaxが両方とも現在のコンテキストで計算可能な場合のみ生成
                 if (minVal !== null && maxVal !== null && !isNaN(minVal) && !isNaN(maxVal)) {
                     let min = Math.floor(Math.min(minVal, maxVal));
                     let max = Math.floor(Math.max(minVal, maxVal));
@@ -352,7 +383,6 @@ window.generateProblemVars = function() {
                 }
             }
 
-            // 循環参照などで1つも生成できなかった場合は、強制的に数値を割り当てて脱出
             if (!generatedInThisRound && varsToGenerate.length > 0) {
                 varsToGenerate.forEach(v => {
                     newVars[v] = Math.floor(Math.random() * 9) + 1;
@@ -372,19 +402,23 @@ window.generateProblemVars = function() {
 };
 
 window.shuffleBoxes = function() {
-    const boxes = Array.from(container.querySelectorAll('.draggable[data-type="box"]'));
-    if (boxes.length < 2) return; 
+    // ★許可フラグがあるボックスのみを抽出
+    const shuffleableBoxes = Array.from(container.querySelectorAll('.draggable[data-type="box"][data-is-shuffleable="true"]'));
+    if (shuffleableBoxes.length < 2) return; 
 
     if (window.playMode === 'pattern3') return;
 
-    const positions = boxes.map(b => ({ x: b.dataset.gridX, y: b.dataset.gridY }));
+    // 位置情報だけを抽出
+    const positions = shuffleableBoxes.map(b => ({ x: b.dataset.gridX, y: b.dataset.gridY }));
     
+    // 位置をシャッフル
     for (let i = positions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [positions[i], positions[j]] = [positions[j], positions[i]];
     }
     
-    boxes.forEach((b, index) => {
+    // シャッフルした位置を適用
+    shuffleableBoxes.forEach((b, index) => {
         b.dataset.gridX = positions[index].x;
         b.dataset.gridY = positions[index].y;
         b.style.left = `calc(${positions[index].x} * (100% / 32))`;

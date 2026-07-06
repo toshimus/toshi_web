@@ -11,8 +11,11 @@ let activeTextWrapper = null;
 let activeLineWrapper = null; 
 let activeBoxWrapper = null; 
 let activeFormulaWrapper = null; 
-let activeToolWrapper = null; // ★追加：ツールプロパティ用
+let activeToolWrapper = null; 
 let isSolved = false; 
+
+// ★追加: 教材タイトルのグローバル変数
+window.quizTitle = '自作グリッド問題';
 
 window.currentQuestionNum = 1;
 window.MAX_QUESTIONS = 10;
@@ -162,7 +165,7 @@ overlay.addEventListener('click', () => {
     if (formulaProp) formulaProp.style.display = 'none';
     const judgeProp = document.getElementById('judge-prop-container');
     if (judgeProp) judgeProp.style.display = 'none';
-    const toolProp = document.getElementById('tool-prop-container'); // ★追加
+    const toolProp = document.getElementById('tool-prop-container'); 
     if (toolProp) toolProp.style.display = 'none';
     
     overlay.style.display = 'none';
@@ -173,7 +176,7 @@ overlay.addEventListener('click', () => {
     activeLineWrapper = null;
     activeBoxWrapper = null;
     activeFormulaWrapper = null;
-    activeToolWrapper = null; // ★追加
+    activeToolWrapper = null;
 });
 
 let isCalcDragging = false;
@@ -218,7 +221,7 @@ const modals = [
     document.getElementById('box-prop-container'),
     document.getElementById('formula-prop-container'),
     document.getElementById('judge-prop-container'),
-    document.getElementById('tool-prop-container') // ★追加
+    document.getElementById('tool-prop-container') 
 ];
 modals.forEach(modal => {
     if (modal) {
