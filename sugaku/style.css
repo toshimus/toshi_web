@@ -57,7 +57,15 @@ body, html {
     transform: translateY(2px);
 }
 
-.grid-cell { border: 0.1px solid rgba(0, 0, 0, 0.1); }
+.grid-cell { 
+    box-sizing: border-box; 
+    /* 枠線はJavaScriptで動的に生成します */
+}
+
+/* 実行モードではグリッドを完全に非表示にします */
+body.run-mode .grid-cell {
+    border: none !important;
+}
 
 .draggable {
     position: absolute;
@@ -119,7 +127,7 @@ body, html {
     cursor: grab;
     color: #555;
     font-weight: bold;
-    font-size: calc(var(--grid-cell-h) * 1.2);
+    /* font-sizeはJSで動的に適用されます */
     font-family: sans-serif;
     user-select: none;
     -webkit-user-select: none;
@@ -293,7 +301,6 @@ body.run-mode .text-rect.single-var-text {
 }
 .check-rect:active { transform: translateY(2px); }
 
-/* ★追加: 進捗表示用のスタイル */
 .progress-rect {
     width: 100%;
     height: 100%;

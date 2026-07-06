@@ -50,6 +50,10 @@ window.renderBox = function(wrapper) {
     
     let originalContent = wrapper.dataset.boxName || '';
     
+    // ★追加: フォントサイズの反映
+    const fontSize = parseFloat(wrapper.dataset.fontSize) || 1.0;
+    el.style.fontSize = `calc(var(--grid-cell-h) * 1.2 * ${fontSize})`;
+    
     if (isEditMode) {
         el.textContent = originalContent;
     } else {
@@ -435,7 +439,6 @@ function createDraggable(type, itemData = null) {
             } else if (type === 'menu') {
                 wCells = getCellsByText("メニューへ", 1); 
             } else if (type === 'progress') {
-                // ★追加: 進捗表示の初期サイズ
                 wCells = getCellsByText("第10問 / 全10問", 1); 
             } else if (type === 'box') {
                 count++;
@@ -459,7 +462,9 @@ function createDraggable(type, itemData = null) {
                 wrapper.dataset.boxName = itemData.boxName || itemData.content || "";
                 wrapper.dataset.boxId = itemData.boxId || "";
                 wrapper.dataset.isLastPressed = itemData.isLastPressed || "false";
-                wrapper.dataset.isShuffleable = itemData.isShuffleable || "false"; // ★追加
+                wrapper.dataset.isShuffleable = itemData.isShuffleable || "false"; 
+                // ★追加: フォントサイズの読み込み (デフォルトは 1.0)
+                wrapper.dataset.fontSize = itemData.fontSize || "1.0"; 
                 wrapper.dataset.bgColor = itemData.bgColor || "#44FFFF";
                 wrapper.dataset.borderColor = itemData.borderColor || "#000000";
                 wrapper.dataset.borderwidth = itemData.borderwidth !== undefined ? itemData.borderwidth : "0";
@@ -469,6 +474,7 @@ function createDraggable(type, itemData = null) {
                 wrapper.dataset.boxName = initialContent;
                 wrapper.dataset.boxId = "box" + initialContent;
                 wrapper.dataset.isLastPressed = "false";
+                wrapper.dataset.fontSize = "1.0"; 
                 wrapper.dataset.bgColor = "#44FFFF";
                 wrapper.dataset.borderColor = "#000000";
                 wrapper.dataset.borderwidth = "0";
@@ -496,6 +502,7 @@ function createDraggable(type, itemData = null) {
                 activeBoxWrapper = wrapper;
                 document.getElementById('box-prop-name').value = wrapper.dataset.boxName;
                 document.getElementById('box-prop-id').value = wrapper.dataset.boxId;
+                document.getElementById('box-prop-fontsize').value = wrapper.dataset.fontSize || "1.0"; // ★追加
                 document.getElementById('box-prop-bgcolor').value = wrapper.dataset.bgColor;
                 document.getElementById('box-prop-bordercolor').value = wrapper.dataset.borderColor;
                 document.getElementById('box-prop-borderwidth').value = wrapper.dataset.borderwidth;
@@ -676,7 +683,6 @@ function createDraggable(type, itemData = null) {
             el.textContent = "メニューへ";
             wrapper.appendChild(el);
         } else if (type === 'progress') {
-            // ★追加: 進捗表示用アイテム
             el.classList.add('progress-rect');
             el.textContent = typeof isEditMode !== 'undefined' && !isEditMode ? `第${window.currentQuestionNum || 1}問 / 全${window.MAX_QUESTIONS || 1}問` : "第?問 / 全?問";
             wrapper.appendChild(el);
@@ -711,7 +717,6 @@ function createDraggable(type, itemData = null) {
     let startX, startY;
     
     const dragStart = (e) => {
-        // ★修正: 実行モードでドラッグ操作を受け付けないように制限 (progress も追加)
         if (!isEditMode && type !== 'answer' && type !== 'check' && type !== 'menu') return; 
         if (e.target.classList.contains('resize-handle') || e.target.classList.contains('line-handle')) return; 
 

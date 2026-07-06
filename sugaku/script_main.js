@@ -18,6 +18,7 @@ addClick('save-box-prop-btn', () => {
     if (activeBoxWrapper) {
         activeBoxWrapper.dataset.boxName = document.getElementById('box-prop-name').value.trim();
         activeBoxWrapper.dataset.boxId = document.getElementById('box-prop-id').value.trim();
+        activeBoxWrapper.dataset.fontSize = document.getElementById('box-prop-fontsize').value; // ★追加
         activeBoxWrapper.dataset.isLastPressed = document.getElementById('box-prop-last').checked ? "true" : "false";
         
         activeBoxWrapper.dataset.bgColor = document.getElementById('box-prop-bgcolor').value;
@@ -28,6 +29,7 @@ addClick('save-box-prop-btn', () => {
         if (el) {
             el.textContent = activeBoxWrapper.dataset.boxName;
             el.style.backgroundColor = activeBoxWrapper.dataset.bgColor;
+            el.style.fontSize = `calc(var(--grid-cell-h) * 1.2 * ${activeBoxWrapper.dataset.fontSize})`; // ★追加
             
             const bw = parseInt(activeBoxWrapper.dataset.borderwidth) || 0;
             if (bw > 0) {
@@ -189,7 +191,9 @@ window.saveCurrentPage = function() {
             if (type === 'box') {
                 itemData.boxName = wrapper.dataset.boxName || itemData.content;
                 itemData.boxId = wrapper.dataset.boxId || "";
+                itemData.fontSize = wrapper.dataset.fontSize || "1.0"; // ★追加
                 itemData.isLastPressed = wrapper.dataset.isLastPressed || "false";
+                itemData.isShuffleable = wrapper.dataset.isShuffleable || "false";
                 itemData.bgColor = wrapper.dataset.bgColor || "#44FFFF";
                 itemData.borderColor = wrapper.dataset.borderColor || "#000000";
                 itemData.borderwidth = wrapper.dataset.borderwidth || "0";
@@ -289,10 +293,15 @@ addClick('del-page-btn', () => {
    動作・変数設定・判定設定
    ========================================== */
 addClick('var-settings-btn', () => {
-    // ★追加: 開く際に現在の教材タイトルを入力欄にセット
     const quizTitleInput = document.getElementById('quiz-title-input');
     if (quizTitleInput) {
         quizTitleInput.value = window.quizTitle || '自作グリッド問題';
+    }
+    
+    // ★追加: 開く際に現在の背景色をセット
+    const bgColorInput = document.getElementById('bg-color-input');
+    if (bgColorInput) {
+        bgColorInput.value = window.bgColor || '#ffffff';
     }
 
     const emptyCheckToggle = document.getElementById('empty-check-toggle');
@@ -376,10 +385,17 @@ addClick('var-settings-btn', () => {
 });
 
 addClick('save-var-settings-btn', () => {
-    // ★追加: 保存時に入力されたタイトルをグローバル変数に反映
     const quizTitleInput = document.getElementById('quiz-title-input');
     if (quizTitleInput) {
         window.quizTitle = quizTitleInput.value.trim() || '自作グリッド問題';
+    }
+
+    // ★追加: 背景色を保存し、コンテナに即座に反映
+    const bgColorInput = document.getElementById('bg-color-input');
+    if (bgColorInput) {
+        window.bgColor = bgColorInput.value;
+        const cont = document.getElementById('container');
+        if (cont) cont.style.backgroundColor = window.bgColor;
     }
 
     const emptyCheckToggle = document.getElementById('empty-check-toggle');
@@ -463,7 +479,8 @@ function generateLayoutData() {
     window.saveCurrentPage(); 
     return { 
         config: {
-            quizTitle: window.quizTitle, // ★追加: タイトルをJSONに内包
+            quizTitle: window.quizTitle, 
+            bgColor: window.bgColor, // ★追加: 背景色をJSONに内包
             variableRanges: variableRanges,
             enableEmptyCheck: window.enableEmptyCheck === true,
             transitionStyle: window.transitionStyle, 
@@ -707,7 +724,8 @@ if (loadFileEl) {
                 
                 if (data.pages) {
                     const config = data.config || {};
-                    window.quizTitle = config.quizTitle || '自作グリッド問題'; // ★追加: タイトル読込
+                    window.quizTitle = config.quizTitle || '自作グリッド問題'; 
+                    window.bgColor = config.bgColor || '#ffffff'; // ★追加: 背景色読込
                     variableRanges = config.variableRanges || {};
                     window.enableEmptyCheck = config.enableEmptyCheck === true; 
                     window.transitionStyle = config.transitionStyle || 'none'; 
@@ -719,7 +737,8 @@ if (loadFileEl) {
                     const items = [];
                     data.forEach(item => {
                         if (item.type === 'config') {
-                            window.quizTitle = item.quizTitle || '自作グリッド問題'; // ★追加: 旧形式フォールバック
+                            window.quizTitle = item.quizTitle || '自作グリッド問題';
+                            window.bgColor = item.bgColor || '#ffffff'; // ★追加: 旧形式
                             variableRanges = item.variableRanges || {};
                             window.enableEmptyCheck = item.enableEmptyCheck === true; 
                             window.transitionStyle = item.transitionStyle || 'none'; 
@@ -732,6 +751,10 @@ if (loadFileEl) {
                     });
                     window.problemSet = [items];
                 }
+
+                // ★追加: 読み込んだ背景色をすぐに適用
+                const cont = document.getElementById('container');
+                if (cont) cont.style.backgroundColor = window.bgColor;
 
                 window.currentEditPage = 0;
                 window.loadPageToDOM(window.problemSet[0]);
@@ -891,7 +914,10 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
     
     if (data.pages) {
         const config = data.config || {};
-        window.quizTitle = config.quizTitle || '自作グリッド問題'; // ★追加: 公開版のタイトル読込
+        window.quizTitle = config.quizTitle || '自作グリッド問題'; 
+        window.bgColor = config.bgColor || '#ffffff'; // ★追加: 公開版の背景色読込
+        const cont = document.getElementById('container');
+        if (cont) cont.style.backgroundColor = window.bgColor;
         variableRanges = config.variableRanges || {};
         window.enableEmptyCheck = config.enableEmptyCheck === true; 
         window.transitionStyle = config.transitionStyle || 'none'; 
@@ -904,6 +930,9 @@ if (typeof window.__INIT_DATA__ !== 'undefined') {
         data.forEach(item => {
             if (item.type === 'config') {
                 window.quizTitle = item.quizTitle || '自作グリッド問題';
+                window.bgColor = item.bgColor || '#ffffff';
+                const cont = document.getElementById('container');
+                if (cont) cont.style.backgroundColor = window.bgColor;
                 variableRanges = item.variableRanges || {};
                 window.enableEmptyCheck = item.enableEmptyCheck === true; 
                 window.transitionStyle = item.transitionStyle || 'none'; 

@@ -14,8 +14,8 @@ let activeFormulaWrapper = null;
 let activeToolWrapper = null; 
 let isSolved = false; 
 
-// ★追加: 教材タイトルのグローバル変数
 window.quizTitle = '自作グリッド問題';
+window.bgColor = '#ffffff'; // ★追加: 背景色のグローバル変数
 
 window.currentQuestionNum = 1;
 window.MAX_QUESTIONS = 10;
@@ -49,9 +49,26 @@ const bindDoubleTap = (element, handler) => {
     });
 };
 
+// ★修正: 4マスごとに実線になるようにグリッドを生成
 for (let i = 0; i < 32 * 24; i++) {
     const cell = document.createElement('div');
     cell.classList.add('grid-cell');
+    
+    const x = i % 32;
+    const y = Math.floor(i / 32);
+    
+    if ((x + 1) % 4 === 0) {
+        cell.style.borderRight = '1px solid #aaa';
+    } else {
+        cell.style.borderRight = '1px dotted #ccc';
+    }
+    
+    if ((y + 1) % 4 === 0) {
+        cell.style.borderBottom = '1px solid #aaa';
+    } else {
+        cell.style.borderBottom = '1px dotted #ccc';
+    }
+    
     container.appendChild(cell);
 }
 
