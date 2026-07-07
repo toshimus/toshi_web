@@ -21,9 +21,9 @@
     </a-entity>
 
     <a-entity id="links">
-      <a-sphere class="link" data-target="#room2" data-name="Reading Room" position="2 0 -3" radius="0.4" color="blue"></a-sphere>
-      <a-sphere class="link" data-target="#room3" data-name="Archive" position="-2 0 -3" radius="0.4" color="blue"></a-sphere>
-      <a-sphere class="link" data-target="#room1" data-name="Entrance" position="0 0 3" radius="0.4" color="blue"></a-sphere>
+      <a-sphere class="link" data-target="#room2" data-name="Reading Room" position="5 0 -2" radius="0.5" color="blue"></a-sphere>
+      <a-sphere class="link" data-target="#room3" data-name="Archive" position="-5 0 2" radius="0.5" color="blue"></a-sphere>
+      <a-sphere class="link" data-target="#room1" data-name="Entrance" position="0 0 5" radius="0.5" color="blue"></a-sphere>
     </a-entity>
   </a-scene>
 
@@ -32,31 +32,32 @@
       link.addEventListener('click', function() {
         const sky = document.querySelector('#sky');
         const text = document.querySelector('#location-name');
+        const targetId = this.getAttribute('data-target');
+        const targetName = this.getAttribute('data-name');
         
-        const targetId = this.getAttribute('data-target'); // #room2 など
-        const targetName = this.getAttribute('data-name'); // Reading Room など
-        
-        // フェードアウト
-        sky.setAttribute('animation', {property: 'opacity', from: 1, to: 0, dur: 500});
+        // 1. 移動開始：ズームイン(scale 0.8) とフェードアウト
+        sky.setAttribute('animation__zoom', {property: 'scale', from: '1 1 1', to: '0.8 0.8 0.8', dur: 500});
+        sky.setAttribute('animation__fade', {property: 'opacity', from: 1, to: 0, dur: 500});
 
         setTimeout(() => {
-          // 画像と名前を切り替え
+          // 2. 画像切り替え
           sky.setAttribute('src', targetId);
           text.setAttribute('value', targetName);
-          // フェードイン
-          sky.setAttribute('animation', {property: 'opacity', from: 0, to: 1, dur: 500});
+          
+          // 3. 移動完了：ズームアウト(scale 1) とフェードイン
+          sky.setAttribute('animation__zoom', {property: 'scale', from: '0.8 0.8 0.8', to: '1 1 1', dur: 500});
+          sky.setAttribute('animation__fade', {property: 'opacity', from: 0, to: 1, dur: 500});
         }, 500);
       });
     });
 
-    // ここにマウスホイールのコードを追加
+    // マウスホイールでのズーム操作
     document.addEventListener('wheel', (event) => {
-      const camera = document.querySelector('a-camera');
+      const camera = document.querySelector('[camera]');
       const fov = camera.getAttribute('camera').fov;
       const newFov = Math.max(10, Math.min(120, fov + (event.deltaY * 0.05)));
       camera.setAttribute('camera', 'fov', newFov);
     });
-
   </script>
 </body>
 </html>
