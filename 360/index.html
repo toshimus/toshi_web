@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>VR Tour</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene>
+    <a-assets>
+      <img id="room1" src="room1.jpg" crossorigin="anonymous">
+      <img id="room2" src="room2.jpg" crossorigin="anonymous">
+      <img id="room3" src="room3.jpg" crossorigin="anonymous">
+    </a-assets>
+
+    <a-sky id="sky" src="#room1"></a-sky>
+
+    <a-entity id="links">
+      <a-sphere class="link" data-target="#room2" position="5 0 -2" radius="0.5" color="red"></a-sphere>
+    </a-entity>
+
+    <a-camera>
+      <a-cursor raycaster="objects: .link"></a-cursor>
+    </a-camera>
+  </a-scene>
+
+  <script>
+    // 移動ロジック：クリックされたら画像を切り替える
+    document.querySelectorAll('.link').forEach(link => {
+      link.addEventListener('click', function() {
+        const sky = document.querySelector('#sky');
+        const targetSrc = this.getAttribute('data-target');
+        
+        // フェードアウト効果
+        sky.setAttribute('animation', {
+          property: 'opacity',
+          from: 1, to: 0, dur: 500
+        });
+
+        // 画像の切り替えとフェードイン
+        setTimeout(() => {
+          sky.setAttribute('src', targetSrc);
+          sky.setAttribute('animation', {
+            property: 'opacity',
+            from: 0, to: 1, dur: 500
+          });
+          
+          // ここでマーカーの配置（Pythonのlinksロジック）を 
+          // 部屋ごとに更新する処理を追加できます
+        }, 500);
+      });
+    });
+  </script>
+</body>
+</html>
