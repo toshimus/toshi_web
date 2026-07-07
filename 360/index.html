@@ -13,11 +13,11 @@
       <img id="room3" src="room3.jpg" crossorigin="anonymous">
     </a-assets>
 
-    <a-sky id="sky" src="#entrance"></a-sky>
+    <a-sky id="sky" src="#room1"></a-sky>
 
     <a-entity id="links">
-      <a-sphere class="link" data-target="#reading_room" position="5 0 -2" radius="0.5" color="blue"></a-sphere>
-      <a-sphere class="link" data-target="#entrance" position="-5 0 2" radius="0.5" color="blue"></a-sphere>
+      <a-sphere class="link" data-target="#room2" position="5 0 -2" radius="0.5" color="blue"></a-sphere>
+      <a-sphere class="link" data-target="#room3" position="-5 0 2" radius="0.5" color="blue"></a-sphere>
     </a-entity>
 
     <a-camera>
@@ -26,17 +26,18 @@
   </a-scene>
 
   <script>
-    // 移動ロジック：クリックで画像切り替え
     document.querySelectorAll('.link').forEach(link => {
       link.addEventListener('click', function() {
         const sky = document.querySelector('#sky');
-        const targetSrc = this.getAttribute('data-target');
+        const targetId = this.getAttribute('data-target');
         
-        // フェードアウト効果
+        // フェードアウト
         sky.setAttribute('animation', {property: 'opacity', from: 1, to: 0, dur: 500});
 
         setTimeout(() => {
-          sky.setAttribute('src', targetSrc);
+          // 画像を切り替え
+          sky.setAttribute('src', targetId);
+          // フェードイン
           sky.setAttribute('animation', {property: 'opacity', from: 0, to: 1, dur: 500});
         }, 500);
       });
