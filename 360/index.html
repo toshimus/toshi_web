@@ -13,7 +13,7 @@
       <img id="room3" src="room3.jpg" crossorigin="anonymous">
     </a-assets>
 
-    <a-sky id="sky" src="#room1"></a-sky>
+    <a-sky id="sky" src="#room1" material="transparent:true;opacity:1"></a-sky>
 
     <a-camera id="main-camera" look-controls>
       <a-text id="location-name" value="Entrance" position="0 0.5 -2" align="center" scale="1 1 1" color="white"></a-text>
@@ -40,11 +40,15 @@
         sky.setAttribute('animation__fade', {property: 'opacity', from: 1, to: 0, dur: 500});
 
         setTimeout(() => {
-          // 2. 切り替え
-          sky.setAttribute('src', targetId);
+          // 修正：targetId（例: #room2）に対応する画像要素の src を取得
+          const targetImg = document.querySelector(targetId);
+          const newSrc = targetImg.getAttribute('src');
+          
+          // skyのsrcをその画像パスに直接設定
+          sky.setAttribute('src', newSrc);
           text.setAttribute('value', targetName);
           
-          // 3. ズームアウトしながらフェードイン
+          // フェードイン
           sky.setAttribute('animation__zoom', {property: 'scale', from: '0.7 0.7 0.7', to: '1 1 1', dur: 500});
           sky.setAttribute('animation__fade', {property: 'opacity', from: 0, to: 1, dur: 500});
         }, 500);
