@@ -48,6 +48,15 @@
         }, 500);
       });
     });
+
+    // ここにマウスホイールのコードを追加
+    document.addEventListener('wheel', (event) => {
+      const camera = document.querySelector('a-camera');
+      const fov = camera.getAttribute('camera').fov;
+      const newFov = Math.max(10, Math.min(120, fov + (event.deltaY * 0.05)));
+      camera.setAttribute('camera', 'fov', newFov);
+    });
+
   </script>
 </body>
 </html>
