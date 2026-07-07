@@ -15,10 +15,10 @@
 
     <a-sky id="sky" src="#room1"></a-sky>
 
-    <a-entity camera look-controls position="0 1.6 0">
+    <a-camera id="main-camera" look-controls>
       <a-text id="location-name" value="Entrance" position="0 0.5 -2" align="center" scale="1 1 1" color="white"></a-text>
       <a-cursor raycaster="objects: .link"></a-cursor>
-    </a-entity>
+    </a-camera>
 
     <a-entity id="links">
       <a-sphere class="link" data-target="#room2" data-name="Reading Room" position="5 0 -2" radius="0.5" color="blue"></a-sphere>
@@ -35,27 +35,27 @@
         const targetId = this.getAttribute('data-target');
         const targetName = this.getAttribute('data-name');
         
-        // 1. 移動開始：ズームイン(scale 0.8) とフェードアウト
-        sky.setAttribute('animation__zoom', {property: 'scale', from: '1 1 1', to: '0.8 0.8 0.8', dur: 500});
+        // 1. ズームインしながらフェードアウト
+        sky.setAttribute('animation__zoom', {property: 'scale', from: '1 1 1', to: '0.7 0.7 0.7', dur: 500});
         sky.setAttribute('animation__fade', {property: 'opacity', from: 1, to: 0, dur: 500});
 
         setTimeout(() => {
-          // 2. 画像切り替え
+          // 2. 切り替え
           sky.setAttribute('src', targetId);
           text.setAttribute('value', targetName);
           
-          // 3. 移動完了：ズームアウト(scale 1) とフェードイン
-          sky.setAttribute('animation__zoom', {property: 'scale', from: '0.8 0.8 0.8', to: '1 1 1', dur: 500});
+          // 3. ズームアウトしながらフェードイン
+          sky.setAttribute('animation__zoom', {property: 'scale', from: '0.7 0.7 0.7', to: '1 1 1', dur: 500});
           sky.setAttribute('animation__fade', {property: 'opacity', from: 0, to: 1, dur: 500});
         }, 500);
       });
     });
 
-    // マウスホイールでのズーム操作
-    document.addEventListener('wheel', (event) => {
-      const camera = document.querySelector('[camera]');
+    // マウスホイールでのズーム機能
+    window.addEventListener('wheel', (event) => {
+      const camera = document.querySelector('#main-camera');
       const fov = camera.getAttribute('camera').fov;
-      const newFov = Math.max(10, Math.min(120, fov + (event.deltaY * 0.05)));
+      const newFov = Math.max(10, Math.min(120, fov + (event.deltaY * 0.1)));
       camera.setAttribute('camera', 'fov', newFov);
     });
   </script>
