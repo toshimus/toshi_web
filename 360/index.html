@@ -15,28 +15,34 @@
 
     <a-sky id="sky" src="#room1"></a-sky>
 
-    <a-entity id="links">
-      <a-sphere class="link" data-target="#room2" position="5 0 -2" radius="0.5" color="blue"></a-sphere>
-      <a-sphere class="link" data-target="#room3" position="-5 0 2" radius="0.5" color="blue"></a-sphere>
+    <a-entity camera look-controls position="0 1.6 0">
+      <a-text id="location-name" value="Entrance" position="0 0.5 -2" align="center" scale="1 1 1" color="white"></a-text>
+      <a-cursor raycaster="objects: .link"></a-cursor>
     </a-entity>
 
-    <a-camera>
-      <a-cursor raycaster="objects: .link"></a-cursor>
-    </a-camera>
+    <a-entity id="links">
+      <a-sphere class="link" data-target="#room2" data-name="Reading Room" position="2 0 -3" radius="0.4" color="blue"></a-sphere>
+      <a-sphere class="link" data-target="#room3" data-name="Archive" position="-2 0 -3" radius="0.4" color="blue"></a-sphere>
+      <a-sphere class="link" data-target="#room1" data-name="Entrance" position="0 0 3" radius="0.4" color="blue"></a-sphere>
+    </a-entity>
   </a-scene>
 
   <script>
     document.querySelectorAll('.link').forEach(link => {
       link.addEventListener('click', function() {
         const sky = document.querySelector('#sky');
-        const targetId = this.getAttribute('data-target');
+        const text = document.querySelector('#location-name');
+        
+        const targetId = this.getAttribute('data-target'); // #room2 など
+        const targetName = this.getAttribute('data-name'); // Reading Room など
         
         // フェードアウト
         sky.setAttribute('animation', {property: 'opacity', from: 1, to: 0, dur: 500});
 
         setTimeout(() => {
-          // 画像を切り替え
+          // 画像と名前を切り替え
           sky.setAttribute('src', targetId);
+          text.setAttribute('value', targetName);
           // フェードイン
           sky.setAttribute('animation', {property: 'opacity', from: 0, to: 1, dur: 500});
         }, 500);
