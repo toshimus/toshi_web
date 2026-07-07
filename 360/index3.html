@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>360° Viewer</title>
+
+<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+
+<style>
+
+html,body{
+margin:0;
+overflow:hidden;
+background:#000;
+font-family:sans-serif;
+}
+
+#ui{
+position:fixed;
+bottom:30px;
+left:50%;
+transform:translateX(-50%);
+z-index:100;
+display:flex;
+gap:20px;
+}
+
+button{
+padding:12px 28px;
+font-size:20px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+background:white;
+}
+
+#title{
+position:fixed;
+top:20px;
+left:20px;
+z-index:100;
+color:white;
+font-size:28px;
+font-weight:bold;
+background:rgba(0,0,0,.5);
+padding:10px 20px;
+border-radius:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="title">Room1</div>
+
+<div id="ui">
+
+<button id="back">◀ 後ろ</button>
+
+<button id="next">前へ ▶</button>
+
+</div>
+
+<a-scene>
+
+<a-assets>
+
+<img id="room1" src="room1.jpg">
+
+<img id="room2" src="room2.jpg">
+
+<img id="room3" src="room3.jpg">
+
+</a-assets>
+
+<a-sky
+    id="sky"
+    src="#room1"
+    material="shader:flat; transparent:true; opacity:1">
+</a-sky>
+
+<a-entity id="cameraRig">
+
+    <a-camera
+        id="camera"
+        look-controls>
+    </a-camera>
+
+</a-entity>
+
+</a-camera>
+
+</a-scene>
+
+<script>
+
+const rooms={
+
+room1:{
+image:"#room1",
+title:"Room1",
+next:"room2",
+prev:null
+},
+
+room2:{
+image:"#room2",
+title:"Room2",
+next:"room3",
+prev:"room1"
+},
+
+room3:{
+image:"#room3",
+title:"Room3",
+next:null,
+prev:"room2"
+}
+
+};
+
+let currentRoom="room1";
+
+let index=0;
+
+const sky=document.getElementById("sky");
+const title=document.getElementById("title");
+
+const back=document.getElementById("back");
+const next=document.getElementById("next");
+const rig = document.getElementById("cameraRig");
+
+let moving = false;
+
+
+function update(){
+
+const room=rooms[currentRoom];
+
+sky.setAttribute("src",room.image);
+
+title.textContent=room.title;
+
+back.style.display=
+room.prev?
+"inline-block":"none";
+
+next.style.display=
+room.next?
+"inline-block":"none";
+
+}
+
+
+function move(target,direction){
+
+moving=true;
+
+const rot=camera.object3D.rotation.y;
+
+const x=-Math.sin(rot)*direction;
+
+const z=-Math.cos(rot)*direction;
+
+rig.setAttribute("animation__move",{
+
+property:"position",
+
+from:"0 0 0",
+
+to:`${x} 0 ${z}`,
+
+dur:500,
+
+easing:"easeInOutQuad"
+
+});
+
+sky.setAttribute("animation__fadeOut",{
+
+property:"material.opacity",
+
+from:1,
+
+to:0,
+
+dur:500
+
+});
+
+setTimeout(()=>{
+
+currentRoom=target;
+
+update();
+
+rig.setAttribute("position","0 0 0");
+
+sky.setAttribute("animation__fadeIn",{
+
+property:"material.opacity",
+
+from:0,
+
+to:1,
+
+dur:500
+
+});
+
+moving=false;
+
+},500);
+
+}
+
+
+next.onclick=()=>{
+
+if(moving)return;
+
+const room=rooms[currentRoom];
+
+if(!room.next)return;
+
+move(room.next,1);
+
+};
+
+back.onclick=()=>{
+
+if(moving)return;
+
+const room=rooms[currentRoom];
+
+if(!room.prev)return;
+
+move(room.prev,-1);
+
+};
+
+window.addEventListener("keydown",e=>{
+
+if(e.key=="ArrowUp")next.click();
+
+if(e.key=="ArrowDown")back.click();
+
+});
+
+update();
+
+</script>
+
+</body>
+</html>
