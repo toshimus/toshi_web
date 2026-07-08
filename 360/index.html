@@ -5,19 +5,115 @@
   <title>図書館 VRツアー</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script>
-    AFRAME.registerComponent('minimap-sync', {
+    window.currentCamId = 'cam_1';
+    
+    AFRAME.registerComponent('sync-system', {
       tick: function () {
-        const cam = document.querySelector('#main-camera');
-        const player = document.querySelector('#mm-player');
-        if (cam && player) {
-          player.object3D.rotation.z = cam.object3D.rotation.y;
+        try {
+          const cam = document.querySelector('#main-camera');
+          const player = document.querySelector('#mm-player');
+          
+          // 【修正】親コンテナとボタン実体(三角形)を分けて取得
+          const containerLeft = document.querySelector('#hud-left-container');
+          const containerRight = document.querySelector('#hud-right-container');
+          const btnLeft = document.querySelector('#hud-left');
+          const btnRight = document.querySelector('#hud-right');
+          
+          if (!cam || !cam.object3D || !containerLeft || !containerRight || !btnLeft || !btnRight || !window.currentCamId) return;
+          
+          if (player && player.object3D) player.object3D.rotation.z = cam.object3D.rotation.y;
+          
+          let camY = (-cam.object3D.rotation.y * 180 / Math.PI) % 360;
+          if (camY < 0) camY += 360;
+
+          const leftAngle = (camY - 90 + 360) % 360;
+          const rightAngle = (camY + 90) % 360;
+
+          const activeLinks = document.querySelectorAll('.link-from-' + window.currentCamId);
+          
+          let leftTarget = null, rightTarget = null;
+          let leftDiff = 999, rightDiff = 999;
+
+          activeLinks.forEach(el => {
+             const arrow = el.querySelector('.nav-arrow');
+             if(!arrow) return;
+             const linkAngle = parseFloat(arrow.getAttribute('data-angle'));
+             const camId = arrow.getAttribute('data-cam-id');
+             const name = arrow.getAttribute('data-name');
+             const src = arrow.getAttribute('data-src');
+             
+             let dLeft = Math.abs(linkAngle - leftAngle);
+             if (dLeft > 180) dLeft = 360 - dLeft;
+             if (dLeft <= 45 && dLeft < leftDiff) {
+                leftDiff = dLeft;
+                leftTarget = { camId, name, src };
+             }
+
+             let dRight = Math.abs(linkAngle - rightAngle);
+             if (dRight > 180) dRight = 360 - dRight;
+             if (dRight <= 45 && dRight < rightDiff) {
+                rightDiff = dRight;
+                rightTarget = { camId, name, src };
+             }
+          });
+
+          let stateChanged = false;
+          
+          const isLeftVis = containerLeft.getAttribute('visible') === true || containerLeft.getAttribute('visible') === 'true';
+          const isRightVis = containerRight.getAttribute('visible') === true || containerRight.getAttribute('visible') === 'true';
+          
+          if (leftTarget) {
+             if (!isLeftVis) {
+               containerLeft.setAttribute('visible', true);
+               btnLeft.classList.add('clickable'); // 実体の三角形に付与する
+               stateChanged = true;
+             }
+             btnLeft.setAttribute('data-cam-id', leftTarget.camId);
+             btnLeft.setAttribute('data-name', leftTarget.name);
+             btnLeft.setAttribute('data-src', leftTarget.src);
+             const numMatch = leftTarget.name.match(/\d+/);
+             document.querySelector('#hud-left-text').setAttribute('value', numMatch ? numMatch[0] : 'L');
+          } else {
+             if (isLeftVis) {
+               containerLeft.setAttribute('visible', false);
+               btnLeft.classList.remove('clickable');
+               stateChanged = true;
+             }
+          }
+
+          if (rightTarget) {
+             if (!isRightVis) {
+               containerRight.setAttribute('visible', true);
+               btnRight.classList.add('clickable'); // 実体の三角形に付与する
+               stateChanged = true;
+             }
+             btnRight.setAttribute('data-cam-id', rightTarget.camId);
+             btnRight.setAttribute('data-name', rightTarget.name);
+             btnRight.setAttribute('data-src', rightTarget.src);
+             const numMatch = rightTarget.name.match(/\d+/);
+             document.querySelector('#hud-right-text').setAttribute('value', numMatch ? numMatch[0] : 'R');
+          } else {
+             if (isRightVis) {
+               containerRight.setAttribute('visible', false);
+               btnRight.classList.remove('clickable');
+               stateChanged = true;
+             }
+          }
+
+          if (stateChanged) {
+             document.querySelectorAll('[raycaster]').forEach(r => {
+               if (r.components.raycaster) r.components.raycaster.refreshObjects();
+             });
+          }
+        } catch (e) {
+          console.error(e);
         }
       }
     });
   </script>
 </head>
 <body>
-  <a-scene background="color: #000" minimap-sync>
+  <a-scene background="color: #000" sync-system>
     <a-assets>      <img id="room1" src="room1.jpg" crossorigin="anonymous">
       <img id="room2" src="room2.jpg" crossorigin="anonymous">
       <img id="room3" src="room3.jpg" crossorigin="anonymous">
@@ -38,7 +134,7 @@
         
         <a-plane color="#111" opacity="0.6" width="1.6" height="1.6" position="0 0 -0.02"></a-plane>
         <a-text value="MAP" position="-0.7 0.65 0" scale="0.4 0.4 0.4" color="#aaa"></a-text>
-              <a-entity line="start: -0.600 -0.400 0; end: 0.000 -0.400 0; color: #888;"></a-entity>
+        <a-entity line="start: -0.600 -0.400 0; end: 0.000 -0.400 0; color: #888;"></a-entity>
         <a-entity line="start: 0.000 -0.400 0; end: 0.600 -0.400 0; color: #888;"></a-entity>
         <a-entity line="start: 0.600 -0.400 0; end: 0.600 0.400 0; color: #888;"></a-entity>
         <a-entity line="start: 0.600 0.400 0; end: 0.000 0.400 0; color: #888;"></a-entity>
@@ -68,140 +164,146 @@
           <a-circle id="mm-node-cam_6" data-x="-0.600" data-y="0.400" radius="0.05" color="#fff"></a-circle>
           <a-text value="6" position="0 0.1 0" align="center" scale="0.3 0.3 0.3" color="#fff"></a-text>
         </a-entity>
-
         <a-entity id="mm-player" position="-0.600 -0.400 0.01">
           <a-circle radius="0.07" color="#FF9800"></a-circle>
           <a-triangle vertex-a="0 0.12 0" vertex-b="-0.07 -0.04 0" vertex-c="0.07 -0.04 0" color="#FF9800"></a-triangle>
         </a-entity>
-      
+
+      </a-entity>
+
+      <a-entity id="hud-left-container" position="-0.75 -0.2 -1" visible="false">
+        <a-triangle id="hud-left" class="hud-btn" vertex-a="-0.08 0 0" vertex-b="0.05 0.08 0" vertex-c="0.05 -0.08 0" color="#2196F3" material="transparent: true; opacity: 0.8" animation__hover="property: scale; to: 1.2 1.2 1.2; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 1 1 1; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text id="hud-left-text" value="L" position="0 -0.15 0" align="center" scale="0.4 0.4 0.4" color="#FFFFFF"></a-text>
+      </a-entity>
+      <a-entity id="hud-right-container" position="0.75 -0.2 -1" visible="false">
+        <a-triangle id="hud-right" class="hud-btn" vertex-a="0.08 0 0" vertex-b="-0.05 0.08 0" vertex-c="-0.05 -0.08 0" color="#2196F3" material="transparent: true; opacity: 0.8" animation__hover="property: scale; to: 1.2 1.2 1.2; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 1 1 1; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text id="hud-right-text" value="R" position="0 -0.15 0" align="center" scale="0.4 0.4 0.4" color="#FFFFFF"></a-text>
       </a-entity>
     </a-camera>
     
     <a-entity id="links">      <a-entity class="link-group link-from-cam_1" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room2" data-name="場所 2" data-cam-id="cam_2" 
+        <a-triangle class="nav-arrow" data-angle="90.00" data-src="#room2" data-name="場所 2" data-cam-id="cam_2" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="7.00 -1.5 0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
+          position="7.00 -1.5 -0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="2" position="7.00 -0.5 0.00" rotation="0 270.00 0" 
+        <a-text value="2" position="7.00 -0.5 -0.00" rotation="0 90.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_1" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room6" data-name="場所 6" data-cam-id="cam_6" 
+        <a-triangle class="nav-arrow" data-angle="0.00" data-src="#room6" data-name="場所 6" data-cam-id="cam_6" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="0.00 -1.5 -7.00" rotation="-90 0.00 0" scale="2.5 2.5 2.5" 
+          position="0.00 -1.5 -7.00" rotation="-90 -180.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="6" position="0.00 -0.5 -7.00" rotation="0 180.00 0" 
+        <a-text value="6" position="0.00 -0.5 -7.00" rotation="0 0.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_2" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room1" data-name="場所 1" data-cam-id="cam_1" 
+        <a-triangle class="nav-arrow" data-angle="270.00" data-src="#room1" data-name="場所 1" data-cam-id="cam_1" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="-7.00 -1.5 0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
+          position="-7.00 -1.5 -0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="1" position="-7.00 -0.5 0.00" rotation="0 90.00 0" 
+        <a-text value="1" position="-7.00 -0.5 -0.00" rotation="0 270.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_2" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room3" data-name="場所 3" data-cam-id="cam_3" 
+        <a-triangle class="nav-arrow" data-angle="90.00" data-src="#room3" data-name="場所 3" data-cam-id="cam_3" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="7.00 -1.5 0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
+          position="7.00 -1.5 -0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="3" position="7.00 -0.5 0.00" rotation="0 270.00 0" 
+        <a-text value="3" position="7.00 -0.5 -0.00" rotation="0 90.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_3" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room2" data-name="場所 2" data-cam-id="cam_2" 
+        <a-triangle class="nav-arrow" data-angle="270.00" data-src="#room2" data-name="場所 2" data-cam-id="cam_2" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="-7.00 -1.5 0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
+          position="-7.00 -1.5 -0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="2" position="-7.00 -0.5 0.00" rotation="0 90.00 0" 
+        <a-text value="2" position="-7.00 -0.5 -0.00" rotation="0 270.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_3" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room4" data-name="場所 4" data-cam-id="cam_4" 
+        <a-triangle class="nav-arrow" data-angle="0.00" data-src="#room4" data-name="場所 4" data-cam-id="cam_4" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="0.00 -1.5 -7.00" rotation="-90 0.00 0" scale="2.5 2.5 2.5" 
+          position="0.00 -1.5 -7.00" rotation="-90 -180.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="4" position="0.00 -0.5 -7.00" rotation="0 180.00 0" 
+        <a-text value="4" position="0.00 -0.5 -7.00" rotation="0 0.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_4" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room3" data-name="場所 3" data-cam-id="cam_3" 
+        <a-triangle class="nav-arrow" data-angle="180.00" data-src="#room3" data-name="場所 3" data-cam-id="cam_3" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="0.00 -1.5 7.00" rotation="-90 180.00 0" scale="2.5 2.5 2.5" 
+          position="0.00 -1.5 7.00" rotation="-90 0.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="3" position="0.00 -0.5 7.00" rotation="0 360.00 0" 
+        <a-text value="3" position="0.00 -0.5 7.00" rotation="0 180.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_4" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room5" data-name="場所 5" data-cam-id="cam_5" 
+        <a-triangle class="nav-arrow" data-angle="270.00" data-src="#room5" data-name="場所 5" data-cam-id="cam_5" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="-7.00 -1.5 0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
+          position="-7.00 -1.5 -0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="5" position="-7.00 -0.5 0.00" rotation="0 90.00 0" 
+        <a-text value="5" position="-7.00 -0.5 -0.00" rotation="0 270.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_5" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room4" data-name="場所 4" data-cam-id="cam_4" 
+        <a-triangle class="nav-arrow" data-angle="90.00" data-src="#room4" data-name="場所 4" data-cam-id="cam_4" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="7.00 -1.5 0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
+          position="7.00 -1.5 -0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="4" position="7.00 -0.5 0.00" rotation="0 270.00 0" 
+        <a-text value="4" position="7.00 -0.5 -0.00" rotation="0 90.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_5" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room6" data-name="場所 6" data-cam-id="cam_6" 
+        <a-triangle class="nav-arrow" data-angle="270.00" data-src="#room6" data-name="場所 6" data-cam-id="cam_6" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="-7.00 -1.5 0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
+          position="-7.00 -1.5 -0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="6" position="-7.00 -0.5 0.00" rotation="0 90.00 0" 
+        <a-text value="6" position="-7.00 -0.5 -0.00" rotation="0 270.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_6" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room5" data-name="場所 5" data-cam-id="cam_5" 
+        <a-triangle class="nav-arrow" data-angle="90.00" data-src="#room5" data-name="場所 5" data-cam-id="cam_5" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="7.00 -1.5 0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
+          position="7.00 -1.5 -0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="5" position="7.00 -0.5 0.00" rotation="0 270.00 0" 
+        <a-text value="5" position="7.00 -0.5 -0.00" rotation="0 90.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
       <a-entity class="link-group link-from-cam_6" visible="false">
-        <a-triangle class="nav-arrow" data-src="#room1" data-name="場所 1" data-cam-id="cam_1" 
+        <a-triangle class="nav-arrow" data-angle="180.00" data-src="#room1" data-name="場所 1" data-cam-id="cam_1" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
-          position="0.00 -1.5 7.00" rotation="-90 180.00 0" scale="2.5 2.5 2.5" 
+          position="0.00 -1.5 7.00" rotation="-90 0.00 0" scale="2.5 2.5 2.5" 
           animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
           animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
-        <a-text value="1" position="0.00 -0.5 7.00" rotation="0 360.00 0" 
+        <a-text value="1" position="0.00 -0.5 7.00" rotation="0 180.00 0" 
           align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
       </a-entity>
 </a-entity>
   </a-scene>
   <script>
-    let currentCamId = 'cam_1';
-    
     window.addEventListener('keydown', e => {
       const look = document.querySelector('#main-camera').components['look-controls'];
       if (!look) return;
@@ -212,18 +314,15 @@
     });
 
     function updateLinksDisplay(camId) {
-      // 【修正2】 他のすべての矢印を非表示にし、"clickable"（クリック可能）属性を完全に剥奪する
       document.querySelectorAll('.link-group').forEach(el => el.setAttribute('visible', 'false'));
       document.querySelectorAll('.nav-arrow').forEach(el => el.classList.remove('clickable'));
       
-      // 今いる部屋の矢印だけを表示し、"clickable"属性を付与する
       document.querySelectorAll('.link-from-' + camId).forEach(el => {
         el.setAttribute('visible', 'true');
         const arrow = el.querySelector('.nav-arrow');
         if (arrow) arrow.classList.add('clickable');
       });
       
-      // ミニマップの更新
       document.querySelectorAll('[id^="mm-node-"]').forEach(el => el.setAttribute('color', '#fff'));
       const activeNode = document.querySelector('#mm-node-' + camId);
       if (activeNode) {
@@ -235,20 +334,26 @@
         }
       }
 
-      // レーザーやマウスのクリック判定（Raycaster）を強制的に再読み込みさせる
       setTimeout(() => {
         document.querySelectorAll('[raycaster]').forEach(r => {
           if (r.components.raycaster) r.components.raycaster.refreshObjects();
         });
       }, 50);
     }
-    updateLinksDisplay(currentCamId);
+    updateLinksDisplay(window.currentCamId);
 
-    // 【修正3】 クリックイベント発火時に、clickable属性がついていないものは無視する
-    document.querySelectorAll('.nav-arrow').forEach(link => {
+    let isTransitioning = false;
+
+    // 【修正】 nav-arrow(床の矢印)と、hud-btn(左右のボタン実体)の両方でクリックを拾う
+    document.querySelectorAll('.nav-arrow, .hud-btn').forEach(link => {
       link.addEventListener('click', function() {
+        if (isTransitioning) return; 
         if (!this.classList.contains('clickable')) return;
+        
+        // 親要素が非表示の時は無効にする
         if (this.parentNode.getAttribute('visible') === 'false') return;
+        
+        isTransitioning = true; 
         
         const newSrc = this.getAttribute('data-src');
         const nextCamId = this.getAttribute('data-cam-id');
@@ -259,6 +364,8 @@
         sky.setAttribute('animation__fade', {property: 'material.opacity', from: 1, to: 0, dur: 300});
 
         setTimeout(() => {
+          window.currentCamId = nextCamId; 
+          
           sky.parentNode.removeChild(sky);
           const newSky = document.createElement('a-sky');
           newSky.setAttribute('id', 'sky');
@@ -271,6 +378,10 @@
           updateLinksDisplay(nextCamId);
           
           newSky.setAttribute('animation__fade', {property: 'material.opacity', from: 0, to: 1, dur: 300});
+          
+          setTimeout(() => {
+            isTransitioning = false;
+          }, 300);
         }, 300);
       });
     });
