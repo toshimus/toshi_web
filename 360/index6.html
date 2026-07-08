@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>図書館バーチャルツアー</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene background="color: #000000">
+    <a-assets id="assets"></a-assets>
+
+    <a-entity id="sky-container">
+      <a-sky id="sky" src="room1.jpg"></a-sky>
+    </a-entity>
+
+    <a-camera id="main-camera" look-controls>
+      <a-text id="location-name" value="Entrance" position="0 0.5 -2" align="center" scale="1 1 1" color="white"></a-text>
+      <a-cursor raycaster="objects: .link"></a-cursor>
+    </a-camera>
+
+    <a-entity id="links">
+      <a-sphere class="link" data-src="room2.jpg" data-name="Reading Room" position="5 0 -2" radius="0.5" color="blue"></a-sphere>
+      <a-sphere class="link" data-src="room3.jpg" data-name="Archive" position="-5 0 2" radius="0.5" color="red"></a-sphere>
+      <a-sphere class="link" data-src="room1.jpg" data-name="Entrance" position="0 0 5" radius="0.5" color="green"></a-sphere>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    // 背景切り替え機能
+    document.querySelectorAll('.link').forEach(link => {
+      link.addEventListener('click', function() {
+        const container = document.querySelector('#sky-container');
+        const text = document.querySelector('#location-name');
+        const newSrc = this.getAttribute('data-src');
+        const targetName = this.getAttribute('data-name');
+        
+        const sky = document.querySelector('#sky');
+        sky.setAttribute('animation__fade', {property: 'material.opacity', from: 1, to: 0, dur: 500});
+
+        setTimeout(() => {
+          sky.parentNode.removeChild(sky);
+
+          const newSky = document.createElement('a-sky');
+          newSky.setAttribute('id', 'sky');
+          newSky.setAttribute('src', newSrc + "?t=" + Date.now());
+          newSky.setAttribute('material', 'transparent', 'true');
+          
+          container.appendChild(newSky);
+          text.setAttribute('value', targetName);
+          
+          newSky.setAttribute('animation__fade', {property: 'material.opacity', from: 0, to: 1, dur: 500});
+        }, 500);
+      });
+    });
+
+    // マウスホイールによるズーム機能
+    window.addEventListener('wheel', (event) => {
+      const camera = document.querySelector('#main-camera');
+      const cameraEl = camera.components.camera.camera;
+      
+      // FOV（視野角）を操作してズームを実現
+      // 10度〜120度の間で制限
+      const newFov = Math.max(10, Math.min(120, cameraEl.fov + (event.deltaY * 0.05)));
+      camera.setAttribute('camera', 'fov', newFov);
+    });
+  </script>
+</body>
+</html>

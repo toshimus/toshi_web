@@ -2,19 +2,15 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>図書館バーチャルツアー（完全版）</title>
+  <title>図書館バーチャルツアー（iPad対応）</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 </head>
 <body>
   <a-scene background="color: #000000">
-    <a-assets>
-      <img id="room1" src="room1.jpg" crossorigin="anonymous">
-      <img id="room2" src="room2.jpg" crossorigin="anonymous">
-      <img id="room3" src="room3.jpg" crossorigin="anonymous">
-    </a-assets>
+    <a-assets id="assets"></a-assets>
 
     <a-entity id="sky-container">
-      <a-sky id="sky" src="#room1" material="transparent:true;opacity:1"></a-sky>
+      <a-sky id="sky" src="room1.jpg"></a-sky>
     </a-entity>
 
     <a-camera id="main-camera" look-controls touch-controls>
@@ -23,9 +19,9 @@
     </a-camera>
 
     <a-entity id="links">
-      <a-sphere class="link" data-src="#room2" data-name="Reading Room" position="5 0 -2" radius="0.5" color="blue"></a-sphere>
-      <a-sphere class="link" data-src="#room3" data-name="Archive" position="-5 0 2" radius="0.5" color="red"></a-sphere>
-      <a-sphere class="link" data-src="#room1" data-name="Entrance" position="0 0 5" radius="0.5" color="green"></a-sphere>
+      <a-sphere class="link" data-src="room2.jpg" data-name="Reading Room" position="5 0 -2" radius="0.5" color="blue"></a-sphere>
+      <a-sphere class="link" data-src="room3.jpg" data-name="Archive" position="-5 0 2" radius="0.5" color="red"></a-sphere>
+      <a-sphere class="link" data-src="room1.jpg" data-name="Entrance" position="0 0 5" radius="0.5" color="green"></a-sphere>
     </a-entity>
   </a-scene>
 
@@ -35,44 +31,43 @@
       link.addEventListener('click', function() {
         const container = document.querySelector('#sky-container');
         const text = document.querySelector('#location-name');
-        const newSrcId = this.getAttribute('data-src'); // assetsのIDを参照
+        const newSrc = this.getAttribute('data-src');
         const targetName = this.getAttribute('data-name');
         
         const sky = document.querySelector('#sky');
-        sky.setAttribute('animation__fade', {property: 'material.opacity', from: 1, to: 0, dur: 300});
+        sky.setAttribute('animation__fade', {property: 'material.opacity', from: 1, to: 0, dur: 500});
 
         setTimeout(() => {
           sky.parentNode.removeChild(sky);
-
           const newSky = document.createElement('a-sky');
           newSky.setAttribute('id', 'sky');
-          newSky.setAttribute('src', newSrcId); // プリロードされた画像を参照
+          newSky.setAttribute('src', newSrc + "?t=" + Date.now());
           newSky.setAttribute('material', 'transparent', 'true');
-          newSky.setAttribute('material', 'opacity', '0');
-          
           container.appendChild(newSky);
           text.setAttribute('value', targetName);
-          
-          newSky.setAttribute('animation__fade', {property: 'material.opacity', from: 0, to: 1, dur: 300});
-        }, 300);
+          newSky.setAttribute('animation__fade', {property: 'material.opacity', from: 0, to: 1, dur: 500});
+        }, 500);
       });
     });
 
-    // ズーム機能（統合版）
+    // ズーム機能（マウスホイール + ピンチ操作）
     const camera = document.querySelector('#main-camera');
     
+    // マウスホイール
     window.addEventListener('wheel', (event) => {
       const cameraEl = camera.components.camera.camera;
       const newFov = Math.max(10, Math.min(120, cameraEl.fov + (event.deltaY * 0.05)));
       camera.setAttribute('camera', 'fov', newFov);
     });
 
+    // ピンチ操作（iPad/スマホ対応）
     let initialPinchDistance = 0;
     window.addEventListener('touchmove', (event) => {
       if (event.touches.length === 2) {
         const dx = event.touches[0].clientX - event.touches[1].clientX;
         const dy = event.touches[0].clientY - event.touches[1].clientY;
         const distance = Math.sqrt(dx * dx + dy * dy);
+
         if (initialPinchDistance > 0) {
           const delta = initialPinchDistance - distance;
           const cameraEl = camera.components.camera.camera;
