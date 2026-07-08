@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>図書館VR マップエディタ (完全版・番号表示対応)</title>
+  <title>図書館VR マップエディタ (完全版・複数選択対応)</title>
   <style>
     body { font-family: sans-serif; display: flex; background: #222; color: #ddd; margin: 0; height: 100vh; overflow: hidden; }
     #toolbar { width: 280px; background: #333; padding: 15px; border-right: 1px solid #555; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
@@ -81,7 +81,7 @@
     
     let state = {
       mode: 'select',
-      selectedObjs: [], 
+      selectedObjs: [], // 複数選択対応
       linkSource: null,
       links: [], 
       camCounter: 0,
@@ -95,6 +95,7 @@
       return pt.matrixTransform(svg.getScreenCTM().inverse());
     };
 
+    // --- 要素の追加 ---
     function addShelf(id, x=100, y=100, w=80, h=40) {
       if(!id) { state.shelfCounter++; id = 'shelf_' + state.shelfCounter; }
       const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -130,30 +131,15 @@
 
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
-      circle.setAttribute('r', 15); // 数字を見やすくするため少し大きく
+      circle.setAttribute('r', 12);
       circle.setAttribute('fill', '#E91E63'); circle.setAttribute('stroke', 'white'); circle.setAttribute('stroke-width', '2');
 
-      // 【追加】丸の中に表示するテキスト（番号）
-      const numMatch = name.match(/\d+/);
-      const displayNum = numMatch ? numMatch[0] : name.substring(0, 3);
-      
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', cx);
-      text.setAttribute('y', cy);
-      text.setAttribute('dy', '4'); // 縦方向の中央揃え微調整
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('fill', 'white');
-      text.setAttribute('font-size', '14px');
-      text.setAttribute('font-weight', 'bold');
-      text.setAttribute('pointer-events', 'none'); // ドラッグ操作の邪魔をしない設定
-      text.textContent = displayNum;
-
       g.appendChild(circle);
-      g.appendChild(text);
       document.getElementById('layer-cameras').appendChild(g);
       setupInteractions(g);
     }
 
+    // --- 選択・プロパティ ---
     function toggleSelect(g, multi) {
       if (!multi) deselectAll();
       if (!state.selectedObjs.includes(g)) {
@@ -171,6 +157,7 @@
     }
 
     function updatePropertiesPanel() {
+      // 単一のカメラが選択されている時のみプロパティを表示
       const cams = state.selectedObjs.filter(g => g.dataset.type === 'camera');
       if (state.selectedObjs.length === 1 && cams.length === 1) {
         document.getElementById('properties').style.display = 'flex';
@@ -183,29 +170,21 @@
 
     function updateCameraProp(key) {
       if (state.selectedObjs.length === 1 && state.selectedObjs[0].dataset.type === 'camera') {
-        const val = document.getElementById(`prop-${key}`).value;
-        state.selectedObjs[0].dataset[key] = val;
-        
-        // 【追加】名前が変更されたら、エディタ上の番号も即座に更新する
-        if (key === 'name') {
-           const textEl = state.selectedObjs[0].querySelector('text');
-           if (textEl) {
-             const numMatch = val.match(/\d+/);
-             textEl.textContent = numMatch ? numMatch[0] : val.substring(0, 3);
-           }
-        }
+        state.selectedObjs[0].dataset[key] = document.getElementById(`prop-${key}`).value;
       }
     }
 
+    // 画像ファイル選択ボタンの処理
     function handleImagePick(e) {
       if (e.target.files.length > 0) {
         const fileName = e.target.files[0].name;
         document.getElementById('prop-img').value = fileName;
         updateCameraProp('img');
-        e.target.value = ''; 
+        e.target.value = ''; // リセット
       }
     }
 
+    // --- 削除 ---
     function deleteSelected() {
       if (state.selectedObjs.length === 0) return;
       
@@ -226,9 +205,11 @@
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected(); 
     });
 
+    // --- マウス操作（ドラッグ移動 ＆ 範囲選択） ---
     let dragInfo = null;
     let selectionBox = { active: false, startX: 0, startY: 0, el: document.getElementById('selection-box') };
 
+    // 背景のドラッグで範囲選択開始
     document.getElementById('bg-rect').addEventListener('mousedown', (e) => {
       if (state.mode === 'link') return;
       deselectAll();
@@ -256,11 +237,13 @@
           return;
         }
 
+        // 複数選択状態でなければ、クリックしたものを選択
         if (!state.selectedObjs.includes(g)) toggleSelect(g, e.shiftKey);
         
         const pt = getSVGPoint(e);
         const isHandle = e.target.classList.contains('handle');
 
+        // 選択中の全オブジェクトの初期位置を記録
         dragInfo = { startX: pt.x, startY: pt.y, isResize: isHandle, targets: [] };
         
         state.selectedObjs.forEach(obj => {
@@ -278,6 +261,7 @@
     svg.addEventListener('mousemove', (e) => {
       const pt = getSVGPoint(e);
 
+      // 範囲選択中
       if (selectionBox.active) {
         const x = Math.min(pt.x, selectionBox.startX);
         const y = Math.min(pt.y, selectionBox.startY);
@@ -288,6 +272,7 @@
         return;
       }
 
+      // オブジェクトドラッグ中
       if (!dragInfo) return;
       const dx = pt.x - dragInfo.startX; 
       const dy = pt.y - dragInfo.startY;
@@ -296,7 +281,7 @@
         if (t.type === 'shelf') {
           const rect = t.obj.querySelector('rect');
           const handle = t.obj.querySelector('.handle');
-          if (dragInfo.isResize && state.selectedObjs.length === 1) { 
+          if (dragInfo.isResize && state.selectedObjs.length === 1) { // リサイズは単体のみ許可
             const newW = Math.max(GRID_SIZE, snap(t.origW + dx));
             const newH = Math.max(GRID_SIZE, snap(t.origH + dy));
             rect.setAttribute('width', newW); rect.setAttribute('height', newH);
@@ -308,14 +293,7 @@
           }
         } else if (t.type === 'camera') {
           const circle = t.obj.querySelector('circle');
-          const textEl = t.obj.querySelector('text'); // 【追加】テキストも一緒に移動
-          const newX = snap(t.origCX + dx);
-          const newY = snap(t.origCY + dy);
-          circle.setAttribute('cx', newX); circle.setAttribute('cy', newY);
-          if (textEl) {
-             textEl.setAttribute('x', newX);
-             textEl.setAttribute('y', newY);
-          }
+          circle.setAttribute('cx', snap(t.origCX + dx)); circle.setAttribute('cy', snap(t.origCY + dy));
         }
       });
       updateLinks();
@@ -323,6 +301,8 @@
 
     svg.addEventListener('mouseup', () => { 
       dragInfo = null; 
+      
+      // 範囲選択の確定
       if (selectionBox.active) {
         selectionBox.active = false;
         selectionBox.el.style.display = 'none';
@@ -331,8 +311,9 @@
         document.querySelectorAll('.draggable').forEach(g => {
           let el = g.querySelector('rect') || g.querySelector('circle');
           let r = el.getBoundingClientRect();
+          // 重なり判定
           if (!(r.right < boxRect.left || r.left > boxRect.right || r.bottom < boxRect.top || r.top > boxRect.bottom)) {
-            toggleSelect(g, true); 
+            toggleSelect(g, true); // 追加選択
           }
         });
       }
@@ -340,6 +321,7 @@
     
     svg.addEventListener('mouseleave', () => { dragInfo = null; selectionBox.active = false; selectionBox.el.style.display = 'none'; });
 
+    // --- リンク（線）機能 ---
     function toggleLinkMode() {
       const btn = document.getElementById('btn-link');
       if (state.mode === 'select') {
@@ -372,6 +354,7 @@
       });
     }
 
+    // --- セーブ＆ロード ---
     function saveProject() {
       const projectData = {
         camCounter: state.camCounter, shelfCounter: state.shelfCounter,
@@ -417,8 +400,10 @@
       reader.readAsText(file);
     }
 
-    // --- HTML出力 (VR生成機能: ミニマップにも番号表示) ---
-    // --- HTML出力 (VR生成機能: 誤クリック完全防止版) ---
+    //********************************************************************************
+    // --- HTML出力 (VR生成機能: ミニマップ連動機能付き) ---
+    //********************************************************************************
+// --- HTML出力 (VR生成機能: ミニマップバグ修正版) ---
     function generateVRHTML() {
       const cams = Array.from(document.querySelectorAll('.cam-group')).map(g => {
         const c = g.querySelector('circle');
@@ -456,9 +441,8 @@
           const numMatch = targetCam.name.match(/\d+/);
           const displayNum = numMatch ? numMatch[0] : targetCam.name.substring(0, 3);
           
-          // 【修正1】 初期状態ではクラス名を "nav-arrow" にしておき、"clickable" を外しておく
           linksHTML += `      <a-entity class="link-group link-from-${currentCam.id}" visible="false">
-        <a-triangle class="nav-arrow" data-src="#${targetAssetId}" data-name="${targetCam.name}" data-cam-id="${targetCam.id}" 
+        <a-triangle class="clickable" data-src="#${targetAssetId}" data-name="${targetCam.name}" data-cam-id="${targetCam.id}" 
           vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
           color="#FF9800" material="transparent: true; opacity: 0.9" 
           position="${sphereX} -1.5 ${sphereZ}" rotation="-90 ${rotY} 0" scale="2.5 2.5 2.5" 
@@ -470,6 +454,7 @@
         });
       });
 
+      // --- ミニマップ(地図)の生成処理 ---
       const minX = Math.min(...cams.map(c => c.x));
       const maxX = Math.max(...cams.map(c => c.x));
       const minZ = Math.min(...cams.map(c => c.z));
@@ -496,17 +481,14 @@
         }
       });
 
+      // 【修正1】 地図上の丸に data-x と data-y を埋め込んで、後から確実に位置を取得できるようにする
       cams.forEach(c => {
         const x = ((c.x - cX) * mapScale).toFixed(3); 
         const y = (-(c.z - cZ) * mapScale).toFixed(3);
-        const numMatch = c.name.match(/\d+/);
-        const displayNum = numMatch ? numMatch[0] : "";
-        minimapHTML += `        <a-entity position="${x} ${y} 0">
-          <a-circle id="mm-node-${c.id}" data-x="${x}" data-y="${y}" radius="0.05" color="#fff"></a-circle>
-          <a-text value="${displayNum}" position="0 0.1 0" align="center" scale="0.3 0.3 0.3" color="#fff"></a-text>
-        </a-entity>\n`;
+        minimapHTML += `        <a-circle id="mm-node-${c.id}" position="${x} ${y} 0" data-x="${x}" data-y="${y}" radius="0.05" color="#fff"></a-circle>\n`;
       });
 
+      // 【修正2】 アイコンの初期位置を「ど真ん中（0, 0）」ではなく、「カメラ1（cams[0]）」の計算済み座標に設定する
       const startX = ((cams[0].x - cX) * mapScale).toFixed(3);
       const startY = (-(cams[0].z - cZ) * mapScale).toFixed(3);
       minimapHTML += `
@@ -567,42 +549,26 @@
     });
 
     function updateLinksDisplay(camId) {
-      // 【修正2】 他のすべての矢印を非表示にし、"clickable"（クリック可能）属性を完全に剥奪する
       document.querySelectorAll('.link-group').forEach(el => el.setAttribute('visible', 'false'));
-      document.querySelectorAll('.nav-arrow').forEach(el => el.classList.remove('clickable'));
+      document.querySelectorAll('.link-from-' + camId).forEach(el => el.setAttribute('visible', 'true'));
       
-      // 今いる部屋の矢印だけを表示し、"clickable"属性を付与する
-      document.querySelectorAll('.link-from-' + camId).forEach(el => {
-        el.setAttribute('visible', 'true');
-        const arrow = el.querySelector('.nav-arrow');
-        if (arrow) arrow.classList.add('clickable');
-      });
-      
-      // ミニマップの更新
       document.querySelectorAll('[id^="mm-node-"]').forEach(el => el.setAttribute('color', '#fff'));
       const activeNode = document.querySelector('#mm-node-' + camId);
       if (activeNode) {
         activeNode.setAttribute('color', '#FF9800');
+        // 【修正3】 初期化エラーを防ぐため、直接埋め込んだ data-x, data-y から座標を取得する
         const x = activeNode.getAttribute('data-x');
         const y = activeNode.getAttribute('data-y');
         if(x && y) {
            document.querySelector('#mm-player').setAttribute('position', x + ' ' + y + ' 0.01');
         }
       }
-
-      // レーザーやマウスのクリック判定（Raycaster）を強制的に再読み込みさせる
-      setTimeout(() => {
-        document.querySelectorAll('[raycaster]').forEach(r => {
-          if (r.components.raycaster) r.components.raycaster.refreshObjects();
-        });
-      }, 50);
     }
+    // 起動時の更新
     updateLinksDisplay(currentCamId);
 
-    // 【修正3】 クリックイベント発火時に、clickable属性がついていないものは無視する
-    document.querySelectorAll('.nav-arrow').forEach(link => {
+    document.querySelectorAll('.clickable').forEach(link => {
       link.addEventListener('click', function() {
-        if (!this.classList.contains('clickable')) return;
         if (this.parentNode.getAttribute('visible') === 'false') return;
         
         const newSrc = this.getAttribute('data-src');
