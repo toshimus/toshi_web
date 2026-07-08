@@ -1,8 +1,23 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>図書館 VRツアー</title><script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script></head>
+<head>
+  <meta charset="utf-8">
+  <title>図書館 VRツアー</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script>
+    AFRAME.registerComponent('minimap-sync', {
+      tick: function () {
+        const cam = document.querySelector('#main-camera');
+        const player = document.querySelector('#mm-player');
+        if (cam && player) {
+          player.object3D.rotation.z = cam.object3D.rotation.y;
+        }
+      }
+    });
+  </script>
+</head>
 <body>
-  <a-scene background="color: #000">
+  <a-scene background="color: #000" minimap-sync>
     <a-assets>      <img id="room1" src="room1.jpg" crossorigin="anonymous">
       <img id="room2" src="room2.jpg" crossorigin="anonymous">
       <img id="room3" src="room3.jpg" crossorigin="anonymous">
@@ -18,20 +33,152 @@
 
     <a-camera id="main-camera" look-controls="reverseMouseDrag: true">
       <a-text id="loc-name" value="場所 1" position="0 0.5 -2" align="center" color="white"></a-text>
+      
+      <a-entity id="minimap-container" position="1.4 0.9 -2.5" scale="0.6 0.6 0.6">
+        
+        <a-plane color="#111" opacity="0.6" width="1.6" height="1.6" position="0 0 -0.02"></a-plane>
+        <a-text value="MAP" position="-0.7 0.65 0" scale="0.4 0.4 0.4" color="#aaa"></a-text>
+              <a-entity line="start: -0.600 -0.400 0; end: 0.000 -0.400 0; color: #888;"></a-entity>
+        <a-entity line="start: 0.000 -0.400 0; end: 0.600 -0.400 0; color: #888;"></a-entity>
+        <a-entity line="start: 0.600 -0.400 0; end: 0.600 0.400 0; color: #888;"></a-entity>
+        <a-entity line="start: 0.600 0.400 0; end: 0.000 0.400 0; color: #888;"></a-entity>
+        <a-entity line="start: 0.000 0.400 0; end: -0.600 0.400 0; color: #888;"></a-entity>
+        <a-entity line="start: -0.600 0.400 0; end: -0.600 -0.400 0; color: #888;"></a-entity>
+        <a-circle id="mm-node-cam_1" position="-0.600 -0.400 0" data-x="-0.600" data-y="-0.400" radius="0.05" color="#fff"></a-circle>
+        <a-circle id="mm-node-cam_2" position="0.000 -0.400 0" data-x="0.000" data-y="-0.400" radius="0.05" color="#fff"></a-circle>
+        <a-circle id="mm-node-cam_3" position="0.600 -0.400 0" data-x="0.600" data-y="-0.400" radius="0.05" color="#fff"></a-circle>
+        <a-circle id="mm-node-cam_4" position="0.600 0.400 0" data-x="0.600" data-y="0.400" radius="0.05" color="#fff"></a-circle>
+        <a-circle id="mm-node-cam_5" position="0.000 0.400 0" data-x="0.000" data-y="0.400" radius="0.05" color="#fff"></a-circle>
+        <a-circle id="mm-node-cam_6" position="-0.600 0.400 0" data-x="-0.600" data-y="0.400" radius="0.05" color="#fff"></a-circle>
+
+        <a-entity id="mm-player" position="-0.600 -0.400 0.01">
+          <a-circle radius="0.07" color="#FF9800"></a-circle>
+          <a-triangle vertex-a="0 0.12 0" vertex-b="-0.07 -0.04 0" vertex-c="0.07 -0.04 0" color="#FF9800"></a-triangle>
+        </a-entity>
+      
+      </a-entity>
     </a-camera>
     
-    <a-entity id="links">      <a-triangle class="clickable link-from-cam_1" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room2" data-name="場所 2" data-cam-id="cam_2" position="15.00 -1.5 0.00" rotation="-90 -90.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_1" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room6" data-name="場所 6" data-cam-id="cam_6" position="0.00 -1.5 -15.00" rotation="-90 0.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_2" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room1" data-name="場所 1" data-cam-id="cam_1" position="-15.00 -1.5 0.00" rotation="-90 -270.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_2" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room3" data-name="場所 3" data-cam-id="cam_3" position="15.00 -1.5 0.00" rotation="-90 -90.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_3" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room2" data-name="場所 2" data-cam-id="cam_2" position="-15.00 -1.5 0.00" rotation="-90 -270.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_3" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room4" data-name="場所 4" data-cam-id="cam_4" position="0.00 -1.5 -15.00" rotation="-90 0.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_4" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room3" data-name="場所 3" data-cam-id="cam_3" position="0.00 -1.5 15.00" rotation="-90 -180.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_4" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room5" data-name="場所 5" data-cam-id="cam_5" position="-15.00 -1.5 0.00" rotation="-90 -270.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_5" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room4" data-name="場所 4" data-cam-id="cam_4" position="15.00 -1.5 0.00" rotation="-90 -90.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_5" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room6" data-name="場所 6" data-cam-id="cam_6" position="-15.00 -1.5 0.00" rotation="-90 -270.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_6" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room5" data-name="場所 5" data-cam-id="cam_5" position="15.00 -1.5 0.00" rotation="-90 -90.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
-      <a-triangle class="clickable link-from-cam_6" vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" color="#FFFFFF" material="transparent: true; opacity: 0.8" data-src="#room1" data-name="場所 1" data-cam-id="cam_1" position="0.00 -1.5 15.00" rotation="-90 -180.00 0" scale="3 3 3" visible="false" animation__hover="property: scale; to: 3.5 3.5 3.5; startEvents: mouseenter; dur: 200" animation__leave="property: scale; to: 3 3 3; startEvents: mouseleave; dur: 200"></a-triangle>
+    <a-entity id="links">      <a-entity class="link-group link-from-cam_1" visible="false">
+        <a-triangle class="clickable" data-src="#room2" data-name="場所 2" data-cam-id="cam_2" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="7.00 -1.5 0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="2" position="7.00 -0.5 0.00" rotation="0 270.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_1" visible="false">
+        <a-triangle class="clickable" data-src="#room6" data-name="場所 6" data-cam-id="cam_6" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="0.00 -1.5 -7.00" rotation="-90 0.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="6" position="0.00 -0.5 -7.00" rotation="0 180.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_2" visible="false">
+        <a-triangle class="clickable" data-src="#room1" data-name="場所 1" data-cam-id="cam_1" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="-7.00 -1.5 0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="1" position="-7.00 -0.5 0.00" rotation="0 90.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_2" visible="false">
+        <a-triangle class="clickable" data-src="#room3" data-name="場所 3" data-cam-id="cam_3" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="7.00 -1.5 0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="3" position="7.00 -0.5 0.00" rotation="0 270.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_3" visible="false">
+        <a-triangle class="clickable" data-src="#room2" data-name="場所 2" data-cam-id="cam_2" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="-7.00 -1.5 0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="2" position="-7.00 -0.5 0.00" rotation="0 90.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_3" visible="false">
+        <a-triangle class="clickable" data-src="#room4" data-name="場所 4" data-cam-id="cam_4" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="0.00 -1.5 -7.00" rotation="-90 0.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="4" position="0.00 -0.5 -7.00" rotation="0 180.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_4" visible="false">
+        <a-triangle class="clickable" data-src="#room3" data-name="場所 3" data-cam-id="cam_3" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="0.00 -1.5 7.00" rotation="-90 180.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="3" position="0.00 -0.5 7.00" rotation="0 360.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_4" visible="false">
+        <a-triangle class="clickable" data-src="#room5" data-name="場所 5" data-cam-id="cam_5" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="-7.00 -1.5 0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="5" position="-7.00 -0.5 0.00" rotation="0 90.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_5" visible="false">
+        <a-triangle class="clickable" data-src="#room4" data-name="場所 4" data-cam-id="cam_4" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="7.00 -1.5 0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="4" position="7.00 -0.5 0.00" rotation="0 270.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_5" visible="false">
+        <a-triangle class="clickable" data-src="#room6" data-name="場所 6" data-cam-id="cam_6" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="-7.00 -1.5 0.00" rotation="-90 -90.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="6" position="-7.00 -0.5 0.00" rotation="0 90.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_6" visible="false">
+        <a-triangle class="clickable" data-src="#room5" data-name="場所 5" data-cam-id="cam_5" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="7.00 -1.5 0.00" rotation="-90 90.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="5" position="7.00 -0.5 0.00" rotation="0 270.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
+      <a-entity class="link-group link-from-cam_6" visible="false">
+        <a-triangle class="clickable" data-src="#room1" data-name="場所 1" data-cam-id="cam_1" 
+          vertex-a="0 0.5 0" vertex-b="-0.5 -0.5 0" vertex-c="0.5 -0.5 0" 
+          color="#FF9800" material="transparent: true; opacity: 0.9" 
+          position="0.00 -1.5 7.00" rotation="-90 180.00 0" scale="2.5 2.5 2.5" 
+          animation__hover="property: scale; to: 3 3 3; startEvents: mouseenter; dur: 200" 
+          animation__leave="property: scale; to: 2.5 2.5 2.5; startEvents: mouseleave; dur: 200"></a-triangle>
+        <a-text value="1" position="0.00 -0.5 7.00" rotation="0 360.00 0" 
+          align="center" color="#FFFFFF" scale="4 4 4" width="10"></a-text>
+      </a-entity>
 </a-entity>
   </a-scene>
   <script>
@@ -47,14 +194,28 @@
     });
 
     function updateLinksDisplay(camId) {
-      document.querySelectorAll('.clickable').forEach(el => el.setAttribute('visible', 'false'));
+      document.querySelectorAll('.link-group').forEach(el => el.setAttribute('visible', 'false'));
       document.querySelectorAll('.link-from-' + camId).forEach(el => el.setAttribute('visible', 'true'));
+      
+      document.querySelectorAll('[id^="mm-node-"]').forEach(el => el.setAttribute('color', '#fff'));
+      const activeNode = document.querySelector('#mm-node-' + camId);
+      if (activeNode) {
+        activeNode.setAttribute('color', '#FF9800');
+        // 【修正3】 初期化エラーを防ぐため、直接埋め込んだ data-x, data-y から座標を取得する
+        const x = activeNode.getAttribute('data-x');
+        const y = activeNode.getAttribute('data-y');
+        if(x && y) {
+           document.querySelector('#mm-player').setAttribute('position', x + ' ' + y + ' 0.01');
+        }
+      }
     }
+    // 起動時の更新
     updateLinksDisplay(currentCamId);
 
     document.querySelectorAll('.clickable').forEach(link => {
       link.addEventListener('click', function() {
-        if (this.getAttribute('visible') === 'false') return;
+        if (this.parentNode.getAttribute('visible') === 'false') return;
+        
         const newSrc = this.getAttribute('data-src');
         const nextCamId = this.getAttribute('data-cam-id');
         const targetName = this.getAttribute('data-name');
