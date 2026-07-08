@@ -7,11 +7,13 @@
 </head>
 <body>
   <a-scene background="color: #000000">
-    <a-assets id="assets"></a-assets>
+    <a-assets>
+      <img id="room1" src="room1.jpg" crossorigin="anonymous">
+      <img id="room2" src="room2.jpg" crossorigin="anonymous">
+      <img id="room3" src="room3.jpg" crossorigin="anonymous">
+    </a-assets>
 
-    <a-entity id="sky-container">
-      <a-sky id="sky" src="room1.jpg"></a-sky>
-    </a-entity>
+    <a-sky id="sky" src="#room1" material="transparent:true;opacity:1"></a-sky>
 
     <a-camera id="main-camera" look-controls>
       <a-text id="location-name" value="Entrance" position="0 0.5 -2" align="center" scale="1 1 1" color="white"></a-text>
@@ -26,40 +28,42 @@
   </a-scene>
 
   <script>
-    // 背景切り替え機能
     document.querySelectorAll('.link').forEach(link => {
       link.addEventListener('click', function() {
-        const container = document.querySelector('#sky-container');
+        const sky = document.querySelector('#sky');
         const text = document.querySelector('#location-name');
+        
+        // data-src からファイル名を直接取得
         const newSrc = this.getAttribute('data-src');
         const targetName = this.getAttribute('data-name');
         
-        const sky = document.querySelector('#sky');
-        sky.setAttribute('animation__fade', {property: 'material.opacity', from: 1, to: 0, dur: 500});
+        // 1. フェードアウト
+        sky.setAttribute('animation__fade', {
+          property: 'material.opacity',
+          from: 1,
+          to: 0,
+          dur: 500
+        });
 
         setTimeout(() => {
-          sky.parentNode.removeChild(sky);
-
-          const newSky = document.createElement('a-sky');
-          newSky.setAttribute('id', 'sky');
-          newSky.setAttribute('src', newSrc + "?t=" + Date.now());
-          newSky.setAttribute('material', 'transparent', 'true');
-          
-          container.appendChild(newSky);
+          // 2. 新しい画像パスを直接セット
+          sky.setAttribute('src', newSrc);
           text.setAttribute('value', targetName);
           
-          newSky.setAttribute('animation__fade', {property: 'material.opacity', from: 0, to: 1, dur: 500});
+          // 3. フェードイン
+          sky.setAttribute('animation__fade', {
+            property: 'material.opacity',
+            from: 0,
+            to: 1,
+            dur: 500
+          });
         }, 500);
       });
     });
 
-    // マウスホイールによるズーム機能
     window.addEventListener('wheel', (event) => {
       const camera = document.querySelector('#main-camera');
       const cameraEl = camera.components.camera.camera;
-      
-      // FOV（視野角）を操作してズームを実現
-      // 10度〜120度の間で制限
       const newFov = Math.max(10, Math.min(120, cameraEl.fov + (event.deltaY * 0.05)));
       camera.setAttribute('camera', 'fov', newFov);
     });
