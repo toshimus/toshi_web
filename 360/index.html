@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>図書館バーチャルツアー</title>
+  <title>図書館バーチャルツアー（iPad対応）</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
       <a-sky id="sky" src="room1.jpg"></a-sky>
     </a-entity>
 
-    <a-camera id="main-camera" look-controls>
+    <a-camera id="main-camera" look-controls touch-controls>
       <a-text id="location-name" value="Entrance" position="0 0.5 -2" align="center" scale="1 1 1" color="white"></a-text>
       <a-cursor raycaster="objects: .link"></a-cursor>
     </a-camera>
@@ -39,29 +39,47 @@
 
         setTimeout(() => {
           sky.parentNode.removeChild(sky);
-
           const newSky = document.createElement('a-sky');
           newSky.setAttribute('id', 'sky');
           newSky.setAttribute('src', newSrc + "?t=" + Date.now());
           newSky.setAttribute('material', 'transparent', 'true');
-          
           container.appendChild(newSky);
           text.setAttribute('value', targetName);
-          
           newSky.setAttribute('animation__fade', {property: 'material.opacity', from: 0, to: 1, dur: 500});
         }, 500);
       });
     });
 
-    // マウスホイールによるズーム機能
+    // ズーム機能（マウスホイール + ピンチ操作）
+    const camera = document.querySelector('#main-camera');
+    
+    // マウスホイール
     window.addEventListener('wheel', (event) => {
-      const camera = document.querySelector('#main-camera');
       const cameraEl = camera.components.camera.camera;
-      
-      // FOV（視野角）を操作してズームを実現
-      // 10度〜120度の間で制限
       const newFov = Math.max(10, Math.min(120, cameraEl.fov + (event.deltaY * 0.05)));
       camera.setAttribute('camera', 'fov', newFov);
+    });
+
+    // ピンチ操作（iPad/スマホ対応）
+    let initialPinchDistance = 0;
+    window.addEventListener('touchmove', (event) => {
+      if (event.touches.length === 2) {
+        const dx = event.touches[0].clientX - event.touches[1].clientX;
+        const dy = event.touches[0].clientY - event.touches[1].clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (initialPinchDistance > 0) {
+          const delta = initialPinchDistance - distance;
+          const cameraEl = camera.components.camera.camera;
+          const newFov = Math.max(10, Math.min(120, cameraEl.fov + (delta * 0.1)));
+          camera.setAttribute('camera', 'fov', newFov);
+        }
+        initialPinchDistance = distance;
+      }
+    });
+
+    window.addEventListener('touchend', (event) => {
+      if (event.touches.length < 2) initialPinchDistance = 0;
     });
   </script>
 </body>
