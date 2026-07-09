@@ -63,6 +63,11 @@
         <option value="180">180度 (反転)</option>
         <option value="270">270度 (左回転)</option>
       </select>
+
+      <div id="preview-wrapper" style="width: 100%; height: 120px; margin-top: 15px; position: relative; border: 1px solid #777; border-radius: 4px; overflow: hidden; display: none; background-color: #000; background-size: 400% 100%; background-repeat: repeat-x; background-position-x: 50%; background-position-y: center; transition: background-position 0.3s ease;">
+        <div style="position: absolute; top: 0; left: 50%; width: 2px; height: 100%; background: rgba(255,152,0,0.8); transform: translateX(-50%); pointer-events: none;"></div>
+        <div style="position: absolute; top: 5px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: #FF9800; padding: 2px 6px; font-size: 11px; font-weight: bold; border-radius: 4px; pointer-events: none; white-space: nowrap;">正面 (Front)</div>
+      </div>
     </div>
   </div>
 
@@ -93,6 +98,9 @@
     svg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
     let isEditorPanning = false;
     let lastPanClientX = 0, lastPanClientY = 0;
+
+    // 写真のローカルURLを保持するマップ
+    const fileUrlMap = {};
 
     const snap = (val) => Math.round(val / GRID_SIZE) * GRID_SIZE;
     const getSVGPoint = (evt) => {
@@ -138,6 +146,7 @@
     function deselectAll() {
       state.selectedObjs.forEach(g => g.classList.remove('selected')); state.selectedObjs = [];
       document.getElementById('properties').style.display = 'none';
+      document.getElementById('preview-wrapper').style.display = 'none';
       if (state.mode === 'select') state.linkSource = null;
     }
 
@@ -145,10 +154,33 @@
       const cams = state.selectedObjs.filter(g => g.dataset.type === 'camera');
       if (state.selectedObjs.length === 1 && cams.length === 1) {
         document.getElementById('properties').style.display = 'flex';
-        document.getElementById('prop-img').value = cams[0].dataset.img || '';
-        document.getElementById('prop-name').value = cams[0].dataset.name || '';
-        document.getElementById('prop-rot').value = cams[0].dataset.rot || '0';
-      } else { document.getElementById('properties').style.display = 'none'; }
+        document.getElementById('preview-wrapper').style.display = 'block';
+
+        const cam = cams[0];
+        document.getElementById('prop-img').value = cam.dataset.img || '';
+        document.getElementById('prop-name').value = cam.dataset.name || '';
+        document.getElementById('prop-rot').value = cam.dataset.rot || '0';
+
+        updatePreview(cam.dataset.img, cam.dataset.rot);
+      } else { 
+        document.getElementById('properties').style.display = 'none'; 
+        document.getElementById('preview-wrapper').style.display = 'none';
+      }
+    }
+
+    function updatePreview(imgFile, rot) {
+      const wrapper = document.getElementById('preview-wrapper');
+      if (imgFile) {
+         // ローカル読み込みURLがあれば優先し、なければファイル名そのまま（同階層を想定）
+         const src = fileUrlMap[imgFile] ? fileUrlMap[imgFile] : imgFile;
+         wrapper.style.backgroundImage = `url('${src}')`;
+      } else {
+         wrapper.style.backgroundImage = 'none';
+      }
+      
+      const r = parseFloat(rot) || 0;
+      // プレビューの背景位置を計算 (90度ごとに100%分左へスライドさせ、無限にループさせる)
+      wrapper.style.backgroundPositionX = `calc(50% - ${(r / 90) * 100}%)`;
     }
 
     function updateCameraProp(key) {
@@ -158,11 +190,24 @@
            const textEl = state.selectedObjs[0].querySelector('text');
            if (textEl) { const numMatch = val.match(/\d+/); textEl.textContent = numMatch ? numMatch[0] : val.substring(0, 3); }
         }
+        if (key === 'img' || key === 'rot') {
+           updatePreview(state.selectedObjs[0].dataset.img, state.selectedObjs[0].dataset.rot);
+        }
       }
     }
 
     function handleImagePick(e) {
-      if (e.target.files.length > 0) { document.getElementById('prop-img').value = e.target.files[0].name; updateCameraProp('img'); e.target.value = ''; }
+      if (e.target.files.length > 0) { 
+        const file = e.target.files[0];
+        const fileName = file.name;
+        
+        // ファイルをプレビュー用にブラウザメモリに一時保存
+        fileUrlMap[fileName] = URL.createObjectURL(file);
+        
+        document.getElementById('prop-img').value = fileName; 
+        updateCameraProp('img'); 
+        e.target.value = ''; 
+      }
     }
 
     function deleteSelected() {
@@ -179,7 +224,6 @@
 
     // --- エディタ画面のパン（移動）処理 ---
     workspace.addEventListener('mousedown', (e) => {
-      // 中ボタンクリック、またはAltキー＋左クリックでパン開始
       if (e.button === 1 || (e.button === 0 && e.altKey)) {
         isEditorPanning = true;
         lastPanClientX = e.clientX;
@@ -205,7 +249,7 @@
 
     document.getElementById('bg-rect').addEventListener('mousedown', (e) => {
       if (state.mode === 'link') return;
-      if (e.button === 1 || (e.button === 0 && e.altKey)) return; // パン操作時は選択しない
+      if (e.button === 1 || (e.button === 0 && e.altKey)) return; 
       deselectAll(); const pt = getSVGPoint(e);
       selectionBox.active = true; selectionBox.startX = pt.x; selectionBox.startY = pt.y;
       selectionBox.el.setAttribute('x', pt.x); selectionBox.el.setAttribute('y', pt.y);
@@ -214,7 +258,7 @@
 
     function setupInteractions(g) {
       g.addEventListener('mousedown', (e) => {
-        if (e.button === 1 || (e.button === 0 && e.altKey)) return; // パン操作時は無視
+        if (e.button === 1 || (e.button === 0 && e.altKey)) return; 
         e.stopPropagation();
         if (state.mode === 'link' && g.dataset.type === 'camera') {
           if (!state.linkSource) { state.linkSource = g; g.classList.add('selected'); }
@@ -272,7 +316,6 @@
         const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
 
-        // パン
         const panDx = cx - lastTouchCX;
         const panDy = cy - lastTouchCY;
         const ratioX = vbW / workspace.clientWidth;
@@ -280,7 +323,6 @@
         vbX -= panDx * ratioX;
         vbY -= panDy * ratioY;
 
-        // ズーム
         let pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy;
         pt = pt.matrixTransform(svg.getScreenCTM().inverse());
         vbW *= zoom; vbH *= zoom;
@@ -434,7 +476,6 @@
           const sphereX = (Math.sin(angleRad) * distance).toFixed(2); 
           const sphereZ = (-Math.cos(angleRad) * distance).toFixed(2);
           
-          // 【修正箇所】配置角(時計回り)をA-Frameの回転系(反時計回り)に補正
           const rotY = (360 - angleDeg).toFixed(2); 
           const textRotY = (360 - angleDeg).toFixed(2); 
           
