@@ -3,126 +3,221 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>2桁×2桁のかけ算（ひっ算）</title>
+<title>計算機入力の学習（2桁×2桁筆算）</title>
 <style>
+    /* 画面全体（黒い余白部分） */
     html, body {
         height: 100%;
-        overflow: hidden;
-        position: fixed;
         width: 100%;
-    }
-    body {
-        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        overflow: hidden;
         margin: 0;
-        padding: 10px;
+        padding: 0;
+        background-color: #222; /* 画面外のレターボックス色 */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* デバイスサイズに合わせて伸縮するラッパー */
+    #canvas-wrapper {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    /* 内部の仮想キャンバス（BASICでいう固定解像度の画面: 1024x768） */
+    .app-body {
+        width: 1024px;   /* 論理的な横幅（固定） */
+        height: 768px;   /* 論理的な縦幅（固定・4:3） */
         background-color: #ffffff;
+        position: relative;
+        transform-origin: center center; /* 中央を基準に拡縮 */
+        padding: 20px;
+        box-sizing: border-box;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         color: #333;
         touch-action: none;
-        box-sizing: border-box;
         user-select: none;
         -webkit-user-select: none;
     }
     
+    /* スタート画面のスタイル */
     .start-screen {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         background-color: #f0f8ff;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         z-index: 10000;
+        border-radius: 10px;
     }
-    .start-screen h1 { font-size: 3rem; color: #2c3e50; margin-bottom: 40px; }
+    .start-screen h1 {
+        font-size: 3rem;
+        color: #2c3e50;
+        margin-bottom: 40px;
+    }
     .start-btn {
-        padding: 20px 60px; font-size: 2.5rem; font-weight: bold; color: #fff;
-        background-color: #3498db; border: none; border-radius: 15px;
-        cursor: pointer; box-shadow: 0 8px 0 #2980b9;
+        padding: 20px 60px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #3498db;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        box-shadow: 0 8px 0 #2980b9;
         transition: transform 0.1s, box-shadow 0.1s;
         -webkit-tap-highlight-color: transparent;
     }
-    .start-btn:active { transform: translateY(8px); box-shadow: none; }
-
-    .status-bar { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; color: #555; }
-    
-    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .toggle-group { display: flex; gap: 15px; }
-    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
-    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
-    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; touch-action: manipulation; }
-
-    .problem-container {
-        display: flex; flex-direction: row; width: 100%; max-width: 1100px;
-        margin: 0 auto; align-items: flex-start; justify-content: center; gap: 30px;
+    .start-btn:active {
+        transform: translateY(8px);
+        box-shadow: none;
     }
 
-    /* ひっ算エリア構造 */
-    .hissan-wrapper {
+    /* 上部ステータスバーと問題文のスタイル */
+    .status-bar {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #555;
+    }
+    .question-title {
+        font-size: 1.6rem;
+        font-weight: normal;
+        margin-bottom: 15px;
+        margin-top: 0;
+    }
+
+    .answer-area {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        margin-top: 15px;
+        gap: 30px;
+    }
+
+    /* === Gridレイアウトに変更した行のスタイル === */
+    .grid-row {
         display: grid;
-        grid-template-columns: 60px 70px 70px 70px 70px; /* ×, 千, 百, 十, 一 */
-        grid-template-rows: repeat(8, auto);
-        row-gap: 5px; column-gap: 10px;
-        align-items: center; justify-items: center;
-        font-size: 4rem; font-weight: bold;
-        background-color: #f9f9f9; padding: 20px;
-        border-radius: 12px; border: 2px solid #eee;
+        grid-template-columns: repeat(5, 65px) auto;
+        gap: 5px;
+        place-items: center;
+        margin-bottom: 5px;
     }
-
-    .hissan-line { grid-column: 1 / span 5; width: 100%; height: 4px; background-color: #333; }
-
-    .memo-zone {
-        width: 40px; height: 40px; border: 2px dashed #e74c3c;
-        background-color: #fff5f5; border-radius: 6px;
-        display: flex; justify-content: center; align-items: center;
-        font-size: 2rem; font-weight: bold; cursor: pointer; color: #e74c3c;
-    }
-
+    
+    /* ドロップゾーン（□の枠） */
     .drop-zone {
-        width: 65px; height: 80px; border: 3px dashed #3498db;
-        background-color: #f0f8ff; border-radius: 10px;
-        display: flex; justify-content: center; align-items: center;
-        font-size: 4rem; font-weight: bold; cursor: pointer; color: #333;
+        width: 65px; 
+        height: 65px; 
+        border: 2px dashed #3498db;
+        background-color: #f0f8ff;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2.5rem; 
+        font-weight: bold;
+        cursor: pointer;
+        color: #333;
     }
 
-    /* 右側パネル */
-    .right-panel { display: flex; flex-direction: column; flex: 1; max-width: 450px; }
-    .hint-wrapper { min-height: 280px; margin-bottom: 20px; }
+    /* 繰り上がりメモ用の小さな赤い枠 */
+    .drop-zone.small {
+        width: 30px;
+        height: 30px;
+        border: 2px dashed #e74c3c;
+        background-color: #fff0f0;
+        border-radius: 6px;
+        font-size: 1.5rem;
+        color: #e74c3c;
+    }
+    
+    /* 右側パネルとヒント (303.htmlより移植) */
+    .right-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        max-width: 450px;
+    }
+    .hint-wrapper {
+        min-height: 250px;
+        margin-bottom: 15px;
+    }
     .hint-line {
-        display: flex; align-items: center; gap: 10px; font-size: 2.5rem;
-        font-weight: bold; color: #333; opacity: 0; transform: translateX(-20px);
-        transition: all 0.3s; margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+        opacity: 0;
+        transform: translateX(-20px);
+        transition: all 0.3s;
+        margin-bottom: 10px;
     }
-    .hint-line.show { opacity: 1; transform: translateX(0); }
-
+    .hint-line.show {
+        opacity: 1;
+        transform: translateX(0);
+    }
     .circle {
-        display: inline-flex; justify-content: center; align-items: center;
-        width: 40px; height: 40px; border-radius: 50%; color: white; font-size: 2rem;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        color: white;
+        font-size: 1.5rem;
     }
     .circle.pink { background-color: #ff7675; }
     .circle.green { background-color: #55efc4; color: #2d3436; }
     .text-blue { color: #0984e3; }
 
-    .clickable-digit { cursor: pointer; border-bottom: 5px dashed; transition: transform 0.1s, color 0.3s; }
-    .clickable-digit:active { transform: scale(0.9); }
-    
+    .clickable-digit {
+        cursor: pointer;
+        border-bottom: 4px dashed;
+        transition: transform 0.1s, color 0.3s;
+    }
+    .clickable-digit:active {
+        transform: scale(0.9);
+    }
+
     /* 判定ボタン */
     .check-btn {
-        width: auto;
-        padding: 0 40px;
-        height: 90px;
-        font-size: 2.2rem;
+        width: 180px;
+        height: 70px; 
+        font-size: 1.5rem;
+        font-weight: bold;
         cursor: pointer;
         border: 2px solid #00bfff;
         background-color: #00bfff;
-        color: #fff;
-        font-weight: bold;
+        color: #ffffff;
         border-radius: 10px;
+        font-family: inherit;
         outline: none;
-        box-shadow: 0 5px 0 #0088cc;
+        box-shadow: 0 4px 0 #0088cc;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
-        white-space: nowrap;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 5px;
+        transition: background-color 0.2s, box-shadow 0.2s;
         align-self: flex-start;
     }
     .check-btn:active {
-        transform: translateY(5px);
+        transform: translateY(4px);
         box-shadow: none;
     }
     .check-btn:disabled {
@@ -133,7 +228,7 @@
     }
 
     .judge-overlay {
-        position: fixed;
+        position: absolute; 
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%) scale(0.7);
@@ -141,7 +236,7 @@
         visibility: hidden;
         background-color: transparent;
         color: #ff3333;
-        font-size: 7rem;
+        font-size: 6rem;
         font-weight: bold;
         padding: 30px 60px;
         -webkit-text-stroke: 3px #000;
@@ -149,395 +244,655 @@
         z-index: 9999;
         pointer-events: none;
         transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
-        white-space: nowrap; 
+        white-space: nowrap;
     }
-    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
-    .judge-overlay.incorrect { color: #3366ff; }
+    .judge-overlay.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1.0);
+    }
+    .judge-overlay.incorrect {
+        color: #3366ff;
+    }
     
-    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
+    .clear-message {
+        text-align: center;
+        margin-top: 20px;
+        padding: 25px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        border: 2px solid #a0c4ff;
+    }
     .clear-message h2 { font-size: 2rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
     .final-result-details { font-size: 1.4rem; color: #333; line-height: 1.8; }
-    .menu-btn, .retry-btn { margin-top: 20px; padding: 12px 30px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; outline: none; touch-action: manipulation; text-decoration: none; display: inline-block; font-weight: bold;}
+    
+    .menu-btn, .retry-btn {
+        margin-top: 20px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        outline: none;
+        touch-action: manipulation;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: bold;
+    }
     .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
     .menu-btn { background-color: #95a5a6; color: #fff; }
-
-    /* 計算機 */
-    .pieces-container {
-        display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background: #ecf0f1; padding: 20px; border-radius: 12px;
-        grid-template-columns: repeat(3, 1fr); gap: 10px; z-index: 2000;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    }
-    .piece {
-        width: 70px; height: 70px; background: #f1c40f; border-radius: 10px;
-        display: flex; justify-content: center; align-items: center; font-size: 2rem;
-        font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #d4ac0d;
-        color: #2c3e50; border: 2px solid #2c3e50;
-    }
-    .piece:active { transform: translateY(2px); box-shadow: none; }
-    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.4rem; }
-    .piece.enter-btn { background-color: #95a5a6; color: white; border-color: #7f8c8d; box-shadow: 0 4px 0 #7f8c8d; font-size: 1.4rem; }
     
-    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1500; }
+    .top-nav {
+        display: flex;
+        justify-content: space-between; 
+        align-items: center;            
+        margin-bottom: 5px;
+    }
+    .toggle-group {
+        display: flex;
+        gap: 15px;
+    }
+    .settings-toggle {
+        font-size: 1.1rem;
+        color: #555;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .settings-toggle input {
+        transform: scale(1.3);
+        margin-right: 8px;
+        cursor: pointer;
+    }
+    .back-btn {
+        padding: 8px 15px;
+        background-color: #ecf0f1;
+        border: 1px solid #bdc3c7;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #2c3e50;
+        font-size: 0.9rem;
+        touch-action: manipulation;
+    }
+
+    /* 計算機パネルとオーバーレイ */
+    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
+    .pieces-container:active { cursor: grabbing; }
+    
+    .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
+    .piece:active { transform: translateY(4px); box-shadow: none; }
+    
+    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
+    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
+    
+    .overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; border-radius: 10px; }
 </style>
 </head>
 <body>
 
-<div id="start-screen" class="start-screen">
-    <h1>2桁×2桁のひっ算</h1>
-    <button id="start-btn" class="start-btn">スタート</button>
-        <div style="margin-top: 30px; text-align: center;">
-            <a href="view.html" class="menu-btn" style="background-color: #2ecc71; margin-right: 15px;">今までの履歴を見る</a>
-            <a href="index.html" class="menu-btn" style="background-color: #95a5a6;">メニューへ戻る</a>
-        </div>
-</div>
+    <div id="canvas-wrapper">
+        <div class="app-body">
 
-<div id="main-content" style="display: none;">
-    <div class="top-nav">
-        <div class="toggle-group">
-            <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
-            <label class="settings-toggle"><input type="checkbox" id="sound-checkbox" checked> 効果音ON</label>
+            <div id="start-screen" class="start-screen">
+                <h1>計算機入力の学習</h1>
+                <button id="start-btn" class="start-btn">スタート</button>
+                <div style="margin-top: 30px; text-align: center;">
+                    <a href="view.html" class="menu-btn" style="background-color: #2ecc71; margin-right: 15px;">今までの履歴を見る</a>
+                    <a href="index.html" class="menu-btn" style="background-color: #95a5a6;">メニューへ戻る</a>
+                </div>
+            </div>
+
+            <div id="main-content" style="display: none;">
+                <div class="top-nav">
+                    <div class="toggle-group">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="speech-checkbox" checked>
+                            スピーチON
+                        </label>
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="sound-checkbox" checked>
+                            効果音ON
+                        </label>
+                    </div>
+                    <a href="index.html" class="back-btn">メニューへ戻る</a>
+                </div>
+                
+                <div id="status-bar" class="status-bar"></div>
+                <h1 class="question-title">・ つぎのかけ算を求めましょう！</h1>
+                
+                <div id="app"></div>
+                
+                <div id="judge-overlay" class="judge-overlay"></div>
+
+                <div class="overlay" id="overlay"></div>
+                <div class="pieces-container" id="calc-container"></div>
+            </div>
+
         </div>
-        <a href="index.html" class="back-btn">メニューへ戻る</a>
     </div>
-    
-    <div id="status-bar" class="status-bar"></div>
-    <h1 class="question-title">・ つぎのかけ算を求めましょう！</h1>
-    
-    <div id="app"></div>
-    <div id="judge-overlay" class="judge-overlay"></div>
-    <div class="overlay" id="overlay"></div>
-    <div class="pieces-container" id="calc-container"></div>
-</div>
 
-<script>
-    const okSound = new Audio('ok.mp3');
-    const ngSound = new Audio('ng.mp3');
-    const qSound = new Audio('q.mp3');
-    
-    function speak(text) {
-        if (!document.getElementById('speech-checkbox').checked) return;
-        window.speechSynthesis.cancel();
-        const ut = new SpeechSynthesisUtterance(text);
-        ut.lang = 'ja-JP';
-        window.speechSynthesis.speak(ut);
-    }
-
-    const numberReadings = [
-        "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう"
-    ];
-
-    const kukuReadings = {
-        1: { 1: ["いんいちが", "いち"], 2: ["いんにが", "に"], 3: ["いんさんが", "さん"], 4: ["いんしが", "し"], 5: ["いんごが", "ご"], 6: ["いんろくが", "ろく"], 7: ["いんしちが", "しち"], 8: ["いんはちが", "はち"], 9: ["いんくが", "く"] },
-        2: { 1: ["にいちが", "に"], 2: ["ににんが", "し"], 3: ["にさんが", "ろく"], 4: ["にしが", "はち"], 5: ["にご", "じゅう"], 6: ["にろく", "じゅうに"], 7: ["にしち", "じゅうし"], 8: ["にはち", "じゅうろく"], 9: ["にく", "じゅうはち"] },
-        3: { 1: ["さんいちが", "さん"], 2: ["さんにが", "ろく"], 3: ["さざんが", "きゅう"], 4: ["さんし", "じゅうに"], 5: ["さんご", "じゅうご"], 6: ["さぶろく", "じゅうはち"], 7: ["さんしち", "にじゅういち"], 8: ["さんぱ", "にじゅうし"], 9: ["さんく", "にじゅうしち"] },
-        4: { 1: ["しいちが", "し"], 2: ["しにが", "はち"], 3: ["しさん", "じゅうに"], 4: ["しし", "じゅうろく"], 5: ["しご", "にじゅう"], 6: ["しろく", "にじゅうし"], 7: ["ししち", "にじゅうはち"], 8: ["しはち", "さんじゅうに"], 9: ["しく", "さんじゅうろく"] },
-        5: { 1: ["ごいちが", "ご"], 2: ["ごに", "じゅう"], 3: ["ごさん", "じゅうご"], 4: ["ごし", "にじゅう"], 5: ["ごご", "にじゅうご"], 6: ["ごろく", "さんじゅう"], 7: ["ごしち", "さんじゅうご"], 8: ["ごはち", "よんじゅう"], 9: ["ごっく", "しじゅうご"] },
-        6: { 1: ["ろくいちが", "ろく"], 2: ["ろくに", "じゅうに"], 3: ["ろくさん", "じゅうはち"], 4: ["ろくし", "にじゅうし"], 5: ["ろくご", "さんじゅう"], 6: ["ろくろく", "さんじゅうろく"], 7: ["ろくしち", "しじゅうに"], 8: ["ろくはち", "しじゅうはち"], 9: ["ろっく", "ごじゅうし"] },
-        7: { 1: ["しちいちが", "しち"], 2: ["しちに", "じゅうし"], 3: ["しちさん", "にじゅういち"], 4: ["しちし", "にじゅうはち"], 5: ["しちご", "さんじゅうご"], 6: ["しちろく", "しじゅうに"], 7: ["しちしち", "しじゅうく"], 8: ["しちは", "ごじゅうろく"], 9: ["しちく", "ろくじゅうさん"] },
-        8: { 1: ["はちいちが", "はち"], 2: ["はちに", "じゅうろく"], 3: ["はちさん", "にじゅうし"], 4: ["はちし", "さんじゅうに"], 5: ["はちご", "よんじゅう"], 6: ["はちろく", "しじゅうはち"], 7: ["はちしち", "ごじゅうろく"], 8: ["はっぱ", "ろくじゅうし"], 9: ["はっく", "しちじゅうに"] },
-        9: { 1: ["くいちが", "く"], 2: ["くに", "じゅうはち"], 3: ["くさん", "にじゅうしち"], 4: ["くし", "さんじゅうろく"], 5: ["くご", "しじゅうご"], 6: ["くろく", "ごじゅうし"], 7: ["くしち", "ろくじゅうさん"], 8: ["くはち", "しちじゅうに"], 9: ["くく", "はちじゅういち"] }
-    };
-
-    function playKuku(n1, n2) {
-        if (n1 === 0 || n2 === 0) {
-            speak("ぜろ");
-        } else {
-            const yomi1 = kukuReadings[n1][n2][0];
-            const yomi2 = kukuReadings[n1][n2][1];
-            speak(`${yomi1}、${yomi2}`);
+    <script>
+        // === 仮想キャンバスの自動スケール処理 ===
+        let currentScale = 1;
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const appBody = document.querySelector('.app-body');
+            const scaleX = wrapper.clientWidth / 1024;
+            const scaleY = wrapper.clientHeight / 768;
+            currentScale = Math.min(scaleX, scaleY);
+            appBody.style.transform = `scale(${currentScale})`;
         }
-    }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-    let activeInput = null;
-    const calcContainer = document.getElementById('calc-container');
-    const overlay = document.getElementById('overlay');
+        // 音声ファイル（mp3）のセットアップ
+        const okSound = new Audio('ok.mp3');
+        const ngSound = new Audio('ng.mp3');
+        const qSound = new Audio('q.mp3');
 
-    // 計算機キー作成
-    ['7','8','9','4','5','6','1','2','3','0','削除','閉じる'].forEach(key => {
-        const div = document.createElement('div');
-        div.className = 'piece'; 
-        div.textContent = key;
-        
-        if (key === '削除') {
-            div.classList.add('delete-btn');
-        } else if (key === '閉じる') {
-            div.classList.add('enter-btn');
+        function speak(text) {
+            const speechCheckbox = document.getElementById('speech-checkbox');
+            if (speechCheckbox && !speechCheckbox.checked) return; 
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
         }
 
-        div.onclick = () => {
-            if(!activeInput) return;
-            if(key === '削除') {
-                activeInput.textContent = '';
-            } else if(key === '閉じる') { 
-                calcContainer.style.display = 'none'; 
-                overlay.style.display = 'none'; 
-            } else { 
-                activeInput.textContent = key; 
-                const parsedVal = parseInt(key, 10);
-                if (parsedVal >= 0 && parsedVal <= 9) {
-                    speak(numberReadings[parsedVal]);
-                } else {
-                    speak(key);
-                }
-                calcContainer.style.display = 'none'; 
-                overlay.style.display = 'none'; 
+        const numberReadings = [
+            "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
+            "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
+        ];
+
+        const kukuReadings = {
+            1: { 1: ["いんいちが", "いち"], 2: ["いんにが", "に"], 3: ["いんさんが", "さん"], 4: ["いんしが", "し"], 5: ["いんごが", "ご"], 6: ["いんろくが", "ろく"], 7: ["いんしちが", "しち"], 8: ["いんはちが", "はち"], 9: ["いんくが", "く"] },
+            2: { 1: ["にいちが", "に"], 2: ["ににんが", "し"], 3: ["にさんが", "ろく"], 4: ["にしが", "はち"], 5: ["にご", "じゅう"], 6: ["にろく", "じゅうに"], 7: ["にしち", "じゅうし"], 8: ["にはち", "じゅうろく"], 9: ["にく", "じゅうはち"] },
+            3: { 1: ["さんいちが", "さん"], 2: ["さんにが", "ろく"], 3: ["さざんが", "きゅう"], 4: ["さんし", "じゅうに"], 5: ["さんご", "じゅうご"], 6: ["さぶろく", "じゅうはち"], 7: ["さんしち", "にじゅういち"], 8: ["さんぱ", "にじゅうし"], 9: ["さんく", "にじゅうしち"] },
+            4: { 1: ["しいちが", "し"], 2: ["しにが", "はち"], 3: ["しさん", "じゅうに"], 4: ["しし", "じゅうろく"], 5: ["しご", "にじゅう"], 6: ["しろく", "にじゅうし"], 7: ["ししち", "にじゅうはち"], 8: ["しはち", "さんじゅうに"], 9: ["しく", "さんじゅうろく"] },
+            5: { 1: ["ごいちが", "ご"], 2: ["ごに", "じゅう"], 3: ["ごさん", "じゅうご"], 4: ["ごし", "にじゅう"], 5: ["ごご", "にじゅうご"], 6: ["ごろく", "さんじゅう"], 7: ["ごしち", "さんじゅうご"], 8: ["ごはち", "よんじゅう"], 9: ["ごっく", "しじゅうご"] },
+            6: { 1: ["ろくいちが", "ろく"], 2: ["ろくに", "じゅうに"], 3: ["ろくさん", "じゅうはち"], 4: ["ろくし", "にじゅうし"], 5: ["ろくご", "さんじゅう"], 6: ["ろくろく", "さんじゅうろく"], 7: ["ろくしち", "しじゅうに"], 8: ["ろくはち", "しじゅうはち"], 9: ["ろっく", "ごじゅうし"] },
+            7: { 1: ["しちいちが", "しち"], 2: ["しちに", "じゅうし"], 3: ["しちさん", "にじゅういち"], 4: ["しちし", "にじゅうはち"], 5: ["しちご", "さんじゅうご"], 6: ["しちろく", "しじゅうに"], 7: ["しちしち", "しじゅうく"], 8: ["しちは", "ごじゅうろく"], 9: ["しちく", "ろくじゅうさん"] },
+            8: { 1: ["はちいちが", "はち"], 2: ["はちに", "じゅうろく"], 3: ["はちさん", "にじゅうし"], 4: ["はちし", "さんじゅうに"], 5: ["はちご", "よんじゅう"], 6: ["はちろく", "しじゅうはち"], 7: ["はちしち", "ごじゅうろく"], 8: ["はっぱ", "ろくじゅうし"], 9: ["はっく", "しちじゅうに"] },
+            9: { 1: ["くいちが", "く"], 2: ["くに", "じゅうはち"], 3: ["くさん", "にじゅうしち"], 4: ["くし", "さんじゅうろく"], 5: ["くご", "しじゅうご"], 6: ["くろく", "ごじゅうし"], 7: ["くしち", "ろくじゅうさん"], 8: ["くはち", "しちじゅうに"], 9: ["くく", "はちじゅういち"] }
+        };
+
+        function playKuku(n1, n2) {
+            if (n1 === 0 || n2 === 0) {
+                speak("ぜろ");
+            } else {
+                const yomi1 = kukuReadings[n1][n2][0];
+                const yomi2 = kukuReadings[n1][n2][1];
+                speak(`${yomi1}、${yomi2}`);
             }
-        };
-        calcContainer.appendChild(div);
-    });
-
-    overlay.onclick = () => { calcContainer.style.display = 'none'; overlay.style.display = 'none'; activeInput = null; };
-
-    let isCalcDragging = false;
-    let calcDragStartX, calcDragStartY, calcInitialLeft, calcInitialTop;
-
-    function startCalcDrag(e) {
-        if (e.target.classList.contains('piece')) return;
-        isCalcDragging = true;
-        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        calcDragStartX = clientX;
-        calcDragStartY = clientY;
-        let style = window.getComputedStyle(calcContainer);
-        calcInitialLeft = parseFloat(style.left);
-        calcInitialTop = parseFloat(style.top);
-    }
-
-    function doCalcDrag(e) {
-        if (!isCalcDragging) return;
-        e.preventDefault();
-        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        let dx = clientX - calcDragStartX;
-        let dy = clientY - calcDragStartY;
-        calcContainer.style.left = (calcInitialLeft + dx) + 'px';
-        calcContainer.style.top = (calcInitialTop + dy) + 'px';
-    }
-
-    function stopCalcDrag() {
-        isCalcDragging = false;
-    }
-
-    calcContainer.addEventListener('mousedown', startCalcDrag);
-    document.addEventListener('mousemove', doCalcDrag, { passive: false });
-    document.addEventListener('mouseup', stopCalcDrag);
-    calcContainer.addEventListener('touchstart', startCalcDrag, { passive: false });
-    document.addEventListener('touchmove', doCalcDrag, { passive: false });
-    document.addEventListener('touchend', stopCalcDrag);
-
-    let currentIndex = 0;
-    let mistakeCount = 0;
-    const problems = [];
-    while(problems.length < 10) {
-        let n1 = Math.floor(Math.random() * 90) + 10;
-        let n2 = Math.floor(Math.random() * 90) + 10;
-        problems.push({n1, n2});
-    }
-
-    function formatTime(date) {
-        return date.getHours().toString().padStart(2, '0') + ':' + 
-               date.getMinutes().toString().padStart(2, '0') + ':' + 
-               date.getSeconds().toString().padStart(2, '0');
-    }
-
-    let problemStartTime;
-
-    function renderProblem() {
-        const app = document.getElementById('app');
-        app.innerHTML = '';
-        problemStartTime = new Date();
-
-        if(currentIndex >= 10) {
-            document.getElementById('status-bar').style.display = 'none';
-            const clearMsg = document.createElement('div');
-            clearMsg.className = 'clear-message';
-            
-            let htmlContent = `<h2>全10問合格！！</h2>`;
-            htmlContent += `<div class="final-result-details">`;
-            htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
-            if (mistakeCount === 0) {
-                htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
-            }
-            htmlContent += `</div>`;
-            htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
-            htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
-            
-            clearMsg.innerHTML = htmlContent;
-            app.appendChild(clearMsg);
-            speak("ぜんもんごうかくです。おつかれさまでした。");
-            return;
         }
 
-        document.getElementById('status-bar').style.display = 'block';
-        document.getElementById('status-bar').textContent = `第 ${currentIndex+1} 問 / 10問`;
-        
-        const p = problems[currentIndex];
-        const n1S = p.n1.toString();
-        const n2S = p.n2.toString();
+        /* ==========================================
+           計算機パネルの構築とロジック
+           ========================================== */
+        const overlay = document.getElementById('overlay');
+        const calcContainer = document.getElementById('calc-container');
+        let activeInputBox = null;
+        let baseValue = 0; 
 
-        speak(`つぎのかけざんをもとめましょう。${p.n1} かける ${p.n2} は`);
-        
-        const soundCheckbox = document.getElementById('sound-checkbox');
-        if (soundCheckbox && soundCheckbox.checked) {
-            qSound.currentTime = 0; qSound.play().catch(e => {});
-        }
+        const calcKeys = [
+            '7', '8', '9',
+            '4', '5', '6',
+            '1', '2', '3',
+            '0', '削除', '+10'
+        ];
 
-        const container = document.createElement('div');
-        container.className = 'problem-container';
-
-        // --- 左側：ひっ算 ---
-        const hissan = document.createElement('div');
-        hissan.className = 'hissan-wrapper';
-
-        // 1行目: かけられる数
-        const n1_10 = document.createElement('div'); n1_10.textContent = n1S[0]; n1_10.style.gridColumn = '4';
-        const n1_1 = document.createElement('div'); n1_1.textContent = n1S[1]; n1_1.style.gridColumn = '5';
-        hissan.append(n1_10, n1_1);
-
-        // 2行目: ×記号とかける数
-        const op = document.createElement('div'); op.textContent = '×'; op.style.gridColumn = '1'; op.style.color = '#555';
-        const n2_10 = document.createElement('div'); n2_10.textContent = n2S[0]; n2_10.className='clickable-digit'; n2_10.style.gridColumn='4'; n2_10.style.borderBottomColor='#55efc4';
-        const n2_1 = document.createElement('div'); n2_1.textContent = n2S[1]; n2_1.className='clickable-digit'; n2_1.style.gridColumn='5'; n2_1.style.borderBottomColor='#ff7675';
-        hissan.append(op, n2_10, n2_1);
-
-        // 3行目: 線
-        const l1 = document.createElement('div'); l1.className='hissan-line'; hissan.append(l1);
-
-        // 4段目：1段目メモ
-        const m1 = document.createElement('div'); m1.className='memo-zone'; m1.style.gridColumn='4';
-        m1.onclick = () => { activeInput = m1; calcContainer.style.display='grid'; overlay.style.display='block'; };
-        hissan.append(m1);
-
-        // 5段目：1段目途中式
-        const a1_100 = document.createElement('div'); a1_100.className='drop-zone'; a1_100.style.gridColumn='3';
-        const a1_10 = document.createElement('div'); a1_10.className='drop-zone'; a1_10.style.gridColumn='4';
-        const a1_1 = document.createElement('div'); a1_1.className='drop-zone'; a1_1.style.gridColumn='5';
-        [a1_100, a1_10, a1_1].forEach(d => d.onclick = () => { activeInput = d; calcContainer.style.display='grid'; overlay.style.display='block'; });
-        hissan.append(a1_100, a1_10, a1_1);
-
-        // 6段目：2段目メモ
-        const m2 = document.createElement('div'); m2.className='memo-zone'; m2.style.gridColumn='3';
-        m2.onclick = () => { activeInput = m2; calcContainer.style.display='grid'; overlay.style.display='block'; };
-        hissan.append(m2);
-
-        // 7段目：2段目途中式
-        const a2_1000 = document.createElement('div'); a2_1000.className='drop-zone'; a2_1000.style.gridColumn='2';
-        const a2_100 = document.createElement('div'); a2_100.className='drop-zone'; a2_100.style.gridColumn='3';
-        const a2_10 = document.createElement('div'); a2_10.className='drop-zone'; a2_10.style.gridColumn='4';
-        const zero = document.createElement('div'); zero.textContent='0'; zero.style.gridColumn='5'; zero.style.color='#ccc';
-        [a2_1000, a2_100, a2_10].forEach(d => d.onclick = () => { activeInput = d; calcContainer.style.display='grid'; overlay.style.display='block'; });
-        hissan.append(a2_1000, a2_100, a2_10, zero);
-
-        // 8行目: 線
-        const l2 = document.createElement('div'); l2.className='hissan-line'; hissan.append(l2);
-
-        // 9段目：合計答え
-        const f1000 = document.createElement('div'); f1000.className='drop-zone'; f1000.style.gridColumn='2'; f1000.id = 'ans-box-0';
-        const f100 = document.createElement('div'); f100.className='drop-zone'; f100.style.gridColumn='3'; f100.id = 'ans-box-1';
-        const f10 = document.createElement('div'); f10.className='drop-zone'; f10.style.gridColumn='4'; f10.id = 'ans-box-2';
-        const f1 = document.createElement('div'); f1.className='drop-zone'; f1.style.gridColumn='5'; f1.id = 'ans-box-3';
-        [f1000, f100, f10, f1].forEach(d => d.onclick = () => { activeInput = d; calcContainer.style.display='grid'; overlay.style.display='block'; });
-        hissan.append(f1000, f100, f10, f1);
-
-        // --- 右側：パネル ---
-        const right = document.createElement('div');
-        right.className = 'right-panel';
-        
-        const hintWrap = document.createElement('div');
-        hintWrap.className = 'hint-wrapper';
-        
-        const n1OnesVal = parseInt(n1S[1]);
-        const n1TensVal = parseInt(n1S[0]);
-        const n2OnesVal = parseInt(n2S[1]);
-        const n2TensVal = parseInt(n2S[0]);
-
-        const h1 = document.createElement('div'); h1.className='hint-line';
-        h1.innerHTML = `<div class="circle pink">${n1OnesVal}</div> <span>×</span> <span class="text-blue">${n2OnesVal}</span> <span>=</span> <span>${n1OnesVal * n2OnesVal}</span>`;
-        const h2 = document.createElement('div'); h2.className='hint-line';
-        h2.innerHTML = `<div class="circle pink">${n1TensVal}</div> <span>×</span> <span class="text-blue">${n2OnesVal}</span> <span>=</span> <span>${n1TensVal * n2OnesVal}</span>`;
-        
-        const h3 = document.createElement('div'); h3.className='hint-line';
-        h3.innerHTML = `<div class="circle green">${n1OnesVal}</div> <span>×</span> <span class="text-blue">${n2TensVal}</span> <span>=</span> <span>${n1OnesVal * n2TensVal}</span>`;
-        const h4 = document.createElement('div'); h4.className='hint-line';
-        h4.innerHTML = `<div class="circle green">${n1TensVal}</div> <span>×</span> <span class="text-blue">${n2TensVal}</span> <span>=</span> <span>${n1TensVal * n2TensVal}</span>`;
-        hintWrap.append(h1, h2, h3, h4);
-
-        n2_1.onclick = () => { 
-            [h1,h2].forEach(l=>l.classList.add('show')); [h3,h4].forEach(l=>l.classList.remove('show')); 
-            n2_1.style.color = '#ff7675'; n2_1.style.borderBottom = 'none';
-            n2_10.style.color = '#333'; n2_10.style.borderBottom = '5px dashed';
-            speak(n2S[1]+"をかけるよ"); 
-            setTimeout(() => playKuku(n1OnesVal, n2OnesVal), 1500);
-        };
-        n2_10.onclick = () => { 
-            [h3,h4].forEach(l=>l.classList.add('show')); [h1,h2].forEach(l=>l.classList.remove('show')); 
-            n2_10.style.color = '#00b894'; n2_10.style.borderBottom = 'none';
-            n2_1.style.color = '#333'; n2_1.style.borderBottom = '5px dashed';
-            speak(n2S[0]+"をかけるよ"); 
-            setTimeout(() => playKuku(n1OnesVal, n2TensVal), 1500);
-        };
-
-        const btn = document.createElement('button');
-        btn.className = 'check-btn'; btn.textContent = 'できた！';
-        btn.onclick = () => {
-            const userAnsStr = f1000.textContent + f100.textContent + f10.textContent + f1.textContent;
-            const finalAns = parseInt(userAnsStr);
-            const isCorrect = (finalAns === p.n1 * p.n2);
-
-            const endTime = new Date();
-            const problemType = "2桁×2桁のかけ算（ひっ算）";
-            const problemContent = `${p.n1} × ${p.n2}`;
-            const inputMethod = "計算機入力";
-            const resultStr = isCorrect ? "正解" : "不正解";
+        calcKeys.forEach(key => {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.textContent = key;
             
-            // view.htmlでの日付分割対応のため、日付文字列(YYYY/MM/DD)を生成
-            const yyyy = problemStartTime.getFullYear();
-            const mm = String(problemStartTime.getMonth() + 1).padStart(2, '0');
-            const dd = String(problemStartTime.getDate()).padStart(2, '0');
-            const dateStr = `${yyyy}/${mm}/${dd}`;
-            
-            // CSVフォーマットの先頭に日付を追加
-            const csvLine = `"${dateStr}","${problemType}","${problemContent}","${userAnsStr}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
-            
-            if (window.webkit && window.webkit.messageHandlers.appBridge) {
-                window.webkit.messageHandlers.appBridge.postMessage({
-                    action: "saveCSV",
-                    csvLine: csvLine
+            if (key === '削除') {
+                piece.classList.add('delete-btn');
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        activeInputBox.textContent = '';
+                        baseValue = 0;
+                    }
+                });
+            } else if (key === '+10') {
+                piece.classList.add('enter-btn');
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        baseValue += 10;
+                        activeInputBox.textContent = baseValue;
+                        speak("じゅう");
+                    }
                 });
             } else {
-                // ブラウザ単体での動作確認用にLocalStorageへ保存
-                const storageKey = "hissan2x2_history";
-                let history = localStorage.getItem(storageKey) || "";
-                history += csvLine;
-                localStorage.setItem(storageKey, history);
-                console.log("LocalStorageに保存しました: " + csvLine);
+                piece.addEventListener('click', () => {
+                    if (activeInputBox) {
+                        const num = parseInt(key, 10);
+                        const finalValue = baseValue + num;
+                        activeInputBox.textContent = finalValue;
+                        
+                        if (finalValue >= 0 && finalValue <= 20) {
+                            speak(numberReadings[finalValue]);
+                        } else {
+                            speak(finalValue.toString());
+                        }
+
+                        calcContainer.style.display = 'none';
+                        overlay.style.display = 'none';
+                        activeInputBox = null;
+                    }
+                });
+            }
+            calcContainer.appendChild(piece);
+        });
+
+        overlay.addEventListener('click', () => {
+            calcContainer.style.display = 'none';
+            overlay.style.display = 'none';
+            activeInputBox = null;
+        });
+
+        let isDragging = false;
+        let dragStartX, dragStartY, initialLeft, initialTop;
+
+        function startDrag(e) {
+            if (e.target.classList.contains('piece')) return;
+            isDragging = true;
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            dragStartX = clientX;
+            dragStartY = clientY;
+            let style = window.getComputedStyle(calcContainer);
+            initialLeft = parseFloat(style.left);
+            initialTop = parseFloat(style.top);
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // スケール補正
+            let dx = (clientX - dragStartX) / currentScale;
+            let dy = (clientY - dragStartY) / currentScale;
+            
+            calcContainer.style.left = (initialLeft + dx) + 'px';
+            calcContainer.style.top = (initialTop + dy) + 'px';
+        }
+
+        function stopDrag() {
+            isDragging = false;
+        }
+
+        calcContainer.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', doDrag, { passive: false });
+        document.addEventListener('mouseup', stopDrag);
+        calcContainer.addEventListener('touchstart', startDrag, { passive: false });
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('touchend', stopDrag);
+
+        /* ==========================================
+           学習用シンプル画面ロジック（10問進行）
+           ========================================== */
+        let currentIndex = 0;
+        let mistakeCount = 0;
+        const problems = [];
+        while(problems.length < 10) {
+            let n1 = Math.floor(Math.random() * 90) + 10;
+            let n2 = Math.floor(Math.random() * 90) + 10;
+            problems.push({n1, n2});
+        }
+
+        const appContainer = document.getElementById('app');
+        let problemStartTime;
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0') + ':' + 
+                   date.getSeconds().toString().padStart(2, '0');
+        }
+
+        function renderProblem() {
+            appContainer.innerHTML = '';
+            problemStartTime = new Date();
+
+            if(currentIndex >= 10) {
+                document.getElementById('status-bar').style.display = 'none';
+                const clearMsg = document.createElement('div');
+                clearMsg.className = 'clear-message';
+                
+                let htmlContent = `<h2>全10問合格！！</h2>`;
+                htmlContent += `<div class="final-result-details">`;
+                htmlContent += `<div>間違えた回数： <strong>${mistakeCount}</strong> 回</div>`;
+                if (mistakeCount === 0) {
+                    htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
+                }
+                htmlContent += `</div>`;
+                htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                
+                clearMsg.innerHTML = htmlContent;
+                appContainer.appendChild(clearMsg);
+                speak("ぜんもんごうかくです。おつかれさまでした。");
+                return;
             }
 
-            const judge = document.getElementById('judge-overlay');
-            if(isCorrect) {
-                judge.textContent = 'せいかい！'; judge.style.color = '#ff3333'; judge.className='judge-overlay show';
-                if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
-                btn.disabled = true;
-                setTimeout(()=> { judge.className='judge-overlay'; currentIndex++; renderProblem(); }, 1500);
-            } else {
-                judge.textContent = 'おしい！'; judge.style.color = '#3366ff'; judge.className='judge-overlay show';
-                mistakeCount++;
-                if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
-                setTimeout(()=> { judge.className='judge-overlay'; }, 1000);
+            document.getElementById('status-bar').style.display = 'block';
+            document.getElementById('status-bar').textContent = `第 ${currentIndex+1} 問 / 10問`;
+
+            const p = problems[currentIndex];
+            const currentNum1 = p.n1;
+            const currentNum2 = p.n2;
+
+            const num1Str = currentNum1.toString();
+            const num2Str = currentNum2.toString();
+            
+            const expectedFinalAns = currentNum1 * currentNum2;
+
+            speak(`つぎのかけざんをもとめましょう。${currentNum1} かける ${currentNum2} は`);
+            
+            const soundCheckbox = document.getElementById('sound-checkbox');
+            if (soundCheckbox && soundCheckbox.checked) {
+                qSound.currentTime = 0; qSound.play().catch(e => {});
             }
-        };
 
-        right.append(hintWrap, btn);
-        container.append(hissan, right);
-        app.appendChild(container);
-    }
+            const answerArea = document.createElement('div');
+            answerArea.className = 'answer-area';
 
-    document.getElementById('start-btn').onclick = () => {
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
-        renderProblem();
-    };
-</script>
+            // 左側：ひっ算コンテナ
+            const mathContainer = document.createElement('div');
+            mathContainer.style.display = 'flex';
+            mathContainer.style.flexDirection = 'column';
+            mathContainer.style.alignItems = 'flex-start';
+
+            const createEmpty = (h = 65) => {
+                const div = document.createElement('div');
+                div.style.width = '65px';
+                div.style.height = h + 'px';
+                return div;
+            };
+
+            const createText = (str, isHint = false, textColor = '#333', customFontSize = null, className = null) => {
+                const div = document.createElement('div');
+                div.style.width = isHint ? 'auto' : '65px';
+                div.style.height = '65px';
+                div.style.display = 'flex';
+                div.style.justifyContent = isHint ? 'flex-start' : 'center';
+                div.style.alignItems = 'center';
+                div.style.fontSize = customFontSize ? customFontSize : (isHint ? '1.2rem' : '2.5rem');
+                div.style.fontWeight = 'bold';
+                div.style.color = isHint ? '#888' : textColor;
+                div.style.marginLeft = isHint ? '15px' : '0';
+                div.textContent = str;
+                if (className) div.className = className;
+                return div;
+            };
+
+            const createDropZone = (id) => {
+                const zone = document.createElement('div');
+                zone.className = 'drop-zone';
+                zone.id = id;
+                zone.addEventListener('click', () => { 
+                    zone.textContent = ''; baseValue = 0; activeInputBox = zone;
+                    calcContainer.style.display = 'flex'; overlay.style.display = 'block';
+                });
+                return zone;
+            };
+
+            const createSmallBoxContainer = (id) => {
+                const container = document.createElement('div');
+                container.style.width = '65px';
+                container.style.height = '35px';
+                container.style.display = 'flex';
+                container.style.justifyContent = 'flex-end'; 
+                container.style.alignItems = 'center';
+                container.style.paddingLeft = '5px';
+
+                if (id) {
+                    const zone = document.createElement('div');
+                    zone.className = 'drop-zone small';
+                    zone.id = id;
+                    zone.addEventListener('click', () => { 
+                        zone.textContent = ''; baseValue = 0; activeInputBox = zone;
+                        calcContainer.style.display = 'flex'; overlay.style.display = 'block';
+                    });
+                    container.appendChild(zone);
+                }
+                return container;
+            };
+
+            const createLine = (digits) => {
+                const line = document.createElement('div');
+                const width = (65 * digits) + (5 * (digits - 1));
+                line.style.width = width + 'px';
+                line.style.borderBottom = '4px solid #333';
+                line.style.margin = '5px 0';
+                
+                const totalColumns = 5;
+                const totalMathWidth = (65 * totalColumns) + (5 * (totalColumns - 1));
+                
+                line.style.marginLeft = (totalMathWidth - width) + 'px';
+                return line;
+            };
+
+            const createRow = () => {
+                const row = document.createElement('div');
+                row.className = 'grid-row';
+                return row;
+            };
+
+            const r1 = createRow();
+            r1.appendChild(createEmpty()); r1.appendChild(createEmpty()); r1.appendChild(createEmpty());
+            r1.appendChild(createText(num1Str[0])); r1.appendChild(createText(num1Str[1]));
+
+            const r2 = createRow();
+            r2.appendChild(createEmpty()); r2.appendChild(createEmpty());
+            r2.appendChild(createText('×', false, '#333', '4rem'));
+            
+            // 乗数はクリック可能にする
+            const n2_10 = createText(num2Str[0], false, '#333', null, 'clickable-digit');
+            n2_10.style.borderBottomColor = '#55efc4';
+            const n2_1 = createText(num2Str[1], false, '#333', null, 'clickable-digit');
+            n2_1.style.borderBottomColor = '#ff7675';
+
+            r2.appendChild(n2_10); r2.appendChild(n2_1);
+
+            const r3 = createRow();
+            r3.appendChild(createEmpty()); r3.appendChild(createEmpty()); r3.appendChild(createEmpty());
+            const box1 = createDropZone('ans-box1');
+            const box2 = createDropZone('ans-box2');
+            r3.appendChild(box1); r3.appendChild(box2);
+            r3.appendChild(createText(`<-- ${num2Str[1]}×${num1Str[1]}`, true));
+
+            const r4 = createRow();
+            r4.appendChild(createEmpty()); r4.appendChild(createEmpty());
+            const box3 = createDropZone('ans-box3');
+            const box4 = createDropZone('ans-box4');
+            r4.appendChild(box3); r4.appendChild(box4);
+            r4.appendChild(createText('0', false, '#bbb'));
+            r4.appendChild(createText(`<-- ${num2Str[1]}×${num1Str[0]}`, true));
+
+            const r5 = createRow();
+            r5.appendChild(createEmpty()); r5.appendChild(createEmpty());
+            const box5 = createDropZone('ans-box5');
+            const box6 = createDropZone('ans-box6');
+            r5.appendChild(box5); r5.appendChild(box6);
+            r5.appendChild(createText('0', false, '#bbb'));
+            r5.appendChild(createText(`<-- ${num2Str[0]}×${num1Str[1]}`, true));
+
+            const r6 = createRow();
+            r6.appendChild(createEmpty());
+            const box7 = createDropZone('ans-box7');
+            const box8 = createDropZone('ans-box8');
+            r6.appendChild(box7); r6.appendChild(box8);
+            r6.appendChild(createText('0', false, '#bbb'));
+            r6.appendChild(createText('0', false, '#bbb'));
+            r6.appendChild(createText(`<-- ${num2Str[0]}×${num1Str[0]}`, true));
+
+            const r_carry = createRow();
+            r_carry.appendChild(createEmpty(35)); 
+            r_carry.appendChild(createSmallBoxContainer('carry-box1')); 
+            r_carry.appendChild(createSmallBoxContainer('carry-box2')); 
+            r_carry.appendChild(createSmallBoxContainer('carry-box3')); 
+            r_carry.appendChild(createSmallBoxContainer(null));         
+
+            const r7 = createRow();
+            r7.appendChild(createEmpty());
+            const box9 = createDropZone('ans-box9');
+            const box10 = createDropZone('ans-box10');
+            const box11 = createDropZone('ans-box11');
+            const box12 = createDropZone('ans-box12');
+            r7.appendChild(box9); r7.appendChild(box10); r7.appendChild(box11); r7.appendChild(box12);
+
+            mathContainer.appendChild(r1);
+            mathContainer.appendChild(r2);
+            mathContainer.appendChild(createLine(4)); 
+            mathContainer.appendChild(r3);
+            mathContainer.appendChild(r4);
+            mathContainer.appendChild(r5);
+            mathContainer.appendChild(r6);
+            mathContainer.appendChild(createLine(4)); 
+            mathContainer.appendChild(r_carry);       
+            mathContainer.appendChild(r7);            
+
+            // 右側：パネル（ヒントと判定ボタン）
+            const rightPanel = document.createElement('div');
+            rightPanel.className = 'right-panel';
+
+            const hintWrap = document.createElement('div');
+            hintWrap.className = 'hint-wrapper';
+
+            const n1OnesVal = parseInt(num1Str[1]);
+            const n1TensVal = parseInt(num1Str[0]);
+            const n2OnesVal = parseInt(num2Str[1]);
+            const n2TensVal = parseInt(num2Str[0]);
+
+            const h1 = document.createElement('div'); h1.className='hint-line';
+            h1.innerHTML = `<div class="circle pink">${n1OnesVal}</div> <span>×</span> <span class="text-blue">${n2OnesVal}</span> <span>=</span> <span>${n1OnesVal * n2OnesVal}</span>`;
+            const h2 = document.createElement('div'); h2.className='hint-line';
+            h2.innerHTML = `<div class="circle pink">${n1TensVal}</div> <span>×</span> <span class="text-blue">${n2OnesVal}</span> <span>=</span> <span>${n1TensVal * n2OnesVal}</span>`;
+            
+            const h3 = document.createElement('div'); h3.className='hint-line';
+            h3.innerHTML = `<div class="circle green">${n1OnesVal}</div> <span>×</span> <span class="text-blue">${n2TensVal}</span> <span>=</span> <span>${n1OnesVal * n2TensVal}</span>`;
+            const h4 = document.createElement('div'); h4.className='hint-line';
+            h4.innerHTML = `<div class="circle green">${n1TensVal}</div> <span>×</span> <span class="text-blue">${n2TensVal}</span> <span>=</span> <span>${n1TensVal * n2TensVal}</span>`;
+            
+            hintWrap.append(h1, h2, h3, h4);
+
+            // 桁クリック時のインタラクション
+            n2_1.onclick = () => { 
+                [h1,h2].forEach(l=>l.classList.add('show')); [h3,h4].forEach(l=>l.classList.remove('show')); 
+                n2_1.style.color = '#ff7675'; n2_1.style.borderBottomColor = 'transparent';
+                n2_10.style.color = '#333'; n2_10.style.borderBottomColor = '#55efc4';
+                speak(num2Str[1]+"をかけるよ"); 
+                setTimeout(() => playKuku(n1OnesVal, n2OnesVal), 1500);
+            };
+            n2_10.onclick = () => { 
+                [h3,h4].forEach(l=>l.classList.add('show')); [h1,h2].forEach(l=>l.classList.remove('show')); 
+                n2_10.style.color = '#00b894'; n2_10.style.borderBottomColor = 'transparent';
+                n2_1.style.color = '#333'; n2_1.style.borderBottomColor = '#ff7675';
+                speak(num2Str[0]+"をかけるよ"); 
+                setTimeout(() => playKuku(n1OnesVal, n2TensVal), 1500);
+            };
+
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'check-btn';
+            checkBtn.textContent = 'できた！';
+
+            rightPanel.appendChild(hintWrap);
+            rightPanel.appendChild(checkBtn);
+
+            answerArea.appendChild(mathContainer);
+            answerArea.appendChild(rightPanel);
+            appContainer.appendChild(answerArea);
+
+            // 判定処理
+            checkBtn.addEventListener('click', () => {
+                let u9 = parseInt(document.getElementById('ans-box9').textContent, 10);
+                let u10 = parseInt(document.getElementById('ans-box10').textContent, 10);
+                let u11 = parseInt(document.getElementById('ans-box11').textContent, 10);
+                let u12 = parseInt(document.getElementById('ans-box12').textContent, 10);
+                
+                if (isNaN(u9) && isNaN(u10) && isNaN(u11) && isNaN(u12)) return;
+
+                u9 = isNaN(u9) ? 0 : u9;
+                u10 = isNaN(u10) ? 0 : u10;
+                u11 = isNaN(u11) ? 0 : u11;
+                u12 = isNaN(u12) ? 0 : u12;
+
+                const finalAns = (u9 * 1000) + (u10 * 100) + (u11 * 10) + u12;
+                const isCorrect = (finalAns === expectedFinalAns);
+                
+                const endTime = new Date();
+                const problemType = "計算機入力の学習";
+                const problemContent = `${currentNum1} × ${currentNum2}`;
+                const userAnsStr = `${finalAns}`;
+                const inputMethod = "計算機入力";
+                const resultStr = isCorrect ? "正解" : "不正解";
+                
+                const yyyy = problemStartTime.getFullYear();
+                const mm = String(problemStartTime.getMonth() + 1).padStart(2, '0');
+                const dd = String(problemStartTime.getDate()).padStart(2, '0');
+                const dateStr = `${yyyy}/${mm}/${dd}`;
+                
+                const csvLine = `"${dateStr}","${problemType}","${problemContent}","${userAnsStr}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
+                
+                if (window.webkit && window.webkit.messageHandlers.appBridge) {
+                    window.webkit.messageHandlers.appBridge.postMessage({
+                        action: "saveCSV",
+                        csvLine: csvLine
+                    });
+                } else {
+                    const storageKey = "hissan2x2_history";
+                    let history = localStorage.getItem(storageKey) || "";
+                    history += csvLine;
+                    localStorage.setItem(storageKey, history);
+                    console.log("LocalStorageに保存しました: " + csvLine);
+                }
+
+                const judgeOverlay = document.getElementById('judge-overlay');
+
+                if (isCorrect) {
+                    judgeOverlay.textContent = 'せいかい！';
+                    judgeOverlay.className = 'judge-overlay show';
+                    
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        okSound.currentTime = 0;
+                        okSound.play().catch(e => console.log(e));
+                    }
+                    
+                    checkBtn.disabled = true;
+                    
+                    setTimeout(() => {
+                        judgeOverlay.classList.remove('show');
+                        currentIndex++;
+                        renderProblem();
+                    }, 1500);
+                } else {
+                    judgeOverlay.textContent = 'おしい！';
+                    judgeOverlay.className = 'judge-overlay incorrect show';
+                    mistakeCount++;
+                    
+                    if (soundCheckbox && soundCheckbox.checked) {
+                        ngSound.currentTime = 0;
+                        ngSound.play().catch(e => console.log(e));
+                    }
+                    
+                    setTimeout(() => {
+                        judgeOverlay.classList.remove('show');
+                    }, 1200);
+                }
+            });
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderProblem();
+        });
+    </script>
 </body>
 </html>
