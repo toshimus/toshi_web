@@ -21,7 +21,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
-            flex-direction: column; /* ステータスバー配置のため縦並びに変更 */
+            flex-direction: column; 
             height: 100vh;
             overflow: hidden;
             overscroll-behavior: none;
@@ -39,7 +39,6 @@
             background-color: var(--panel-bg);
             border-right: 1px solid var(--border-color);
             padding: 15px;
-            /* iPad等で下部が隠れないように十分な余白を追加 */
             padding-bottom: calc(60px + env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
@@ -110,7 +109,6 @@
             flex-direction: column;
             flex-shrink: 0;
             overscroll-behavior: contain;
-            /* 下部に余白を追加 */
             padding-bottom: env(safe-area-inset-bottom);
         }
 
@@ -254,7 +252,7 @@
         }
 
         .layer-add-btn {
-            margin: 10px 10px 40px 10px; /* 下部に余白を持たせる */
+            margin: 10px 10px 40px 10px; 
             padding: 10px;
             background-color: #2a2a2a;
             border: 1px dashed #666;
@@ -268,7 +266,6 @@
             border-color: var(--accent-color);
         }
 
-        /* ステータスバーのスタイル */
         #status-bar {
             height: 28px;
             background-color: #151515;
@@ -427,7 +424,6 @@
                 </div>
             </div>
             
-            <!-- iPad用の余白確保 -->
             <div style="height: 10px; flex-shrink: 0;"></div>
         </div>
 
@@ -446,7 +442,6 @@
         </div>
     </div>
     
-    <!-- ステータスバー -->
     <div id="status-bar">
         <div class="status-item">
             SYSTEM STATUS: <span style="color: #0f0; margin-left: 5px;">ONLINE</span>
@@ -474,12 +469,13 @@
         let startX = 0;
         let startY = 0;
 
-        // 手のひらツール（パンニング）用変数
+        // 手のひら・ズーム（パンニング/ピンチ）用変数
         let isPanning = false;
         let panStartX = 0;
         let panStartY = 0;
         let panScrollX = 0;
         let panScrollY = 0;
+        let initialPinchDistance = null;
 
         // 選択ツール用変数
         let selection = {
@@ -515,7 +511,7 @@
             previewCtx.imageSmoothingEnabled = isAntiAlias;
             previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
             addLayer('レイヤー 1');
-            saveState(); // 初期状態を履歴に保存
+            saveState(); 
             setupPreviewCanvasEvents();
             updateStatusBar();
         }
@@ -542,10 +538,7 @@
             const targetBtn = document.getElementById(`tool-${toolName}`);
             if (targetBtn) targetBtn.classList.add('active');
             
-            // ツール切り替え時にパンニングをリセット
             isPanning = false;
-
-            // 選択ツールのUI表示制御
             selectionPanel.style.display = (toolName === 'select') ? 'flex' : 'none';
         }
 
@@ -612,9 +605,20 @@
             document.querySelectorAll('#zoom-controls button').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.getElementById(`zoom-${level}`).classList.add('active');
+            const zBtn = document.getElementById(`zoom-${level}`);
+            if(zBtn) zBtn.classList.add('active');
 
             updateGrid();
+        }
+
+        function zoomStep(dir) {
+            const levels = [1, 2, 4, 8, 16, 32];
+            let idx = levels.indexOf(currentZoom);
+            if (idx === -1) idx = 0;
+            idx += dir;
+            if (idx < 0) idx = 0;
+            if (idx >= levels.length) idx = levels.length - 1;
+            setZoom(levels[idx]);
         }
 
         // --- パンニング（移動）制御 ---
@@ -884,6 +888,13 @@
             overlay.style.cursor = 'crosshair';
             canvasWrapper.appendChild(overlay);
 
+            // PC用マウスホイールでのズーム
+            overlay.addEventListener('wheel', (e) => {
+                e.preventDefault(); 
+                if (e.deltaY < 0) zoomStep(1);
+                else zoomStep(-1);
+            }, { passive: false });
+
             // PC用イベント
             overlay.addEventListener('mousedown', (e) => {
                 if (currentTool === 'pan') {
@@ -909,6 +920,11 @@
                 if (e.touches && e.touches.length >= 2) {
                     e.preventDefault();
                     startPanning(e);
+                    // ピンチズームの基準距離を計算
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
                     return;
                 }
                 
@@ -922,6 +938,27 @@
             }, { passive: false });
             
             window.addEventListener('touchmove', (e) => {
+                if (e.touches && e.touches.length >= 2) {
+                    e.preventDefault();
+                    // パンニングと同時にピンチズーム処理
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    if (initialPinchDistance) {
+                        const ratio = currentDistance / initialPinchDistance;
+                        if (ratio > 1.2) {
+                            zoomStep(1);
+                            initialPinchDistance = currentDistance;
+                        } else if (ratio < 0.8) {
+                            zoomStep(-1);
+                            initialPinchDistance = currentDistance;
+                        }
+                    }
+                    if (isPanning) doPan(e);
+                    return;
+                }
+
                 if (isPanning) {
                     e.preventDefault();
                     doPan(e);
@@ -932,10 +969,12 @@
             }, { passive: false });
             
             window.addEventListener('touchend', (e) => {
+                initialPinchDistance = null;
                 if (isPanning) stopPanning();
                 if (isDrawing || isDraggingSelection) stopDrawing(e);
             });
             window.addEventListener('touchcancel', (e) => {
+                initialPinchDistance = null;
                 if (isPanning) stopPanning();
                 if (isDrawing || isDraggingSelection) stopDrawing(e);
             });
@@ -1501,7 +1540,6 @@
         function handleImageImport(img, fileName) {
             finalizeSelection();
             
-            // 新規作成時や起動直後の場合、画像サイズに合わせてキャンバスを自動リサイズ
             if (historyStack.length <= 1) {
                 executeResize(img.width, img.height);
             }
@@ -1712,7 +1750,7 @@
         function saveProject() {
             finalizeSelection();
             const projectData = {
-                version: '2.5',
+                version: '2.6',
                 width: CANVAS_WIDTH,
                 height: CANVAS_HEIGHT,
                 layers: getSnapshot()
