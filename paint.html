@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>K.I.T.T. - Advanced Drawing Interface</title>
     <style>
         :root {
@@ -23,6 +23,7 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
+            overscroll-behavior: none; /* iPad/iOSでのバウンド(ラバーバンド)を無効化 */
         }
 
         #toolbar {
@@ -35,23 +36,24 @@
             gap: 15px;
             overflow-y: auto;
             flex-shrink: 0;
+            overscroll-behavior: contain;
         }
 
         #workspace {
             flex-grow: 1;
             background-color: #0a0a0a;
             position: relative;
-            overflow: auto; /* 拡大時のスクロール対応 */
+            overflow: auto; 
             padding: 20px;
-            display: block; /* 拡大時のスクロールバグを防ぐためflexからblockに変更 */
+            display: block; 
+            overscroll-behavior: none; /* スクロール時のバウンドを無効化 */
         }
 
         #canvas-wrapper {
             position: relative;
             width: 800px;
             height: 600px;
-            margin: 0 auto; /* ワークスペース内での中央寄せ */
-            /* 背景透明対応（チェッカーボード柄） */
+            margin: 0 auto; 
             background-image: 
                 linear-gradient(45deg, #ccc 25%, transparent 25%),
                 linear-gradient(135deg, #ccc 25%, transparent 25%),
@@ -62,6 +64,7 @@
             background-color: #ffffff;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             transform-origin: top left;
+            touch-action: none; /* キャンバス上でのスワイプ・ピンチ操作を無効化 */
         }
 
         canvas {
@@ -70,7 +73,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            image-rendering: pixelated; /* 拡大時にドットをくっきりさせる */
+            image-rendering: pixelated; /* 初期値: ドットをくっきり */
         }
 
         #preview-canvas {
@@ -85,6 +88,7 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
+            overscroll-behavior: contain;
         }
 
         .panel-header {
@@ -128,6 +132,7 @@
             border-radius: 4px;
             transition: all 0.2s;
             font-size: 0.9em;
+            touch-action: manipulation; /* タッチ遅延を解消 */
         }
 
         button:hover {
@@ -246,6 +251,14 @@
         </div>
 
         <div class="tool-section">
+            <label>アンチエイリアス</label>
+            <div class="button-grid">
+                <button id="aa-off" class="active" onclick="setAntiAlias(false)">OFF (ドット)</button>
+                <button id="aa-on" onclick="setAntiAlias(true)">ON (滑らか)</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
             <label>表示倍率 (Zoom)</label>
             <div class="zoom-grid" id="zoom-controls">
                 <button id="zoom-1" class="active" onclick="setZoom(1)">x1</button>
@@ -329,7 +342,7 @@
 
     <script>
         // --- システム定数・変数 ---
-        let CANVAS_WIDTH = 800; // 可変対応のためletに変更
+        let CANVAS_WIDTH = 800;
         let CANVAS_HEIGHT = 600; 
         
         let currentTool = 'pen';
@@ -337,6 +350,7 @@
         let currentLineWidth = 3;
         let isFillMode = false;
         let currentZoom = 1;
+        let isAntiAlias = false; // アンチエイリアスの初期状態
         
         let isDrawing = false;
         let startX = 0;
@@ -360,7 +374,8 @@
 
         // --- 初期化処理 ---
         function init() {
-            // 背景透過対応のため、白塗りつぶしを行わず透明レイヤーから開始します
+            previewCtx.imageSmoothingEnabled = isAntiAlias;
+            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
             addLayer('レイヤー 1');
             saveState(); // 初期状態を履歴に保存
             setupPreviewCanvasEvents();
@@ -382,6 +397,20 @@
             isFillMode = fill;
             document.getElementById('mode-stroke').classList.toggle('active', !fill);
             document.getElementById('mode-fill').classList.toggle('active', fill);
+        }
+
+        function setAntiAlias(enable) {
+            isAntiAlias = enable;
+            document.getElementById('aa-off').classList.toggle('active', !enable);
+            document.getElementById('aa-on').classList.toggle('active', enable);
+            
+            // 全レイヤーとプレビューキャンバスにプロパティを適用
+            layers.forEach(layer => {
+                layer.ctx.imageSmoothingEnabled = enable;
+                layer.canvas.style.imageRendering = enable ? 'auto' : 'pixelated';
+            });
+            previewCtx.imageSmoothingEnabled = enable;
+            previewCanvas.style.imageRendering = enable ? 'auto' : 'pixelated';
         }
 
         function setColor(color) {
@@ -417,8 +446,10 @@
             canvas.width = CANVAS_WIDTH;
             canvas.height = CANVAS_HEIGHT;
             canvas.style.zIndex = zIndex;
+            canvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
             
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.imageSmoothingEnabled = isAntiAlias;
 
             // プレビューキャンバスの下に挿入
             canvasWrapper.insertBefore(canvas, previewCanvas);
@@ -521,17 +552,29 @@
         // --- 描画イベントハンドリング ---
         function getMousePos(e) {
             const rect = previewCanvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            // タッチデバイスの座標抽出
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            }
+
             // CSSにより拡大されている場合、表示幅(rect.width)と実解像度(CANVAS_WIDTH)の比率を計算
             const scaleX = CANVAS_WIDTH / rect.width;
             const scaleY = CANVAS_HEIGHT / rect.height;
             return {
-                x: (e.clientX - rect.left) * scaleX,
-                y: (e.clientY - rect.top) * scaleY
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
             };
         }
 
         function setupPreviewCanvasEvents() {
-            // マウスイベントを拾う用のオーバーレイ（一番手前）
+            // マウスおよびタッチイベントを拾う用のオーバーレイ（一番手前）
             const overlay = document.createElement('div');
             overlay.style.position = 'absolute';
             overlay.style.top = '0';
@@ -542,10 +585,26 @@
             overlay.style.cursor = 'crosshair';
             canvasWrapper.appendChild(overlay);
 
+            // PC用マウスイベント
             overlay.addEventListener('mousedown', startDrawing);
-            // ウィンドウ外へのドラッグ対応のため、moveとupはwindowにアタッチします
             window.addEventListener('mousemove', draw);
             window.addEventListener('mouseup', stopDrawing);
+
+            // iPad/スマホ用タッチイベント
+            overlay.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // デフォルトのスクロール挙動をキャンセル
+                startDrawing(e);
+            }, { passive: false });
+            
+            window.addEventListener('touchmove', (e) => {
+                if (isDrawing) {
+                    e.preventDefault(); // 描画中のスクロールを完全に防止
+                    draw(e);
+                }
+            }, { passive: false });
+            
+            window.addEventListener('touchend', stopDrawing);
+            window.addEventListener('touchcancel', stopDrawing);
         }
 
         function setupContextStyle(ctx, isEraser = false) {
@@ -788,6 +847,8 @@
                 
                 layer.canvas.width = newW;
                 layer.canvas.height = newH;
+                layer.canvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+                layer.ctx.imageSmoothingEnabled = isAntiAlias;
                 
                 // オフセット指定（トリミング）の場合は描画位置をずらす
                 layer.ctx.drawImage(tempCanvas, -offsetX, -offsetY);
@@ -798,6 +859,8 @@
             
             previewCanvas.width = newW;
             previewCanvas.height = newH;
+            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+            previewCtx.imageSmoothingEnabled = isAntiAlias;
             
             setZoom(currentZoom); // UIの再計算
         }
@@ -819,6 +882,7 @@
                 tempCanvas.width = CANVAS_WIDTH;
                 tempCanvas.height = CANVAS_HEIGHT;
                 const tCtx = tempCanvas.getContext('2d');
+                tCtx.imageSmoothingEnabled = isAntiAlias;
                 
                 layers.forEach(layer => {
                     if (layer.visible) tCtx.drawImage(layer.canvas, 0, 0);
@@ -832,7 +896,7 @@
                     }
                 }, 'image/png');
             } catch (err) {
-                alert("システム・エラー: コピーに失敗しました。");
+                alert("システム・エラー: コピーに失敗しました。Safari等の環境設定をご確認ください。");
                 console.error(err);
             }
         }
@@ -856,7 +920,7 @@
                 }
                 alert("システム: クリップボードに有効な画像データがありません。");
             } catch (err) {
-                alert("システム・エラー: 貼り付けに失敗しました。");
+                alert("システム・エラー: 貼り付けに失敗しました。iPadの設定でクリップボード許可をご確認ください。");
                 console.error(err);
             }
         }
@@ -867,6 +931,7 @@
             tempCanvas.width = CANVAS_WIDTH;
             tempCanvas.height = CANVAS_HEIGHT;
             const tCtx = tempCanvas.getContext('2d');
+            tCtx.imageSmoothingEnabled = isAntiAlias;
             
             if (format === 'jpeg' || format === 'bmp') {
                 tCtx.fillStyle = '#ffffff'; // JPGやBMPは透過情報を白に変換
@@ -919,6 +984,8 @@
             canvasWrapper.style.height = (CANVAS_HEIGHT * currentZoom) + 'px';
             previewCanvas.width = CANVAS_WIDTH;
             previewCanvas.height = CANVAS_HEIGHT;
+            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+            previewCtx.imageSmoothingEnabled = isAntiAlias;
 
             // 現在のレイヤーDOMをクリア
             layers.forEach(l => canvasWrapper.removeChild(l.canvas));
@@ -934,8 +1001,11 @@
                 canvas.height = CANVAS_HEIGHT;
                 canvas.style.zIndex = index;
                 canvas.style.display = layerData.visible ? 'block' : 'none';
+                canvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
                 
                 const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.imageSmoothingEnabled = isAntiAlias;
+                
                 canvasWrapper.insertBefore(canvas, previewCanvas);
 
                 const layerObj = {
