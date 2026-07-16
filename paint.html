@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>K.I.T.T. - Advanced Drawing Interface</title>
+    <title>K.I.T.T. - Advanced Drawing Interface (Retro Pixel Edition)</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -23,7 +23,7 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
-            overscroll-behavior: none; /* iPad/iOSでのバウンド(ラバーバンド)を無効化 */
+            overscroll-behavior: none;
         }
 
         #toolbar {
@@ -46,7 +46,7 @@
             overflow: auto; 
             padding: 20px;
             display: block; 
-            overscroll-behavior: none; /* スクロール時のバウンドを無効化 */
+            overscroll-behavior: none; 
         }
 
         #canvas-wrapper {
@@ -64,7 +64,7 @@
             background-color: #ffffff;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             transform-origin: top left;
-            touch-action: none; /* キャンバス上でのスワイプ・ピンチ操作を無効化 */
+            touch-action: none; 
         }
 
         canvas {
@@ -73,12 +73,23 @@
             left: 0;
             width: 100%;
             height: 100%;
-            image-rendering: pixelated; /* 初期値: ドットをくっきり */
+            image-rendering: pixelated; 
         }
 
         #preview-canvas {
             pointer-events: none;
             z-index: 9999;
+        }
+
+        #grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+            z-index: 9998;
         }
 
         #layer-panel {
@@ -123,6 +134,27 @@
             gap: 8px;
         }
 
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .palette-color {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 1px solid #444;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: transform 0.1s;
+        }
+
+        .palette-color:hover {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+
         button {
             background-color: #2a2a2a;
             color: var(--text-color);
@@ -132,7 +164,7 @@
             border-radius: 4px;
             transition: all 0.2s;
             font-size: 0.9em;
-            touch-action: manipulation; /* タッチ遅延を解消 */
+            touch-action: manipulation; 
         }
 
         button:hover {
@@ -251,10 +283,11 @@
         </div>
 
         <div class="tool-section">
-            <label>アンチエイリアス</label>
+            <label>ドット絵サポート</label>
             <div class="button-grid">
-                <button id="aa-off" class="active" onclick="setAntiAlias(false)">OFF (ドット)</button>
-                <button id="aa-on" onclick="setAntiAlias(true)">ON (滑らか)</button>
+                <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット (AA OFF)</button>
+                <button id="aa-on" onclick="setAntiAlias(true)">滑らか (AA ON)</button>
+                <button id="grid-toggle" onclick="toggleGrid()" style="grid-column: span 2;">グリッド表示 (x4以上)</button>
             </div>
         </div>
 
@@ -271,13 +304,25 @@
         </div>
 
         <div class="tool-section">
-            <label>カラー設定</label>
-            <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)">
+            <label>8-Bit パレット</label>
+            <div class="palette-grid">
+                <div class="palette-color" style="background: #000000" onclick="setPaletteColor('#000000')"></div>
+                <div class="palette-color" style="background: #FFFFFF" onclick="setPaletteColor('#FFFFFF')"></div>
+                <div class="palette-color" style="background: #FC0000" onclick="setPaletteColor('#FC0000')"></div>
+                <div class="palette-color" style="background: #0000BC" onclick="setPaletteColor('#0000BC')"></div>
+                <div class="palette-color" style="background: #007800" onclick="setPaletteColor('#007800')"></div>
+                <div class="palette-color" style="background: #FCA044" onclick="setPaletteColor('#FCA044')"></div>
+                <div class="palette-color" style="background: #F8B800" onclick="setPaletteColor('#F8B800')"></div>
+                <div class="palette-color" style="background: #E40058" onclick="setPaletteColor('#E40058')"></div>
+                <div class="palette-color" style="background: #00B800" onclick="setPaletteColor('#00B800')"></div>
+                <div class="palette-color" style="background: #008888" onclick="setPaletteColor('#008888')"></div>
+            </div>
+            <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 5px;">
         </div>
 
         <div class="tool-section">
-            <label>線の太さ: <span id="line-width-display">3</span>px</label>
-            <input type="range" id="line-width" min="1" max="50" value="3" oninput="setLineWidth(this.value)">
+            <label>線の太さ: <span id="line-width-display">1</span>px</label>
+            <input type="range" id="line-width" min="1" max="50" value="1" oninput="setLineWidth(this.value)">
         </div>
 
         <hr style="border-color: var(--border-color); width: 100%;">
@@ -329,6 +374,7 @@
 
     <div id="workspace">
         <div id="canvas-wrapper">
+            <div id="grid-overlay"></div>
             <canvas id="preview-canvas" width="800" height="600"></canvas>
         </div>
     </div>
@@ -347,10 +393,11 @@
         
         let currentTool = 'pen';
         let currentColor = '#000000';
-        let currentLineWidth = 3;
+        let currentLineWidth = 1; // ドット絵用に初期値を1に変更
         let isFillMode = false;
         let currentZoom = 1;
-        let isAntiAlias = false; // アンチエイリアスの初期状態
+        let isAntiAlias = false; 
+        let isGridVisible = false;
         
         let isDrawing = false;
         let startX = 0;
@@ -404,7 +451,6 @@
             document.getElementById('aa-off').classList.toggle('active', !enable);
             document.getElementById('aa-on').classList.toggle('active', enable);
             
-            // 全レイヤーとプレビューキャンバスにプロパティを適用
             layers.forEach(layer => {
                 layer.ctx.imageSmoothingEnabled = enable;
                 layer.canvas.style.imageRendering = enable ? 'auto' : 'pixelated';
@@ -413,8 +459,33 @@
             previewCanvas.style.imageRendering = enable ? 'auto' : 'pixelated';
         }
 
+        function toggleGrid() {
+            isGridVisible = !isGridVisible;
+            document.getElementById('grid-toggle').classList.toggle('active', isGridVisible);
+            updateGrid();
+        }
+
+        function updateGrid() {
+            const overlay = document.getElementById('grid-overlay');
+            if (isGridVisible && currentZoom >= 4) {
+                overlay.style.display = 'block';
+                overlay.style.backgroundImage = `
+                    linear-gradient(to right, rgba(128,128,128,0.3) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(128,128,128,0.3) 1px, transparent 1px)
+                `;
+                overlay.style.backgroundSize = `${currentZoom}px ${currentZoom}px`;
+            } else {
+                overlay.style.display = 'none';
+            }
+        }
+
         function setColor(color) {
             currentColor = color;
+        }
+
+        function setPaletteColor(hex) {
+            document.getElementById('color-picker').value = hex;
+            setColor(hex);
         }
 
         function setLineWidth(width) {
@@ -425,15 +496,92 @@
         function setZoom(level) {
             currentZoom = level;
             
-            // キャンバスラッパーのCSSサイズを変更して拡大表示を実現
             canvasWrapper.style.width = (CANVAS_WIDTH * currentZoom) + 'px';
             canvasWrapper.style.height = (CANVAS_HEIGHT * currentZoom) + 'px';
             
-            // UIの更新
             document.querySelectorAll('#zoom-controls button').forEach(btn => {
                 btn.classList.remove('active');
             });
             document.getElementById(`zoom-${level}`).classList.add('active');
+
+            updateGrid();
+        }
+
+        // --- ブレゼンハム アルゴリズム (ピクセルパーフェクト描画用) ---
+        function drawBresenhamLine(ctx, x0, y0, x1, y1, isEraser) {
+            x0 = Math.floor(x0); y0 = Math.floor(y0);
+            x1 = Math.floor(x1); y1 = Math.floor(y1);
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
+
+            if (isEraser) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = 'rgba(0,0,0,1)';
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = currentColor;
+            }
+
+            let offset = Math.floor(currentLineWidth / 2);
+            let drawSize = currentLineWidth;
+
+            while (true) {
+                ctx.fillRect(x0 - offset, y0 - offset, drawSize, drawSize);
+                if (x0 === x1 && y0 === y1) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
+            }
+        }
+
+        function drawBresenhamCircle(ctx, xc, yc, r, fill, isEraser) {
+            xc = Math.floor(xc); yc = Math.floor(yc); r = Math.floor(r);
+            if (isEraser) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = 'rgba(0,0,0,1)';
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = currentColor;
+            }
+
+            if (fill) {
+                for (let y = -r; y <= r; y++) {
+                    for (let x = -r; x <= r; x++) {
+                        if (x * x + y * y <= r * r) {
+                            ctx.fillRect(xc + x, yc + y, 1, 1);
+                        }
+                    }
+                }
+            } else {
+                let x = 0;
+                let y = r;
+                let p = 3 - 2 * r;
+                
+                const drawSymmetric = (cx, cy, px, py) => {
+                    ctx.fillRect(cx + px, cy + py, 1, 1);
+                    ctx.fillRect(cx - px, cy + py, 1, 1);
+                    ctx.fillRect(cx + px, cy - py, 1, 1);
+                    ctx.fillRect(cx - px, cy - py, 1, 1);
+                    ctx.fillRect(cx + py, cy + px, 1, 1);
+                    ctx.fillRect(cx - py, cy + px, 1, 1);
+                    ctx.fillRect(cx + py, cy - px, 1, 1);
+                    ctx.fillRect(cx - py, cy - px, 1, 1);
+                };
+
+                while (y >= x) {
+                    drawSymmetric(xc, yc, x, y);
+                    x++;
+                    if (p > 0) {
+                        y--;
+                        p = p + 4 * (x - y) + 10;
+                    } else {
+                        p = p + 4 * x + 6;
+                    }
+                }
+            }
         }
 
         // --- レイヤー管理ロジック ---
@@ -451,7 +599,6 @@
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
             ctx.imageSmoothingEnabled = isAntiAlias;
 
-            // プレビューキャンバスの下に挿入
             canvasWrapper.insertBefore(canvas, previewCanvas);
 
             const layerObj = {
@@ -499,7 +646,6 @@
                 canvasWrapper.removeChild(layer.canvas);
                 layers.splice(layerIndex, 1);
                 
-                // 削除したレイヤーが選択されていた場合、別のレイヤーを選択
                 if (currentLayerId === id) {
                     selectLayer(layers[layers.length - 1].id);
                 }
@@ -510,10 +656,9 @@
 
         function renderLayerPanel() {
             layerListEl.innerHTML = '';
-            // パネルの表示順は上が前面（配列の最後）となるように逆順でループ
             for (let i = layers.length - 1; i >= 0; i--) {
                 const layer = layers[i];
-                layer.canvas.style.zIndex = i; // Z-Indexの再計算
+                layer.canvas.style.zIndex = i; 
 
                 const item = document.createElement('div');
                 item.className = `layer-item ${layer.id === currentLayerId ? 'active' : ''}`;
@@ -555,7 +700,6 @@
             let clientX = e.clientX;
             let clientY = e.clientY;
 
-            // タッチデバイスの座標抽出
             if (e.touches && e.touches.length > 0) {
                 clientX = e.touches[0].clientX;
                 clientY = e.touches[0].clientY;
@@ -564,7 +708,6 @@
                 clientY = e.changedTouches[0].clientY;
             }
 
-            // CSSにより拡大されている場合、表示幅(rect.width)と実解像度(CANVAS_WIDTH)の比率を計算
             const scaleX = CANVAS_WIDTH / rect.width;
             const scaleY = CANVAS_HEIGHT / rect.height;
             return {
@@ -574,7 +717,6 @@
         }
 
         function setupPreviewCanvasEvents() {
-            // マウスおよびタッチイベントを拾う用のオーバーレイ（一番手前）
             const overlay = document.createElement('div');
             overlay.style.position = 'absolute';
             overlay.style.top = '0';
@@ -585,20 +727,18 @@
             overlay.style.cursor = 'crosshair';
             canvasWrapper.appendChild(overlay);
 
-            // PC用マウスイベント
             overlay.addEventListener('mousedown', startDrawing);
             window.addEventListener('mousemove', draw);
             window.addEventListener('mouseup', stopDrawing);
 
-            // iPad/スマホ用タッチイベント
             overlay.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // デフォルトのスクロール挙動をキャンセル
+                e.preventDefault(); 
                 startDrawing(e);
             }, { passive: false });
             
             window.addEventListener('touchmove', (e) => {
                 if (isDrawing) {
-                    e.preventDefault(); // 描画中のスクロールを完全に防止
+                    e.preventDefault(); 
                     draw(e);
                 }
             }, { passive: false });
@@ -645,8 +785,14 @@
             if (currentTool === 'pen' || currentTool === 'eraser') {
                 const ctx = getCurrentContext();
                 setupContextStyle(ctx, currentTool === 'eraser');
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
+                
+                if (!isAntiAlias) {
+                    // ドット絵モード: クリックした瞬間に1ドット描画
+                    drawBresenhamLine(ctx, startX, startY, startX, startY, currentTool === 'eraser');
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                }
             }
         }
 
@@ -656,41 +802,56 @@
 
             if (currentTool === 'pen' || currentTool === 'eraser') {
                 const ctx = getCurrentContext();
-                ctx.lineTo(pos.x, pos.y);
-                ctx.stroke();
+                if (!isAntiAlias) {
+                    drawBresenhamLine(ctx, startX, startY, pos.x, pos.y, currentTool === 'eraser');
+                    startX = pos.x;
+                    startY = pos.y;
+                } else {
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                }
             } else if (['line', 'rect', 'circle', 'crop'].includes(currentTool)) {
-                // 図形およびトリミング枠はプレビューキャンバスに描画
                 previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                 setupContextStyle(previewCtx, false); 
                 
-                previewCtx.beginPath();
                 if (currentTool === 'crop') {
+                    previewCtx.beginPath();
                     previewCtx.setLineDash([5, 5]);
                     previewCtx.strokeStyle = '#ff0000';
                     previewCtx.lineWidth = 1;
                     const width = pos.x - startX;
                     const height = pos.y - startY;
                     previewCtx.strokeRect(startX, startY, width, height);
-                    previewCtx.setLineDash([]); // 破線をリセット
+                    previewCtx.setLineDash([]); 
                 } else if (currentTool === 'line') {
-                    previewCtx.moveTo(startX, startY);
-                    previewCtx.lineTo(pos.x, pos.y);
-                    previewCtx.stroke();
-                } else if (currentTool === 'rect') {
-                    const width = pos.x - startX;
-                    const height = pos.y - startY;
-                    if (isFillMode) {
-                        previewCtx.fillRect(startX, startY, width, height);
+                    if (!isAntiAlias) {
+                        drawBresenhamLine(previewCtx, startX, startY, pos.x, pos.y, false);
                     } else {
-                        previewCtx.strokeRect(startX, startY, width, height);
+                        previewCtx.beginPath();
+                        previewCtx.moveTo(startX, startY);
+                        previewCtx.lineTo(pos.x, pos.y);
+                        previewCtx.stroke();
+                    }
+                } else if (currentTool === 'rect') {
+                    let rx = startX, ry = startY, rw = pos.x - startX, rh = pos.y - startY;
+                    if (!isAntiAlias) {
+                        rx = Math.floor(rx); ry = Math.floor(ry);
+                        rw = Math.floor(pos.x) - rx; rh = Math.floor(pos.y) - ry;
+                    }
+                    previewCtx.beginPath();
+                    if (isFillMode) {
+                        previewCtx.fillRect(rx, ry, rw, rh);
+                    } else {
+                        previewCtx.strokeRect(rx, ry, rw, rh);
                     }
                 } else if (currentTool === 'circle') {
                     const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
-                    previewCtx.arc(startX, startY, radius, 0, Math.PI * 2);
-                    if (isFillMode) {
-                        previewCtx.fill();
+                    if (!isAntiAlias) {
+                        drawBresenhamCircle(previewCtx, startX, startY, radius, isFillMode, false);
                     } else {
-                        previewCtx.stroke();
+                        previewCtx.beginPath();
+                        previewCtx.arc(startX, startY, radius, 0, Math.PI * 2);
+                        if (isFillMode) previewCtx.fill(); else previewCtx.stroke();
                     }
                 }
             }
@@ -703,11 +864,11 @@
             const ctx = getCurrentContext();
 
             if (currentTool === 'pen' || currentTool === 'eraser') {
-                ctx.closePath();
-                // コンポジットオペレーションを元に戻す
+                if (isAntiAlias) {
+                    ctx.closePath();
+                }
                 if (currentTool === 'eraser') ctx.globalCompositeOperation = 'source-over';
             } else if (['line', 'rect', 'circle', 'crop'].includes(currentTool)) {
-                // プレビューキャンバスから本番レイヤーへ転写、またはトリミングの実行
                 setupContextStyle(ctx, false);
                 const pos = getMousePos(e);
                 
@@ -725,33 +886,40 @@
                     return;
                 }
 
-                ctx.beginPath();
                 if (currentTool === 'line') {
-                    ctx.moveTo(startX, startY);
-                    ctx.lineTo(pos.x, pos.y);
-                    ctx.stroke();
-                } else if (currentTool === 'rect') {
-                    const width = pos.x - startX;
-                    const height = pos.y - startY;
-                    if (isFillMode) {
-                        ctx.fillRect(startX, startY, width, height);
+                    if (!isAntiAlias) {
+                        drawBresenhamLine(ctx, startX, startY, pos.x, pos.y, false);
                     } else {
-                        ctx.strokeRect(startX, startY, width, height);
+                        ctx.beginPath();
+                        ctx.moveTo(startX, startY);
+                        ctx.lineTo(pos.x, pos.y);
+                        ctx.stroke();
+                    }
+                } else if (currentTool === 'rect') {
+                    let rx = startX, ry = startY, rw = pos.x - startX, rh = pos.y - startY;
+                    if (!isAntiAlias) {
+                        rx = Math.floor(rx); ry = Math.floor(ry);
+                        rw = Math.floor(pos.x) - rx; rh = Math.floor(pos.y) - ry;
+                    }
+                    ctx.beginPath();
+                    if (isFillMode) {
+                        ctx.fillRect(rx, ry, rw, rh);
+                    } else {
+                        ctx.strokeRect(rx, ry, rw, rh);
                     }
                 } else if (currentTool === 'circle') {
                     const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
-                    ctx.arc(startX, startY, radius, 0, Math.PI * 2);
-                    if (isFillMode) {
-                        ctx.fill();
+                    if (!isAntiAlias) {
+                        drawBresenhamCircle(ctx, startX, startY, radius, isFillMode, false);
                     } else {
-                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+                        if (isFillMode) ctx.fill(); else ctx.stroke();
                     }
                 }
-                // プレビューを消去
                 previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             }
             
-            // 描画終了後に状態を保存
             saveState();
         }
 
@@ -770,7 +938,6 @@
             const ctx = getCurrentContext();
             if (!ctx) return;
 
-            // 座標がキャンバス外の場合は処理しない
             if (startX < 0 || startY < 0 || startX >= CANVAS_WIDTH || startY >= CANVAS_HEIGHT) return;
 
             const imageData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -780,10 +947,9 @@
             const startColor = data[startIdx];
             
             const fillRgba = hexToRgba(currentColor);
-            // リトルエンディアン形式での32ビットカラー表現 (ABGR)
             const fillColor32 = (fillRgba[3] << 24) | (fillRgba[2] << 16) | (fillRgba[1] << 8) | fillRgba[0];
 
-            if (startColor === fillColor32) return; // 同じ色なら何もしない
+            if (startColor === fillColor32) return; 
 
             const stack = [startIdx];
             const visited = new Uint8Array(CANVAS_WIDTH * CANVAS_HEIGHT);
@@ -795,25 +961,21 @@
                 let y = Math.floor(idx / CANVAS_WIDTH);
                 let x = idx % CANVAS_WIDTH;
 
-                // 左端を検索
                 let left = x;
                 while (left > 0 && data[y * CANVAS_WIDTH + (left - 1)] === startColor) {
                     left--;
                 }
 
-                // 右端を検索
                 let right = x;
                 while (right < CANVAS_WIDTH - 1 && data[y * CANVAS_WIDTH + (right + 1)] === startColor) {
                     right++;
                 }
 
-                // 見つけた行を塗りつぶし、上下のピクセルをスタックに追加
                 for (let i = left; i <= right; i++) {
                     let currentIdx = y * CANVAS_WIDTH + i;
                     data[currentIdx] = fillColor32;
                     visited[currentIdx] = 1;
 
-                    // 上のピクセルをチェック
                     if (y > 0) {
                         let upIdx = (y - 1) * CANVAS_WIDTH + i;
                         if (data[upIdx] === startColor && !visited[upIdx]) {
@@ -821,7 +983,6 @@
                         }
                     }
 
-                    // 下のピクセルをチェック
                     if (y < CANVAS_HEIGHT - 1) {
                         let downIdx = (y + 1) * CANVAS_WIDTH + i;
                         if (data[downIdx] === startColor && !visited[downIdx]) {
@@ -850,7 +1011,6 @@
                 layer.canvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
                 layer.ctx.imageSmoothingEnabled = isAntiAlias;
                 
-                // オフセット指定（トリミング）の場合は描画位置をずらす
                 layer.ctx.drawImage(tempCanvas, -offsetX, -offsetY);
             });
             
@@ -862,7 +1022,7 @@
             previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
             previewCtx.imageSmoothingEnabled = isAntiAlias;
             
-            setZoom(currentZoom); // UIの再計算
+            setZoom(currentZoom); 
         }
 
         function resizeCanvasPrompt() {
@@ -934,7 +1094,7 @@
             tCtx.imageSmoothingEnabled = isAntiAlias;
             
             if (format === 'jpeg' || format === 'bmp') {
-                tCtx.fillStyle = '#ffffff'; // JPGやBMPは透過情報を白に変換
+                tCtx.fillStyle = '#ffffff'; 
                 tCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             }
             
@@ -955,7 +1115,6 @@
 
         // --- Undo / Redo 機能 ---
         function getSnapshot() {
-            // 全レイヤーの状態をDataURLで取得して配列化
             return layers.map(layer => ({
                 id: layer.id,
                 name: layer.name,
@@ -974,7 +1133,7 @@
             if (historyStack.length > MAX_HISTORY) {
                 historyStack.shift();
             }
-            redoStack = []; // 新しい操作をしたらRedoスタックはクリア
+            redoStack = []; 
         }
 
         function restoreState(state) {
@@ -987,7 +1146,6 @@
             previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
             previewCtx.imageSmoothingEnabled = isAntiAlias;
 
-            // 現在のレイヤーDOMをクリア
             layers.forEach(l => canvasWrapper.removeChild(l.canvas));
             layers = [];
             
@@ -1022,7 +1180,6 @@
                     ctx.drawImage(img, 0, 0);
                     loadedCount++;
                     if (loadedCount === totalLayers) {
-                        // 全ての画像が読み込まれたらUIを更新
                         const prevSelectedExists = layers.some(l => l.id === currentLayerId);
                         if (!prevSelectedExists) {
                             currentLayerId = layers[layers.length - 1].id;
@@ -1033,7 +1190,6 @@
                 img.src = layerData.dataURL;
             });
 
-            // 互換性のためカウンタを更新
             layerCounter = Math.max(layerCounter, ...state.layers.map(s => parseInt(s.id.split('_')[1] || 0))) + 1;
         }
 
@@ -1057,7 +1213,7 @@
         // --- Save / Load 機能 ---
         function saveProject() {
             const projectData = {
-                version: '2.0',
+                version: '2.1',
                 width: CANVAS_WIDTH,
                 height: CANVAS_HEIGHT,
                 layers: getSnapshot()
@@ -1069,7 +1225,7 @@
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = `KITT_Project_${new Date().getTime()}.json`;
+            a.download = `KITT_PixelProject_${new Date().getTime()}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1088,7 +1244,6 @@
                         historyStack = [];
                         redoStack = [];
                         
-                        // 状態オブジェクトを構築して復元
                         const stateToRestore = {
                             width: projectData.width || 800,
                             height: projectData.height || 600,
@@ -1096,7 +1251,6 @@
                         };
                         restoreState(stateToRestore);
                         
-                        // ロード後の状態を初期履歴として保存
                         setTimeout(() => { saveState(); }, 500); 
                     } else {
                         alert("データ形式が正しくありません。");
@@ -1107,7 +1261,6 @@
                 }
             };
             reader.readAsText(file);
-            // inputの値をリセット
             event.target.value = '';
         }
 
