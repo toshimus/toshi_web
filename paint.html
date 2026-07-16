@@ -266,11 +266,13 @@
             <label>ツール選択</label>
             <div class="button-grid">
                 <button id="tool-pen" class="active" onclick="setTool('pen')">ペン</button>
+                <button id="tool-dot" onclick="setTool('dot')">点</button>
                 <button id="tool-bucket" onclick="setTool('bucket')">ペイント</button>
                 <button id="tool-line" onclick="setTool('line')">直線</button>
                 <button id="tool-eraser" onclick="setTool('eraser')">消しゴム</button>
                 <button id="tool-rect" onclick="setTool('rect')">四角形</button>
                 <button id="tool-circle" onclick="setTool('circle')">円</button>
+                <button id="tool-pan" onclick="setTool('pan')">手のひら(移動)</button>
             </div>
         </div>
 
@@ -336,19 +338,22 @@
         </div>
 
         <div class="tool-section">
-            <label>画像書き出し</label>
+            <label>キャンバス操作</label>
             <div class="button-grid">
-                <button onclick="exportImage('png')">PNG</button>
-                <button onclick="exportImage('jpeg')">JPG</button>
-                <button onclick="exportImage('bmp')" style="grid-column: span 2;">BMP</button>
+                <button onclick="createNewCanvas()" style="grid-column: span 2; background-color: #442222;">新規作成 (サイズ指定)</button>
+                <button onclick="resizeCanvasPrompt()">サイズ変更</button>
+                <button id="tool-crop" onclick="setTool('crop')">トリミング</button>
             </div>
         </div>
 
         <div class="tool-section">
-            <label>キャンバス操作</label>
+            <label>画像入出力 (読込 / 書出)</label>
             <div class="button-grid">
-                <button onclick="resizeCanvasPrompt()">サイズ変更</button>
-                <button id="tool-crop" onclick="setTool('crop')">トリミング</button>
+                <button onclick="document.getElementById('image-load-input').click()" style="grid-column: span 2; background-color: #224422;">画像読み込み</button>
+                <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
+                <button onclick="exportImage('png')">PNG</button>
+                <button onclick="exportImage('jpeg')">JPG</button>
+                <button onclick="exportImage('bmp')" style="grid-column: span 2;">BMP</button>
             </div>
         </div>
 
@@ -393,15 +398,23 @@
         
         let currentTool = 'pen';
         let currentColor = '#000000';
-        let currentLineWidth = 1; // ドット絵用に初期値を1に変更
+        let currentLineWidth = 1; 
         let isFillMode = false;
         let currentZoom = 1;
         let isAntiAlias = false; 
         let isGridVisible = false;
         
         let isDrawing = false;
+        let hasMoved = false; // 点を打つ機能のトラッキング用
         let startX = 0;
         let startY = 0;
+
+        // 手のひらツール（パンニング）用変数
+        let isPanning = false;
+        let panStartX = 0;
+        let panStartY = 0;
+        let panScrollX = 0;
+        let panScrollY = 0;
 
         // レイヤー管理
         let layers = [];
@@ -414,6 +427,7 @@
         const MAX_HISTORY = 20;
 
         // HTML要素の参照
+        const workspace = document.getElementById('workspace');
         const canvasWrapper = document.getElementById('canvas-wrapper');
         const previewCanvas = document.getElementById('preview-canvas');
         const previewCtx = previewCanvas.getContext('2d');
@@ -438,6 +452,9 @@
             });
             const targetBtn = document.getElementById(`tool-${toolName}`);
             if (targetBtn) targetBtn.classList.add('active');
+            
+            // ツール切り替え時にパンニングをリセット
+            isPanning = false;
         }
 
         function setFillMode(fill) {
@@ -505,6 +522,54 @@
             document.getElementById(`zoom-${level}`).classList.add('active');
 
             updateGrid();
+        }
+
+        // --- パンニング（移動）制御 ---
+        function startPanning(e) {
+            isPanning = true;
+            let clientX, clientY;
+            if (e.touches) {
+                if (e.touches.length >= 2) {
+                    // 2本指の場合の平均座標
+                    clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                } else {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            panStartX = clientX;
+            panStartY = clientY;
+            panScrollX = workspace.scrollLeft;
+            panScrollY = workspace.scrollTop;
+        }
+
+        function doPan(e) {
+            if (!isPanning) return;
+            let clientX, clientY;
+            if (e.touches) {
+                if (e.touches.length >= 2) {
+                    clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                } else {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            const dx = clientX - panStartX;
+            const dy = clientY - panStartY;
+            workspace.scrollLeft = panScrollX - dx;
+            workspace.scrollTop = panScrollY - dy;
+        }
+
+        function stopPanning() {
+            isPanning = false;
         }
 
         // --- ブレゼンハム アルゴリズム (ピクセルパーフェクト描画用) ---
@@ -727,24 +792,62 @@
             overlay.style.cursor = 'crosshair';
             canvasWrapper.appendChild(overlay);
 
-            overlay.addEventListener('mousedown', startDrawing);
-            window.addEventListener('mousemove', draw);
-            window.addEventListener('mouseup', stopDrawing);
+            // PC用イベント
+            overlay.addEventListener('mousedown', (e) => {
+                if (currentTool === 'pan') {
+                    startPanning(e);
+                } else {
+                    startDrawing(e);
+                }
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (isPanning && currentTool === 'pan') {
+                    doPan(e);
+                } else if (isDrawing) {
+                    draw(e);
+                }
+            });
+            window.addEventListener('mouseup', (e) => {
+                if (isPanning) stopPanning();
+                if (isDrawing) stopDrawing(e);
+            });
 
+            // iPad/スマホ用タッチイベント
             overlay.addEventListener('touchstart', (e) => {
-                e.preventDefault(); 
-                startDrawing(e);
+                // 2本指タッチの場合は強制的にパンニングへ移行
+                if (e.touches && e.touches.length >= 2) {
+                    e.preventDefault();
+                    startPanning(e);
+                    return;
+                }
+                
+                if (currentTool === 'pan') {
+                    e.preventDefault();
+                    startPanning(e);
+                } else {
+                    e.preventDefault(); 
+                    startDrawing(e);
+                }
             }, { passive: false });
             
             window.addEventListener('touchmove', (e) => {
-                if (isDrawing) {
+                if (isPanning) {
+                    e.preventDefault();
+                    doPan(e);
+                } else if (isDrawing) {
                     e.preventDefault(); 
                     draw(e);
                 }
             }, { passive: false });
             
-            window.addEventListener('touchend', stopDrawing);
-            window.addEventListener('touchcancel', stopDrawing);
+            window.addEventListener('touchend', (e) => {
+                if (isPanning) stopPanning();
+                if (isDrawing) stopDrawing(e);
+            });
+            window.addEventListener('touchcancel', (e) => {
+                if (isPanning) stopPanning();
+                if (isDrawing) stopDrawing(e);
+            });
         }
 
         function setupContextStyle(ctx, isEraser = false) {
@@ -770,10 +873,27 @@
                 return;
             }
 
-            isDrawing = true;
             const pos = getMousePos(e);
             startX = pos.x;
             startY = pos.y;
+            hasMoved = false; // ドラッグ検知のリセット
+
+            // 点ツールの即時描画
+            if (currentTool === 'dot') {
+                const ctx = getCurrentContext();
+                setupContextStyle(ctx, false);
+                if (!isAntiAlias) {
+                    drawBresenhamLine(ctx, startX, startY, startX, startY, false);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, currentLineWidth / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                saveState();
+                return; // 点を打って終了
+            }
+
+            isDrawing = true;
 
             if (currentTool === 'bucket') {
                 isDrawing = false;
@@ -786,10 +906,7 @@
                 const ctx = getCurrentContext();
                 setupContextStyle(ctx, currentTool === 'eraser');
                 
-                if (!isAntiAlias) {
-                    // ドット絵モード: クリックした瞬間に1ドット描画
-                    drawBresenhamLine(ctx, startX, startY, startX, startY, currentTool === 'eraser');
-                } else {
+                if (isAntiAlias) {
                     ctx.beginPath();
                     ctx.moveTo(startX, startY);
                 }
@@ -799,6 +916,7 @@
         function draw(e) {
             if (!isDrawing) return;
             const pos = getMousePos(e);
+            hasMoved = true;
 
             if (currentTool === 'pen' || currentTool === 'eraser') {
                 const ctx = getCurrentContext();
@@ -867,6 +985,18 @@
                 if (isAntiAlias) {
                     ctx.closePath();
                 }
+                
+                // タップのみで移動しなかった場合は点を打つ
+                if (!hasMoved) {
+                    if (!isAntiAlias) {
+                        drawBresenhamLine(ctx, startX, startY, startX, startY, currentTool === 'eraser');
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, currentLineWidth / 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
                 if (currentTool === 'eraser') ctx.globalCompositeOperation = 'source-over';
             } else if (['line', 'rect', 'circle', 'crop'].includes(currentTool)) {
                 setupContextStyle(ctx, false);
@@ -995,7 +1125,35 @@
             ctx.putImageData(imageData, 0, 0);
         }
 
-        // --- キャンバス変形モジュール (サイズ変更・トリミング) ---
+        // --- 新規作成・キャンバス変形モジュール ---
+        function createNewCanvas() {
+            if (!confirm("現在のデータは破棄されます。よろしいですか？")) return;
+            const w = prompt("新規キャンバスの幅（ピクセル）を入力してください:", CANVAS_WIDTH);
+            if (!w || isNaN(w) || w <= 0) return;
+            const h = prompt("新規キャンバスの高さ（ピクセル）を入力してください:", CANVAS_HEIGHT);
+            if (!h || isNaN(h) || h <= 0) return;
+
+            CANVAS_WIDTH = Math.floor(Number(w));
+            CANVAS_HEIGHT = Math.floor(Number(h));
+
+            // 履歴とレイヤーのリセット
+            historyStack = [];
+            redoStack = [];
+            layers.forEach(l => canvasWrapper.removeChild(l.canvas));
+            layers = [];
+            layerCounter = 0;
+
+            previewCanvas.width = CANVAS_WIDTH;
+            previewCanvas.height = CANVAS_HEIGHT;
+            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+            previewCtx.imageSmoothingEnabled = isAntiAlias;
+
+            // 初期レイヤー作成と画面更新
+            addLayer('レイヤー 1');
+            setZoom(currentZoom);
+            saveState();
+        }
+
         function executeResize(newW, newH, offsetX = 0, offsetY = 0) {
             newW = Math.floor(newW);
             newH = Math.floor(newH);
@@ -1083,6 +1241,33 @@
                 alert("システム・エラー: 貼り付けに失敗しました。iPadの設定でクリップボード許可をご確認ください。");
                 console.error(err);
             }
+        }
+
+        // --- 画像読み込みモジュール ---
+        function loadImageAsLayer(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 同じファイルを再度読み込めるよう値をリセット
+            event.target.value = '';
+
+            if (!file.type.match('image.*')) {
+                alert("システム: 画像ファイルを選択してください。");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // 新規レイヤーを追加して描画
+                    const newLayer = addLayer(file.name || 'Image Layer');
+                    newLayer.ctx.drawImage(img, 0, 0);
+                    saveState();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
 
         // --- エクスポート モジュール ---
@@ -1213,7 +1398,7 @@
         // --- Save / Load 機能 ---
         function saveProject() {
             const projectData = {
-                version: '2.1',
+                version: '2.2',
                 width: CANVAS_WIDTH,
                 height: CANVAS_HEIGHT,
                 layers: getSnapshot()
