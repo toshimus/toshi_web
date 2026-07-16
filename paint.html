@@ -21,9 +21,17 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
+            flex-direction: column; /* ステータスバー配置のため縦並びに変更 */
             height: 100vh;
             overflow: hidden;
             overscroll-behavior: none;
+        }
+
+        #main-area {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+            width: 100%;
         }
 
         #toolbar {
@@ -31,6 +39,8 @@
             background-color: var(--panel-bg);
             border-right: 1px solid var(--border-color);
             padding: 15px;
+            /* iPad等で下部が隠れないように十分な余白を追加 */
+            padding-bottom: calc(60px + env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -100,6 +110,8 @@
             flex-direction: column;
             flex-shrink: 0;
             overscroll-behavior: contain;
+            /* 下部に余白を追加 */
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         .panel-header {
@@ -242,7 +254,7 @@
         }
 
         .layer-add-btn {
-            margin: 10px;
+            margin: 10px 10px 40px 10px; /* 下部に余白を持たせる */
             padding: 10px;
             background-color: #2a2a2a;
             border: 1px dashed #666;
@@ -255,151 +267,193 @@
             background-color: #3a3a3a;
             border-color: var(--accent-color);
         }
+
+        /* ステータスバーのスタイル */
+        #status-bar {
+            height: 28px;
+            background-color: #151515;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 0.85em;
+            color: #888;
+            flex-shrink: 0;
+            z-index: 10000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .status-item {
+            margin-right: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-value {
+            color: #ccc;
+            margin-left: 5px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-    <div id="toolbar">
-        <div class="panel-header">システム・コントロール</div>
-        
-        <div class="tool-section">
-            <label>ツール選択</label>
-            <div class="button-grid">
-                <button id="tool-pen" class="active" onclick="setTool('pen')">ペン</button>
-                <button id="tool-dot" onclick="setTool('dot')">点</button>
-                <button id="tool-bucket" onclick="setTool('bucket')">ペイント</button>
-                <button id="tool-line" onclick="setTool('line')">直線</button>
-                <button id="tool-eraser" onclick="setTool('eraser')">消しゴム</button>
-                <button id="tool-rect" onclick="setTool('rect')">四角形</button>
-                <button id="tool-circle" onclick="setTool('circle')">円</button>
-                <button id="tool-select" onclick="setTool('select')">選択</button>
-                <button id="tool-pan" onclick="setTool('pan')" style="grid-column: span 2;">手のひら(移動)</button>
+    <div id="main-area">
+        <div id="toolbar">
+            <div class="panel-header">システム・コントロール</div>
+            
+            <div class="tool-section">
+                <label>ツール選択</label>
+                <div class="button-grid">
+                    <button id="tool-pen" class="active" onclick="setTool('pen')">ペン</button>
+                    <button id="tool-dot" onclick="setTool('dot')">点</button>
+                    <button id="tool-bucket" onclick="setTool('bucket')">ペイント</button>
+                    <button id="tool-line" onclick="setTool('line')">直線</button>
+                    <button id="tool-eraser" onclick="setTool('eraser')">消しゴム</button>
+                    <button id="tool-rect" onclick="setTool('rect')">四角形</button>
+                    <button id="tool-circle" onclick="setTool('circle')">円</button>
+                    <button id="tool-select" onclick="setTool('select')">選択</button>
+                    <button id="tool-pan" onclick="setTool('pan')" style="grid-column: span 2;">手のひら(移動)</button>
+                </div>
+            </div>
+
+            <div class="tool-section" id="selection-panel" style="display: none; background-color: #3a2222; padding: 10px; border-radius: 4px; border: 1px solid #ff4444;">
+                <label style="color: #ffaaaa;">選択範囲オプション</label>
+                <div class="button-grid">
+                    <button onclick="duplicateSelection()">複製</button>
+                    <button onclick="deleteSelection()">削除</button>
+                    <button onclick="finalizeSelection()" style="grid-column: span 2; background-color: #552222;">確定 (スタンプ)</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <label>描画モード (図形用)</label>
+                <div class="button-grid">
+                    <button id="mode-stroke" class="active" onclick="setFillMode(false)">枠のみ</button>
+                    <button id="mode-fill" onclick="setFillMode(true)">塗りつぶし</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <label>ドット絵サポート</label>
+                <div class="button-grid">
+                    <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット (AA OFF)</button>
+                    <button id="aa-on" onclick="setAntiAlias(true)">滑らか (AA ON)</button>
+                    <button id="grid-toggle" onclick="toggleGrid()" style="grid-column: span 2;">グリッド表示 (x4以上)</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <label>表示倍率 (Zoom)</label>
+                <div class="zoom-grid" id="zoom-controls">
+                    <button id="zoom-1" class="active" onclick="setZoom(1)">x1</button>
+                    <button id="zoom-2" onclick="setZoom(2)">x2</button>
+                    <button id="zoom-4" onclick="setZoom(4)">x4</button>
+                    <button id="zoom-8" onclick="setZoom(8)">x8</button>
+                    <button id="zoom-16" onclick="setZoom(16)">x16</button>
+                    <button id="zoom-32" onclick="setZoom(32)">x32</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <label>8-Bit パレット</label>
+                <div class="palette-grid">
+                    <div class="palette-color" style="background: #000000" onclick="setPaletteColor('#000000')"></div>
+                    <div class="palette-color" style="background: #FFFFFF" onclick="setPaletteColor('#FFFFFF')"></div>
+                    <div class="palette-color" style="background: #FC0000" onclick="setPaletteColor('#FC0000')"></div>
+                    <div class="palette-color" style="background: #0000BC" onclick="setPaletteColor('#0000BC')"></div>
+                    <div class="palette-color" style="background: #007800" onclick="setPaletteColor('#007800')"></div>
+                    <div class="palette-color" style="background: #FCA044" onclick="setPaletteColor('#FCA044')"></div>
+                    <div class="palette-color" style="background: #F8B800" onclick="setPaletteColor('#F8B800')"></div>
+                    <div class="palette-color" style="background: #E40058" onclick="setPaletteColor('#E40058')"></div>
+                    <div class="palette-color" style="background: #00B800" onclick="setPaletteColor('#00B800')"></div>
+                    <div class="palette-color" style="background: #008888" onclick="setPaletteColor('#008888')"></div>
+                </div>
+                <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 5px;">
+            </div>
+
+            <div class="tool-section">
+                <label>線の太さ: <span id="line-width-display">1</span>px</label>
+                <input type="range" id="line-width" min="1" max="50" value="1" oninput="setLineWidth(this.value)">
+            </div>
+
+            <hr style="border-color: var(--border-color); width: 100%;">
+
+            <div class="tool-section">
+                <label>クリップボード</label>
+                <div class="button-grid">
+                    <button onclick="copyToClipboard()">コピー</button>
+                    <button onclick="pasteFromClipboard()">貼り付け</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <label>キャンバス操作</label>
+                <div class="button-grid">
+                    <button onclick="createNewCanvas()" style="grid-column: span 2; background-color: #442222;">新規作成 (サイズ指定)</button>
+                    <button onclick="resizeCanvasPrompt()">キャンバスサイズ</button>
+                    <button onclick="scaleImagePrompt()">解像度変更 (拡縮)</button>
+                    <button id="tool-crop" onclick="setTool('crop')" style="grid-column: span 2;">トリミング</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <label>画像入出力 (読込 / 書出)</label>
+                <div class="button-grid">
+                    <button onclick="document.getElementById('image-load-input').click()" style="grid-column: span 2; background-color: #224422;">画像読み込み</button>
+                    <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
+                    <button onclick="exportImage('png')">PNG</button>
+                    <button onclick="exportImage('jpeg')">JPG</button>
+                    <button onclick="exportImage('bmp')" style="grid-column: span 2;">BMP</button>
+                </div>
+            </div>
+
+            <hr style="border-color: var(--border-color); width: 100%;">
+
+            <div class="tool-section">
+                <label>履歴操作</label>
+                <div class="button-grid">
+                    <button onclick="undo()">Undo</button>
+                    <button onclick="redo()">Redo</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <label>データ管理</label>
+                <div class="button-grid">
+                    <button onclick="saveProject()">Save (JSON)</button>
+                    <button onclick="document.getElementById('load-input').click()">Load (JSON)</button>
+                    <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
+                </div>
+            </div>
+            
+            <!-- iPad用の余白確保 -->
+            <div style="height: 10px; flex-shrink: 0;"></div>
+        </div>
+
+        <div id="workspace">
+            <div id="canvas-wrapper">
+                <div id="grid-overlay"></div>
+                <canvas id="preview-canvas" width="800" height="600"></canvas>
             </div>
         </div>
 
-        <div class="tool-section" id="selection-panel" style="display: none; background-color: #3a2222; padding: 10px; border-radius: 4px; border: 1px solid #ff4444;">
-            <label style="color: #ffaaaa;">選択範囲オプション</label>
-            <div class="button-grid">
-                <button onclick="duplicateSelection()">複製</button>
-                <button onclick="deleteSelection()">削除</button>
-                <button onclick="finalizeSelection()" style="grid-column: span 2; background-color: #552222;">確定 (スタンプ)</button>
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <label>描画モード (図形用)</label>
-            <div class="button-grid">
-                <button id="mode-stroke" class="active" onclick="setFillMode(false)">枠のみ</button>
-                <button id="mode-fill" onclick="setFillMode(true)">塗りつぶし</button>
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <label>ドット絵サポート</label>
-            <div class="button-grid">
-                <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット (AA OFF)</button>
-                <button id="aa-on" onclick="setAntiAlias(true)">滑らか (AA ON)</button>
-                <button id="grid-toggle" onclick="toggleGrid()" style="grid-column: span 2;">グリッド表示 (x4以上)</button>
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <label>表示倍率 (Zoom)</label>
-            <div class="zoom-grid" id="zoom-controls">
-                <button id="zoom-1" class="active" onclick="setZoom(1)">x1</button>
-                <button id="zoom-2" onclick="setZoom(2)">x2</button>
-                <button id="zoom-4" onclick="setZoom(4)">x4</button>
-                <button id="zoom-8" onclick="setZoom(8)">x8</button>
-                <button id="zoom-16" onclick="setZoom(16)">x16</button>
-                <button id="zoom-32" onclick="setZoom(32)">x32</button>
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <label>8-Bit パレット</label>
-            <div class="palette-grid">
-                <div class="palette-color" style="background: #000000" onclick="setPaletteColor('#000000')"></div>
-                <div class="palette-color" style="background: #FFFFFF" onclick="setPaletteColor('#FFFFFF')"></div>
-                <div class="palette-color" style="background: #FC0000" onclick="setPaletteColor('#FC0000')"></div>
-                <div class="palette-color" style="background: #0000BC" onclick="setPaletteColor('#0000BC')"></div>
-                <div class="palette-color" style="background: #007800" onclick="setPaletteColor('#007800')"></div>
-                <div class="palette-color" style="background: #FCA044" onclick="setPaletteColor('#FCA044')"></div>
-                <div class="palette-color" style="background: #F8B800" onclick="setPaletteColor('#F8B800')"></div>
-                <div class="palette-color" style="background: #E40058" onclick="setPaletteColor('#E40058')"></div>
-                <div class="palette-color" style="background: #00B800" onclick="setPaletteColor('#00B800')"></div>
-                <div class="palette-color" style="background: #008888" onclick="setPaletteColor('#008888')"></div>
-            </div>
-            <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 5px;">
-        </div>
-
-        <div class="tool-section">
-            <label>線の太さ: <span id="line-width-display">1</span>px</label>
-            <input type="range" id="line-width" min="1" max="50" value="1" oninput="setLineWidth(this.value)">
-        </div>
-
-        <hr style="border-color: var(--border-color); width: 100%;">
-
-        <div class="tool-section">
-            <label>クリップボード</label>
-            <div class="button-grid">
-                <button onclick="copyToClipboard()">コピー</button>
-                <button onclick="pasteFromClipboard()">貼り付け</button>
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <label>キャンバス操作</label>
-            <div class="button-grid">
-                <button onclick="createNewCanvas()" style="grid-column: span 2; background-color: #442222;">新規作成 (サイズ指定)</button>
-                <button onclick="resizeCanvasPrompt()">キャンバスサイズ</button>
-                <button onclick="scaleImagePrompt()">解像度変更 (拡縮)</button>
-                <button id="tool-crop" onclick="setTool('crop')" style="grid-column: span 2;">トリミング</button>
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <label>画像入出力 (読込 / 書出)</label>
-            <div class="button-grid">
-                <button onclick="document.getElementById('image-load-input').click()" style="grid-column: span 2; background-color: #224422;">画像読み込み</button>
-                <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
-                <button onclick="exportImage('png')">PNG</button>
-                <button onclick="exportImage('jpeg')">JPG</button>
-                <button onclick="exportImage('bmp')" style="grid-column: span 2;">BMP</button>
-            </div>
-        </div>
-
-        <hr style="border-color: var(--border-color); width: 100%;">
-
-        <div class="tool-section">
-            <label>履歴操作</label>
-            <div class="button-grid">
-                <button onclick="undo()">Undo</button>
-                <button onclick="redo()">Redo</button>
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <label>データ管理</label>
-            <div class="button-grid">
-                <button onclick="saveProject()">Save (JSON)</button>
-                <button onclick="document.getElementById('load-input').click()">Load (JSON)</button>
-                <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
-            </div>
+        <div id="layer-panel">
+            <div class="panel-header">レイヤー・モジュール</div>
+            <div class="layer-list" id="layer-list">
+                </div>
+            <div class="layer-add-btn" onclick="addLayer()">+ 新規レイヤー追加</div>
         </div>
     </div>
-
-    <div id="workspace">
-        <div id="canvas-wrapper">
-            <div id="grid-overlay"></div>
-            <canvas id="preview-canvas" width="800" height="600"></canvas>
+    
+    <!-- ステータスバー -->
+    <div id="status-bar">
+        <div class="status-item">
+            SYSTEM STATUS: <span style="color: #0f0; margin-left: 5px;">ONLINE</span>
         </div>
-    </div>
-
-    <div id="layer-panel">
-        <div class="panel-header">レイヤー・モジュール</div>
-        <div class="layer-list" id="layer-list">
-            </div>
-        <div class="layer-add-btn" onclick="addLayer()">+ 新規レイヤー追加</div>
+        <div class="status-item">
+            IMAGE SIZE: <span class="status-value" id="status-size">800 x 600 px</span>
+        </div>
     </div>
 
     <script>
@@ -463,6 +517,14 @@
             addLayer('レイヤー 1');
             saveState(); // 初期状態を履歴に保存
             setupPreviewCanvasEvents();
+            updateStatusBar();
+        }
+
+        function updateStatusBar() {
+            const sizeDisplay = document.getElementById('status-size');
+            if (sizeDisplay) {
+                sizeDisplay.innerText = `${CANVAS_WIDTH} x ${CANVAS_HEIGHT} px`;
+            }
         }
 
         // --- ツール・システム制御 ---
@@ -844,7 +906,6 @@
 
             // iPad/スマホ用タッチイベント
             overlay.addEventListener('touchstart', (e) => {
-                // 2本指タッチの場合は強制的にパンニングへ移行
                 if (e.touches && e.touches.length >= 2) {
                     e.preventDefault();
                     startPanning(e);
@@ -1359,6 +1420,7 @@
             previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
             previewCtx.imageSmoothingEnabled = isAntiAlias;
             
+            updateStatusBar();
             setZoom(currentZoom); 
         }
 
@@ -1431,6 +1493,7 @@
             previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
             previewCtx.imageSmoothingEnabled = isAntiAlias;
 
+            updateStatusBar();
             setZoom(currentZoom);
         }
 
@@ -1565,6 +1628,7 @@
                 historyStack.shift();
             }
             redoStack = []; 
+            updateStatusBar();
         }
 
         function restoreState(state) {
@@ -1622,6 +1686,7 @@
             });
 
             layerCounter = Math.max(layerCounter, ...state.layers.map(s => parseInt(s.id.split('_')[1] || 0))) + 1;
+            updateStatusBar();
         }
 
         function undo() {
@@ -1647,7 +1712,7 @@
         function saveProject() {
             finalizeSelection();
             const projectData = {
-                version: '2.4',
+                version: '2.5',
                 width: CANVAS_WIDTH,
                 height: CANVAS_HEIGHT,
                 layers: getSnapshot()
