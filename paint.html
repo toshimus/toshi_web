@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K.I.T.T. - Advanced Drawing Interface</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #ff0000;
+            --accent-hover: #cc0000;
+            --border-color: #333;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #toolbar {
+            width: 280px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        #workspace {
+            flex-grow: 1;
+            background-color: #0a0a0a;
+            position: relative;
+            overflow: auto; /* 拡大時のスクロール対応 */
+            padding: 20px;
+            display: block; /* 拡大時のスクロールバグを防ぐためflexからblockに変更 */
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            margin: 0 auto; /* ワークスペース内での中央寄せ */
+            /* 背景透明対応（チェッカーボード柄） */
+            background-image: 
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(135deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(135deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 0, 10px -10px, 0px 10px;
+            background-color: #ffffff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            transform-origin: top left;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated; /* 拡大時にドットをくっきりさせる */
+        }
+
+        #preview-canvas {
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        #layer-panel {
+            width: 250px;
+            background-color: var(--panel-bg);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .panel-header {
+            padding: 15px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+        }
+
+        .tool-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tool-section label {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .zoom-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        button {
+            background-color: #2a2a2a;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 0.9em;
+        }
+
+        button:hover {
+            background-color: #3a3a3a;
+            border-color: #555;
+        }
+
+        button.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-hover);
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: transparent;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-color);
+        }
+
+        .layer-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .layer-item {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .layer-item.active {
+            border-color: var(--accent-color);
+            background-color: #332222;
+        }
+
+        .layer-item input[type="text"] {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 1em;
+            width: 120px;
+        }
+
+        .layer-item input[type="text"]:focus {
+            outline: none;
+            border-bottom: 1px solid var(--accent-color);
+        }
+
+        .layer-controls button {
+            padding: 4px 8px;
+            font-size: 0.8em;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+        }
+
+        .layer-controls button:hover {
+            background-color: #444;
+        }
+
+        .layer-add-btn {
+            margin: 10px;
+            padding: 10px;
+            background-color: #2a2a2a;
+            border: 1px dashed #666;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .layer-add-btn:hover {
+            background-color: #3a3a3a;
+            border-color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toolbar">
+        <div class="panel-header">システム・コントロール</div>
+        
+        <div class="tool-section">
+            <label>ツール選択</label>
+            <div class="button-grid">
+                <button id="tool-pen" class="active" onclick="setTool('pen')">ペン</button>
+                <button id="tool-bucket" onclick="setTool('bucket')">ペイント</button>
+                <button id="tool-line" onclick="setTool('line')">直線</button>
+                <button id="tool-eraser" onclick="setTool('eraser')">消しゴム</button>
+                <button id="tool-rect" onclick="setTool('rect')">四角形</button>
+                <button id="tool-circle" onclick="setTool('circle')">円</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>描画モード (図形用)</label>
+            <div class="button-grid">
+                <button id="mode-stroke" class="active" onclick="setFillMode(false)">枠のみ</button>
+                <button id="mode-fill" onclick="setFillMode(true)">塗りつぶし</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>表示倍率 (Zoom)</label>
+            <div class="zoom-grid" id="zoom-controls">
+                <button id="zoom-1" class="active" onclick="setZoom(1)">x1</button>
+                <button id="zoom-2" onclick="setZoom(2)">x2</button>
+                <button id="zoom-4" onclick="setZoom(4)">x4</button>
+                <button id="zoom-8" onclick="setZoom(8)">x8</button>
+                <button id="zoom-16" onclick="setZoom(16)">x16</button>
+                <button id="zoom-32" onclick="setZoom(32)">x32</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>カラー設定</label>
+            <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)">
+        </div>
+
+        <div class="tool-section">
+            <label>線の太さ: <span id="line-width-display">3</span>px</label>
+            <input type="range" id="line-width" min="1" max="50" value="3" oninput="setLineWidth(this.value)">
+        </div>
+
+        <hr style="border-color: var(--border-color); width: 100%;">
+
+        <div class="tool-section">
+            <label>クリップボード</label>
+            <div class="button-grid">
+                <button onclick="copyToClipboard()">コピー</button>
+                <button onclick="pasteFromClipboard()">貼り付け</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>画像書き出し</label>
+            <div class="button-grid">
+                <button onclick="exportImage('png')">PNG</button>
+                <button onclick="exportImage('jpeg')">JPG</button>
+                <button onclick="exportImage('bmp')" style="grid-column: span 2;">BMP</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>キャンバス操作</label>
+            <div class="button-grid">
+                <button onclick="resizeCanvasPrompt()">サイズ変更</button>
+                <button id="tool-crop" onclick="setTool('crop')">トリミング</button>
+            </div>
+        </div>
+
+        <hr style="border-color: var(--border-color); width: 100%;">
+
+        <div class="tool-section">
+            <label>履歴操作</label>
+            <div class="button-grid">
+                <button onclick="undo()">Undo</button>
+                <button onclick="redo()">Redo</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>データ管理</label>
+            <div class="button-grid">
+                <button onclick="saveProject()">Save (JSON)</button>
+                <button onclick="document.getElementById('load-input').click()">Load (JSON)</button>
+                <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
+            </div>
+        </div>
+    </div>
+
+    <div id="workspace">
+        <div id="canvas-wrapper">
+            <canvas id="preview-canvas" width="800" height="600"></canvas>
+        </div>
+    </div>
+
+    <div id="layer-panel">
+        <div class="panel-header">レイヤー・モジュール</div>
+        <div class="layer-list" id="layer-list">
+            </div>
+        <div class="layer-add-btn" onclick="addLayer()">+ 新規レイヤー追加</div>
+    </div>
+
+    <script>
+        // --- システム定数・変数 ---
+        let CANVAS_WIDTH = 800; // 可変対応のためletに変更
+        let CANVAS_HEIGHT = 600; 
+        
+        let currentTool = 'pen';
+        let currentColor = '#000000';
+        let currentLineWidth = 3;
+        let isFillMode = false;
+        let currentZoom = 1;
+        
+        let isDrawing = false;
+        let startX = 0;
+        let startY = 0;
+
+        // レイヤー管理
+        let layers = [];
+        let currentLayerId = null;
+        let layerCounter = 0;
+
+        // 履歴管理 (Undo/Redo)
+        let historyStack = [];
+        let redoStack = [];
+        const MAX_HISTORY = 20;
+
+        // HTML要素の参照
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        const previewCanvas = document.getElementById('preview-canvas');
+        const previewCtx = previewCanvas.getContext('2d');
+        const layerListEl = document.getElementById('layer-list');
+
+        // --- 初期化処理 ---
+        function init() {
+            // 背景透過対応のため、白塗りつぶしを行わず透明レイヤーから開始します
+            addLayer('レイヤー 1');
+            saveState(); // 初期状態を履歴に保存
+            setupPreviewCanvasEvents();
+        }
+
+        // --- ツール・システム制御 ---
+        function setTool(toolName) {
+            currentTool = toolName;
+            document.querySelectorAll('#toolbar .button-grid button').forEach(btn => {
+                if (btn.id && btn.id.startsWith('tool-')) {
+                    btn.classList.remove('active');
+                }
+            });
+            const targetBtn = document.getElementById(`tool-${toolName}`);
+            if (targetBtn) targetBtn.classList.add('active');
+        }
+
+        function setFillMode(fill) {
+            isFillMode = fill;
+            document.getElementById('mode-stroke').classList.toggle('active', !fill);
+            document.getElementById('mode-fill').classList.toggle('active', fill);
+        }
+
+        function setColor(color) {
+            currentColor = color;
+        }
+
+        function setLineWidth(width) {
+            currentLineWidth = parseInt(width, 10);
+            document.getElementById('line-width-display').innerText = width;
+        }
+
+        function setZoom(level) {
+            currentZoom = level;
+            
+            // キャンバスラッパーのCSSサイズを変更して拡大表示を実現
+            canvasWrapper.style.width = (CANVAS_WIDTH * currentZoom) + 'px';
+            canvasWrapper.style.height = (CANVAS_HEIGHT * currentZoom) + 'px';
+            
+            // UIの更新
+            document.querySelectorAll('#zoom-controls button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`zoom-${level}`).classList.add('active');
+        }
+
+        // --- レイヤー管理ロジック ---
+        function addLayer(name = null) {
+            const id = `layer_${layerCounter++}`;
+            const zIndex = layers.length;
+            
+            const canvas = document.createElement('canvas');
+            canvas.id = id;
+            canvas.width = CANVAS_WIDTH;
+            canvas.height = CANVAS_HEIGHT;
+            canvas.style.zIndex = zIndex;
+            
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            // プレビューキャンバスの下に挿入
+            canvasWrapper.insertBefore(canvas, previewCanvas);
+
+            const layerObj = {
+                id: id,
+                name: name || `レイヤー ${layerCounter}`,
+                canvas: canvas,
+                ctx: ctx,
+                visible: true
+            };
+
+            layers.push(layerObj);
+            selectLayer(id);
+            renderLayerPanel();
+            
+            if(layers.length > 1) { 
+                saveState();
+            }
+            return layerObj;
+        }
+
+        function selectLayer(id) {
+            currentLayerId = id;
+            renderLayerPanel();
+        }
+
+        function toggleLayerVisibility(id, event) {
+            event.stopPropagation();
+            const layer = layers.find(l => l.id === id);
+            if (layer) {
+                layer.visible = !layer.visible;
+                layer.canvas.style.display = layer.visible ? 'block' : 'none';
+                renderLayerPanel();
+            }
+        }
+
+        function deleteLayer(id, event) {
+            event.stopPropagation();
+            if (layers.length <= 1) {
+                alert("最後のレイヤーは削除できません。");
+                return;
+            }
+            const layerIndex = layers.findIndex(l => l.id === id);
+            if (layerIndex !== -1) {
+                const layer = layers[layerIndex];
+                canvasWrapper.removeChild(layer.canvas);
+                layers.splice(layerIndex, 1);
+                
+                // 削除したレイヤーが選択されていた場合、別のレイヤーを選択
+                if (currentLayerId === id) {
+                    selectLayer(layers[layers.length - 1].id);
+                }
+                renderLayerPanel();
+                saveState();
+            }
+        }
+
+        function renderLayerPanel() {
+            layerListEl.innerHTML = '';
+            // パネルの表示順は上が前面（配列の最後）となるように逆順でループ
+            for (let i = layers.length - 1; i >= 0; i--) {
+                const layer = layers[i];
+                layer.canvas.style.zIndex = i; // Z-Indexの再計算
+
+                const item = document.createElement('div');
+                item.className = `layer-item ${layer.id === currentLayerId ? 'active' : ''}`;
+                item.onclick = () => selectLayer(layer.id);
+
+                const visibilityBtn = document.createElement('button');
+                visibilityBtn.innerText = layer.visible ? '👁️' : 'ー';
+                visibilityBtn.onclick = (e) => toggleLayerVisibility(layer.id, e);
+
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.value = layer.name;
+                nameInput.onclick = (e) => e.stopPropagation();
+                nameInput.onchange = (e) => { layer.name = e.target.value; };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerText = '✖';
+                deleteBtn.onclick = (e) => deleteLayer(layer.id, e);
+
+                const controls = document.createElement('div');
+                controls.className = 'layer-controls';
+                controls.appendChild(visibilityBtn);
+                controls.appendChild(deleteBtn);
+
+                item.appendChild(nameInput);
+                item.appendChild(controls);
+                layerListEl.appendChild(item);
+            }
+        }
+
+        function getCurrentContext() {
+            const layer = layers.find(l => l.id === currentLayerId);
+            return layer ? layer.ctx : null;
+        }
+
+        // --- 描画イベントハンドリング ---
+        function getMousePos(e) {
+            const rect = previewCanvas.getBoundingClientRect();
+            // CSSにより拡大されている場合、表示幅(rect.width)と実解像度(CANVAS_WIDTH)の比率を計算
+            const scaleX = CANVAS_WIDTH / rect.width;
+            const scaleY = CANVAS_HEIGHT / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function setupPreviewCanvasEvents() {
+            // マウスイベントを拾う用のオーバーレイ（一番手前）
+            const overlay = document.createElement('div');
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.zIndex = '10000';
+            overlay.style.cursor = 'crosshair';
+            canvasWrapper.appendChild(overlay);
+
+            overlay.addEventListener('mousedown', startDrawing);
+            // ウィンドウ外へのドラッグ対応のため、moveとupはwindowにアタッチします
+            window.addEventListener('mousemove', draw);
+            window.addEventListener('mouseup', stopDrawing);
+        }
+
+        function setupContextStyle(ctx, isEraser = false) {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = currentLineWidth;
+            
+            if (isEraser) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = 'rgba(0,0,0,1)';
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+                ctx.fillStyle = currentColor;
+            }
+        }
+
+        function startDrawing(e) {
+            if (!currentLayerId) return;
+            const layer = layers.find(l => l.id === currentLayerId);
+            if (!layer || !layer.visible) {
+                alert("現在選択されているレイヤーは非表示か存在しません。");
+                return;
+            }
+
+            isDrawing = true;
+            const pos = getMousePos(e);
+            startX = pos.x;
+            startY = pos.y;
+
+            if (currentTool === 'bucket') {
+                isDrawing = false;
+                executeFloodFill(Math.floor(startX), Math.floor(startY));
+                saveState();
+                return;
+            }
+
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                const ctx = getCurrentContext();
+                setupContextStyle(ctx, currentTool === 'eraser');
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const pos = getMousePos(e);
+
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                const ctx = getCurrentContext();
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            } else if (['line', 'rect', 'circle', 'crop'].includes(currentTool)) {
+                // 図形およびトリミング枠はプレビューキャンバスに描画
+                previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                setupContextStyle(previewCtx, false); 
+                
+                previewCtx.beginPath();
+                if (currentTool === 'crop') {
+                    previewCtx.setLineDash([5, 5]);
+                    previewCtx.strokeStyle = '#ff0000';
+                    previewCtx.lineWidth = 1;
+                    const width = pos.x - startX;
+                    const height = pos.y - startY;
+                    previewCtx.strokeRect(startX, startY, width, height);
+                    previewCtx.setLineDash([]); // 破線をリセット
+                } else if (currentTool === 'line') {
+                    previewCtx.moveTo(startX, startY);
+                    previewCtx.lineTo(pos.x, pos.y);
+                    previewCtx.stroke();
+                } else if (currentTool === 'rect') {
+                    const width = pos.x - startX;
+                    const height = pos.y - startY;
+                    if (isFillMode) {
+                        previewCtx.fillRect(startX, startY, width, height);
+                    } else {
+                        previewCtx.strokeRect(startX, startY, width, height);
+                    }
+                } else if (currentTool === 'circle') {
+                    const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+                    previewCtx.arc(startX, startY, radius, 0, Math.PI * 2);
+                    if (isFillMode) {
+                        previewCtx.fill();
+                    } else {
+                        previewCtx.stroke();
+                    }
+                }
+            }
+        }
+
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+            isDrawing = false;
+            
+            const ctx = getCurrentContext();
+
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                ctx.closePath();
+                // コンポジットオペレーションを元に戻す
+                if (currentTool === 'eraser') ctx.globalCompositeOperation = 'source-over';
+            } else if (['line', 'rect', 'circle', 'crop'].includes(currentTool)) {
+                // プレビューキャンバスから本番レイヤーへ転写、またはトリミングの実行
+                setupContextStyle(ctx, false);
+                const pos = getMousePos(e);
+                
+                if (currentTool === 'crop') {
+                    previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                    const rectX = Math.min(startX, pos.x);
+                    const rectY = Math.min(startY, pos.y);
+                    const rectW = Math.abs(pos.x - startX);
+                    const rectH = Math.abs(pos.y - startY);
+                    
+                    if (rectW > 5 && rectH > 5) {
+                        executeResize(rectW, rectH, rectX, rectY);
+                    }
+                    saveState();
+                    return;
+                }
+
+                ctx.beginPath();
+                if (currentTool === 'line') {
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                } else if (currentTool === 'rect') {
+                    const width = pos.x - startX;
+                    const height = pos.y - startY;
+                    if (isFillMode) {
+                        ctx.fillRect(startX, startY, width, height);
+                    } else {
+                        ctx.strokeRect(startX, startY, width, height);
+                    }
+                } else if (currentTool === 'circle') {
+                    const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+                    ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+                    if (isFillMode) {
+                        ctx.fill();
+                    } else {
+                        ctx.stroke();
+                    }
+                }
+                // プレビューを消去
+                previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
+            
+            // 描画終了後に状態を保存
+            saveState();
+        }
+
+        // --- バケツツール (Flood Fill アルゴリズム) ---
+        function hexToRgba(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [
+                parseInt(result[1], 16),
+                parseInt(result[2], 16),
+                parseInt(result[3], 16),
+                255
+            ] : [0, 0, 0, 255];
+        }
+
+        function executeFloodFill(startX, startY) {
+            const ctx = getCurrentContext();
+            if (!ctx) return;
+
+            // 座標がキャンバス外の場合は処理しない
+            if (startX < 0 || startY < 0 || startX >= CANVAS_WIDTH || startY >= CANVAS_HEIGHT) return;
+
+            const imageData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            const data = new Uint32Array(imageData.data.buffer);
+            
+            const startIdx = startY * CANVAS_WIDTH + startX;
+            const startColor = data[startIdx];
+            
+            const fillRgba = hexToRgba(currentColor);
+            // リトルエンディアン形式での32ビットカラー表現 (ABGR)
+            const fillColor32 = (fillRgba[3] << 24) | (fillRgba[2] << 16) | (fillRgba[1] << 8) | fillRgba[0];
+
+            if (startColor === fillColor32) return; // 同じ色なら何もしない
+
+            const stack = [startIdx];
+            const visited = new Uint8Array(CANVAS_WIDTH * CANVAS_HEIGHT);
+
+            while (stack.length > 0) {
+                let idx = stack.pop();
+                if (visited[idx]) continue;
+
+                let y = Math.floor(idx / CANVAS_WIDTH);
+                let x = idx % CANVAS_WIDTH;
+
+                // 左端を検索
+                let left = x;
+                while (left > 0 && data[y * CANVAS_WIDTH + (left - 1)] === startColor) {
+                    left--;
+                }
+
+                // 右端を検索
+                let right = x;
+                while (right < CANVAS_WIDTH - 1 && data[y * CANVAS_WIDTH + (right + 1)] === startColor) {
+                    right++;
+                }
+
+                // 見つけた行を塗りつぶし、上下のピクセルをスタックに追加
+                for (let i = left; i <= right; i++) {
+                    let currentIdx = y * CANVAS_WIDTH + i;
+                    data[currentIdx] = fillColor32;
+                    visited[currentIdx] = 1;
+
+                    // 上のピクセルをチェック
+                    if (y > 0) {
+                        let upIdx = (y - 1) * CANVAS_WIDTH + i;
+                        if (data[upIdx] === startColor && !visited[upIdx]) {
+                            stack.push(upIdx);
+                        }
+                    }
+
+                    // 下のピクセルをチェック
+                    if (y < CANVAS_HEIGHT - 1) {
+                        let downIdx = (y + 1) * CANVAS_WIDTH + i;
+                        if (data[downIdx] === startColor && !visited[downIdx]) {
+                            stack.push(downIdx);
+                        }
+                    }
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // --- キャンバス変形モジュール (サイズ変更・トリミング) ---
+        function executeResize(newW, newH, offsetX = 0, offsetY = 0) {
+            newW = Math.floor(newW);
+            newH = Math.floor(newH);
+            
+            layers.forEach(layer => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = layer.canvas.width;
+                tempCanvas.height = layer.canvas.height;
+                tempCanvas.getContext('2d').drawImage(layer.canvas, 0, 0);
+                
+                layer.canvas.width = newW;
+                layer.canvas.height = newH;
+                
+                // オフセット指定（トリミング）の場合は描画位置をずらす
+                layer.ctx.drawImage(tempCanvas, -offsetX, -offsetY);
+            });
+            
+            CANVAS_WIDTH = newW;
+            CANVAS_HEIGHT = newH;
+            
+            previewCanvas.width = newW;
+            previewCanvas.height = newH;
+            
+            setZoom(currentZoom); // UIの再計算
+        }
+
+        function resizeCanvasPrompt() {
+            const w = prompt("新しい幅（ピクセル）を入力してください:", CANVAS_WIDTH);
+            if (!w || isNaN(w)) return;
+            const h = prompt("新しい高さ（ピクセル）を入力してください:", CANVAS_HEIGHT);
+            if (!h || isNaN(h)) return;
+            
+            executeResize(Number(w), Number(h), 0, 0);
+            saveState();
+        }
+
+        // --- クリップボード モジュール ---
+        async function copyToClipboard() {
+            try {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = CANVAS_WIDTH;
+                tempCanvas.height = CANVAS_HEIGHT;
+                const tCtx = tempCanvas.getContext('2d');
+                
+                layers.forEach(layer => {
+                    if (layer.visible) tCtx.drawImage(layer.canvas, 0, 0);
+                });
+                
+                tempCanvas.toBlob(async (blob) => {
+                    if (blob) {
+                        const item = new ClipboardItem({ 'image/png': blob });
+                        await navigator.clipboard.write([item]);
+                        alert("システム: 画像をクリップボードにコピーしました。");
+                    }
+                }, 'image/png');
+            } catch (err) {
+                alert("システム・エラー: コピーに失敗しました。");
+                console.error(err);
+            }
+        }
+
+        async function pasteFromClipboard() {
+            try {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    if (item.types.includes('image/png') || item.types.includes('image/jpeg')) {
+                        const type = item.types.includes('image/png') ? 'image/png' : 'image/jpeg';
+                        const blob = await item.getType(type);
+                        const img = new Image();
+                        img.onload = () => {
+                            const newLayer = addLayer('Paste Layer');
+                            newLayer.ctx.drawImage(img, 0, 0);
+                            saveState();
+                        };
+                        img.src = URL.createObjectURL(blob);
+                        return;
+                    }
+                }
+                alert("システム: クリップボードに有効な画像データがありません。");
+            } catch (err) {
+                alert("システム・エラー: 貼り付けに失敗しました。");
+                console.error(err);
+            }
+        }
+
+        // --- エクスポート モジュール ---
+        function exportImage(format) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = CANVAS_WIDTH;
+            tempCanvas.height = CANVAS_HEIGHT;
+            const tCtx = tempCanvas.getContext('2d');
+            
+            if (format === 'jpeg' || format === 'bmp') {
+                tCtx.fillStyle = '#ffffff'; // JPGやBMPは透過情報を白に変換
+                tCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
+            
+            layers.forEach(layer => {
+                if (layer.visible) tCtx.drawImage(layer.canvas, 0, 0);
+            });
+            
+            const mimeType = `image/${format}`;
+            const dataUrl = tempCanvas.toDataURL(mimeType);
+            
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `KITT_Export_${new Date().getTime()}.${format === 'jpeg' ? 'jpg' : format}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- Undo / Redo 機能 ---
+        function getSnapshot() {
+            // 全レイヤーの状態をDataURLで取得して配列化
+            return layers.map(layer => ({
+                id: layer.id,
+                name: layer.name,
+                visible: layer.visible,
+                dataURL: layer.canvas.toDataURL()
+            }));
+        }
+
+        function saveState() {
+            const state = {
+                width: CANVAS_WIDTH,
+                height: CANVAS_HEIGHT,
+                layers: getSnapshot()
+            };
+            historyStack.push(state);
+            if (historyStack.length > MAX_HISTORY) {
+                historyStack.shift();
+            }
+            redoStack = []; // 新しい操作をしたらRedoスタックはクリア
+        }
+
+        function restoreState(state) {
+            CANVAS_WIDTH = state.width;
+            CANVAS_HEIGHT = state.height;
+            canvasWrapper.style.width = (CANVAS_WIDTH * currentZoom) + 'px';
+            canvasWrapper.style.height = (CANVAS_HEIGHT * currentZoom) + 'px';
+            previewCanvas.width = CANVAS_WIDTH;
+            previewCanvas.height = CANVAS_HEIGHT;
+
+            // 現在のレイヤーDOMをクリア
+            layers.forEach(l => canvasWrapper.removeChild(l.canvas));
+            layers = [];
+            
+            let loadedCount = 0;
+            const totalLayers = state.layers.length;
+
+            state.layers.forEach((layerData, index) => {
+                const canvas = document.createElement('canvas');
+                canvas.id = layerData.id;
+                canvas.width = CANVAS_WIDTH;
+                canvas.height = CANVAS_HEIGHT;
+                canvas.style.zIndex = index;
+                canvas.style.display = layerData.visible ? 'block' : 'none';
+                
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                canvasWrapper.insertBefore(canvas, previewCanvas);
+
+                const layerObj = {
+                    id: layerData.id,
+                    name: layerData.name,
+                    canvas: canvas,
+                    ctx: ctx,
+                    visible: layerData.visible
+                };
+                layers.push(layerObj);
+
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0);
+                    loadedCount++;
+                    if (loadedCount === totalLayers) {
+                        // 全ての画像が読み込まれたらUIを更新
+                        const prevSelectedExists = layers.some(l => l.id === currentLayerId);
+                        if (!prevSelectedExists) {
+                            currentLayerId = layers[layers.length - 1].id;
+                        }
+                        renderLayerPanel();
+                    }
+                };
+                img.src = layerData.dataURL;
+            });
+
+            // 互換性のためカウンタを更新
+            layerCounter = Math.max(layerCounter, ...state.layers.map(s => parseInt(s.id.split('_')[1] || 0))) + 1;
+        }
+
+        function undo() {
+            if (historyStack.length > 1) {
+                const currentState = historyStack.pop();
+                redoStack.push(currentState);
+                const previousState = historyStack[historyStack.length - 1];
+                restoreState(previousState);
+            }
+        }
+
+        function redo() {
+            if (redoStack.length > 0) {
+                const nextState = redoStack.pop();
+                historyStack.push(nextState);
+                restoreState(nextState);
+            }
+        }
+
+        // --- Save / Load 機能 ---
+        function saveProject() {
+            const projectData = {
+                version: '2.0',
+                width: CANVAS_WIDTH,
+                height: CANVAS_HEIGHT,
+                layers: getSnapshot()
+            };
+            
+            const jsonStr = JSON.stringify(projectData);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `KITT_Project_${new Date().getTime()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function loadProject(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const projectData = JSON.parse(e.target.result);
+                    if (projectData.layers && Array.isArray(projectData.layers)) {
+                        historyStack = [];
+                        redoStack = [];
+                        
+                        // 状態オブジェクトを構築して復元
+                        const stateToRestore = {
+                            width: projectData.width || 800,
+                            height: projectData.height || 600,
+                            layers: projectData.layers
+                        };
+                        restoreState(stateToRestore);
+                        
+                        // ロード後の状態を初期履歴として保存
+                        setTimeout(() => { saveState(); }, 500); 
+                    } else {
+                        alert("データ形式が正しくありません。");
+                    }
+                } catch (err) {
+                    alert("ファイルの読み込み中にエラーが発生しました。");
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+            // inputの値をリセット
+            event.target.value = '';
+        }
+
+        // --- システム起動 ---
+        window.onload = init;
+
+    </script>
+</body>
+</html>
