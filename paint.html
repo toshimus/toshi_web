@@ -341,8 +341,9 @@
             <label>キャンバス操作</label>
             <div class="button-grid">
                 <button onclick="createNewCanvas()" style="grid-column: span 2; background-color: #442222;">新規作成 (サイズ指定)</button>
-                <button onclick="resizeCanvasPrompt()">サイズ変更</button>
-                <button id="tool-crop" onclick="setTool('crop')">トリミング</button>
+                <button onclick="resizeCanvasPrompt()">キャンバスサイズ</button>
+                <button onclick="scaleImagePrompt()">解像度変更 (拡縮)</button>
+                <button id="tool-crop" onclick="setTool('crop')" style="grid-column: span 2;">トリミング</button>
             </div>
         </div>
 
@@ -405,7 +406,7 @@
         let isGridVisible = false;
         
         let isDrawing = false;
-        let hasMoved = false; // 点を打つ機能のトラッキング用
+        let hasMoved = false; 
         let startX = 0;
         let startY = 0;
 
@@ -876,9 +877,8 @@
             const pos = getMousePos(e);
             startX = pos.x;
             startY = pos.y;
-            hasMoved = false; // ドラッグ検知のリセット
+            hasMoved = false; 
 
-            // 点ツールの即時描画
             if (currentTool === 'dot') {
                 const ctx = getCurrentContext();
                 setupContextStyle(ctx, false);
@@ -890,7 +890,7 @@
                     ctx.fill();
                 }
                 saveState();
-                return; // 点を打って終了
+                return; 
             }
 
             isDrawing = true;
@@ -986,7 +986,6 @@
                     ctx.closePath();
                 }
                 
-                // タップのみで移動しなかった場合は点を打つ
                 if (!hasMoved) {
                     if (!isAntiAlias) {
                         drawBresenhamLine(ctx, startX, startY, startX, startY, currentTool === 'eraser');
@@ -1125,7 +1124,7 @@
             ctx.putImageData(imageData, 0, 0);
         }
 
-        // --- 新規作成・キャンバス変形モジュール ---
+        // --- 新規作成・キャンバス変形・解像度変更モジュール ---
         function createNewCanvas() {
             if (!confirm("現在のデータは破棄されます。よろしいですか？")) return;
             const w = prompt("新規キャンバスの幅（ピクセル）を入力してください:", CANVAS_WIDTH);
@@ -1136,7 +1135,6 @@
             CANVAS_WIDTH = Math.floor(Number(w));
             CANVAS_HEIGHT = Math.floor(Number(h));
 
-            // 履歴とレイヤーのリセット
             historyStack = [];
             redoStack = [];
             layers.forEach(l => canvasWrapper.removeChild(l.canvas));
@@ -1148,7 +1146,6 @@
             previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
             previewCtx.imageSmoothingEnabled = isAntiAlias;
 
-            // 初期レイヤー作成と画面更新
             addLayer('レイヤー 1');
             setZoom(currentZoom);
             saveState();
@@ -1191,6 +1188,66 @@
             
             executeResize(Number(w), Number(h), 0, 0);
             saveState();
+        }
+
+        function scaleImagePrompt() {
+            const input = prompt("変更後の長辺サイズ（ピクセル）、または倍率（例: *2, /2, x4）を入力してください:");
+            if (!input) return;
+
+            let maxSide = Math.max(CANVAS_WIDTH, CANVAS_HEIGHT);
+            let newMaxSide = maxSide;
+            const val = input.trim();
+
+            if (val.startsWith('*') || val.startsWith('x') || val.startsWith('X')) {
+                const multi = parseFloat(val.substring(1));
+                if (isNaN(multi) || multi <= 0) return;
+                newMaxSide = maxSide * multi;
+            } else if (val.startsWith('/')) {
+                const div = parseFloat(val.substring(1));
+                if (isNaN(div) || div <= 0) return;
+                newMaxSide = maxSide / div;
+            } else {
+                const num = parseFloat(val);
+                if (isNaN(num) || num <= 0) return;
+                newMaxSide = num;
+            }
+
+            const ratioW = CANVAS_WIDTH / maxSide;
+            const ratioH = CANVAS_HEIGHT / maxSide;
+            const newW = Math.round(newMaxSide * ratioW);
+            const newH = Math.round(newMaxSide * ratioH);
+
+            executeScaleImage(newW, newH);
+            saveState();
+        }
+
+        function executeScaleImage(newW, newH) {
+            const oldW = CANVAS_WIDTH;
+            const oldH = CANVAS_HEIGHT;
+
+            layers.forEach(layer => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = oldW;
+                tempCanvas.height = oldH;
+                tempCanvas.getContext('2d').drawImage(layer.canvas, 0, 0);
+
+                layer.canvas.width = newW;
+                layer.canvas.height = newH;
+                layer.canvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+                
+                layer.ctx.imageSmoothingEnabled = isAntiAlias;
+                layer.ctx.drawImage(tempCanvas, 0, 0, oldW, oldH, 0, 0, newW, newH);
+            });
+
+            CANVAS_WIDTH = newW;
+            CANVAS_HEIGHT = newH;
+
+            previewCanvas.width = newW;
+            previewCanvas.height = newH;
+            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+            previewCtx.imageSmoothingEnabled = isAntiAlias;
+
+            setZoom(currentZoom);
         }
 
         // --- クリップボード モジュール ---
@@ -1248,7 +1305,6 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // 同じファイルを再度読み込めるよう値をリセット
             event.target.value = '';
 
             if (!file.type.match('image.*')) {
@@ -1260,7 +1316,6 @@
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    // 新規レイヤーを追加して描画
                     const newLayer = addLayer(file.name || 'Image Layer');
                     newLayer.ctx.drawImage(img, 0, 0);
                     saveState();
@@ -1398,7 +1453,7 @@
         // --- Save / Load 機能 ---
         function saveProject() {
             const projectData = {
-                version: '2.2',
+                version: '2.3',
                 width: CANVAS_WIDTH,
                 height: CANVAS_HEIGHT,
                 layers: getSnapshot()
