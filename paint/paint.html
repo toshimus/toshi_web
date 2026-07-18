@@ -329,7 +329,7 @@
             <div class="panel-header">システム・コントロール</div>
             
             <div class="tool-section">
-                <label>ツール選択</label>
+                <label>直接描画ツール</label>
                 <div class="icon-grid" id="tool-grid">
                     <button id="tool-pen" class="tool-btn active" onclick="setTool('pen')">
                         <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
@@ -343,11 +343,14 @@
                         <svg viewBox="0 0 24 24"><path d="M16.24 3.56l4.2 4.2c.78.78.78 2.05 0 2.83l-9.9 9.91c-.38.38-.88.59-1.41.59H3v-6.09c0-.53.21-1.04.59-1.41l9.82-9.83c.78-.78 2.05-.78 2.83 0zM5 19h3.09l7.5-7.5-3.09-3.09-7.5 7.5V19z"/></svg>
                         消しゴム
                     </button>
+                    <button id="tool-bucket" class="tool-btn" onclick="setTool('bucket')">
+                        <svg viewBox="0 0 24 24"><path d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15c-.59.59-.59 1.54 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l7.49-7.49c.59-.58.59-1.53 0-2.13zM8.45 15.46l-5.5-5.5 3.54-3.54 5.5 5.5-3.54 3.54zM13 22v-3h3v3h-3zm5 0v-3h3v3h-3z"/></svg>
+                        塗潰
+                    </button>
                     <button id="tool-line" class="tool-btn" onclick="setTool('line')">
                         <svg viewBox="0 0 24 24"><path d="M3 21L21 3v2L5 21H3z"/></svg>
                         直線
                     </button>
-
                     <button id="tool-rect" class="tool-btn" onclick="setTool('rect')">
                         <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5z"/></svg>
                         四角
@@ -364,7 +367,6 @@
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
                         円
                     </button>
-
                     <button id="tool-ellipse" class="tool-btn" onclick="setTool('ellipse')">
                         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
                         楕円
@@ -373,21 +375,28 @@
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
                         楕円
                     </button>
-                    <button id="tool-bucket" class="tool-btn" onclick="setTool('bucket')">
-                        <svg viewBox="0 0 24 24"><path d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15c-.59.59-.59 1.54 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l7.49-7.49c.59-.58.59-1.53 0-2.13zM8.45 15.46l-5.5-5.5 3.54-3.54 5.5 5.5-3.54 3.54zM13 22v-3h3v3h-3zm5 0v-3h3v3h-3z"/></svg>
-                        塗潰
-                    </button>
                     <button id="tool-select" class="tool-btn" onclick="setTool('select')">
                         <svg viewBox="0 0 24 24"><path d="M3 3h4V1H1v6h2V3zm4 18H3v-4H1v6h6v-2zm14-4h-2v4h-4v2h6v-6zm-2-14h-4V1h6v6h-2V3zM9 1h6v2H9V1zm0 20h6v2H9v-2zm10-10h2v6h-2v-6zM1 9h2v6H1V9z"/></svg>
                         選択
                     </button>
                 </div>
                 
-                <!-- 移動ツールは一番下に横長で配置 -->
                 <button id="tool-pan" class="tool-btn" style="height: 35px; flex-direction: row; gap: 5px;" onclick="setTool('pan')">
                     <svg viewBox="0 0 24 24" style="margin: 0;"><path d="M12 2L8 6h3v5H6V8L2 12l4 4v-3h5v5H8l4 4 4-4h-3v-5h5v3l4-4-4-4v3h-5V6h3L12 2z"/></svg>
                     <span>移動 (手のひら)</span>
                 </button>
+            </div>
+
+            <div class="tool-section" style="background-color: #2a1111; padding: 8px; border-radius: 4px; border: 1px solid #662222;">
+                <label style="color: #ffaaaa; margin-bottom: 5px; display: block;">ベクター変形ツール (■で修正)</label>
+                <div class="icon-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <button id="tool-edit-line" class="tool-btn" onclick="setTool('edit-line')" style="height: 35px;">直線</button>
+                    <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 35px;">□</button>
+                    <button id="tool-edit-rect-fill" class="tool-btn" onclick="setTool('edit-rect-fill')" style="height: 35px;">■</button>
+                    <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 35px;">〇</button>
+                    <button id="tool-edit-ellipse-fill" class="tool-btn" onclick="setTool('edit-ellipse-fill')" style="height: 35px;">●</button>
+                    <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 35px;">✅ 確定</button>
+                </div>
             </div>
 
             <div class="tool-section">
@@ -428,7 +437,7 @@
             <div class="tool-section">
                 <label>FC パレット</label>
                 <div class="palette-grid" id="famicom-palette">
-                    <!-- JavaScriptで自動生成 -->
+                    <!-- JavaScriptで自動生成されます -->
                 </div>
                 <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 5px;">
             </div>
@@ -489,8 +498,7 @@
 
         <div id="layer-panel">
             <div class="panel-header">レイヤー・モジュール</div>
-            <div class="layer-list" id="layer-list">
-                </div>
+            <div class="layer-list" id="layer-list"></div>
             <div class="layer-add-btn" onclick="addLayer()">+ 新規レイヤー追加</div>
         </div>
     </div>
@@ -504,11 +512,12 @@
         </div>
     </div>
 
+    <!-- アプリケーション・ロジック (1ファイル統合版) -->
     <script>
-        // --- システム定数・変数 ---
+        // --- システム定数・状態管理 ---
         let CANVAS_WIDTH = 800;
         let CANVAS_HEIGHT = 600; 
-        
+
         let currentTool = 'pen';
         let currentColor = '#000000';
         let currentLineWidth = 1; 
@@ -521,7 +530,6 @@
         let startX = 0;
         let startY = 0;
 
-        // 手のひら・ズーム（パンニング/ピンチ）用変数
         let isPanning = false;
         let panStartX = 0;
         let panStartY = 0;
@@ -529,7 +537,6 @@
         let panScrollY = 0;
         let initialPinchDistance = null;
 
-        // 選択ツール用変数
         let selection = {
             active: false,
             x: 0, y: 0, w: 0, h: 0,
@@ -540,17 +547,19 @@
         let dragOffsetY = 0;
         let isDraggingSelection = false;
 
-        // レイヤー管理
         let layers = [];
         let currentLayerId = null;
         let layerCounter = 0;
 
-        // 履歴管理 (Undo/Redo)
         let historyStack = [];
         let redoStack = [];
         const MAX_HISTORY = 20;
 
-        // ファミコン（NES）標準カラーパレット
+        // --- ベクター変形用状態 ---
+        let editingShape = null;
+        let hoveredHandle = -1;
+        let isDraggingHandle = false;
+
         const famicomColors = [
             "#7C7C7C","#0000FC","#0000BC","#4428BC","#940084","#A80020","#A81000","#881400","#503000","#007800","#006800","#005800","#004058","#000000",
             "#BCBCBC","#0078F8","#0058F8","#6844FC","#D800CC","#E40058","#F83800","#E45C10","#AC7C00","#00B800","#00A800","#00A844","#008888","#000000",
@@ -558,7 +567,7 @@
             "#FCFCFC","#A4E4FC","#B8B8F8","#D8B8F8","#F8B8F8","#F8A4C0","#F0D0B0","#FCE0A8","#F8D878","#D8F878","#B8F8B8","#B8F8D8","#00FCFC","#000000"
         ];
 
-        // HTML要素の参照
+        // --- DOM要素の参照 ---
         const workspace = document.getElementById('workspace');
         const canvasWrapper = document.getElementById('canvas-wrapper');
         const previewCanvas = document.getElementById('preview-canvas');
@@ -566,7 +575,6 @@
         const layerListEl = document.getElementById('layer-list');
         const selectionPanel = document.getElementById('selection-panel');
 
-        // ブラシサイズプレビュー用DOM要素の生成と初期設定
         const brushPreview = document.createElement('div');
         brushPreview.style.position = 'fixed';
         brushPreview.style.border = '1px solid #ff0000';
@@ -577,687 +585,9 @@
         brushPreview.style.display = 'none';
         document.body.appendChild(brushPreview);
 
-        // --- 初期化処理 ---
-        function init() {
-            previewCtx.imageSmoothingEnabled = isAntiAlias;
-            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
-            
-            const paletteGrid = document.getElementById('famicom-palette');
-            if (paletteGrid) {
-                paletteGrid.innerHTML = '';
-                famicomColors.forEach(color => {
-                    const div = document.createElement('div');
-                    div.className = 'palette-color';
-                    div.style.backgroundColor = color;
-                    div.onclick = () => setPaletteColor(color);
-                    paletteGrid.appendChild(div);
-                });
-            }
-
-            addLayer('レイヤー 1');
-            saveState(); 
-            setupPreviewCanvasEvents();
-            updateStatusBar();
-        }
-
-        function updateStatusBar() {
-            const sizeDisplay = document.getElementById('status-size');
-            if (sizeDisplay) {
-                sizeDisplay.innerText = `${CANVAS_WIDTH} x ${CANVAS_HEIGHT} px`;
-            }
-        }
-
-        // --- ツール・システム制御 ---
-        function updateBrushPreview(clientX, clientY) {
-            if (['pen', 'eraser', 'dot'].includes(currentTool)) {
-                const size = currentLineWidth * currentZoom;
-                brushPreview.style.width = size + 'px';
-                brushPreview.style.height = size + 'px';
-                brushPreview.style.left = clientX + 'px';
-                brushPreview.style.top = clientY + 'px';
-                brushPreview.style.display = 'block';
-
-                if (currentTool !== 'pen' || isAntiAlias) {
-                    brushPreview.style.borderRadius = '50%';
-                } else {
-                    brushPreview.style.borderRadius = '0';
-                }
-            } else {
-                brushPreview.style.display = 'none';
-            }
-        }
-
-        function setTool(toolName) {
-            if (currentTool === 'select' && toolName !== 'select') {
-                finalizeSelection();
-            }
-
-            currentTool = toolName;
-            document.querySelectorAll('#toolbar .button-grid button, #toolbar .icon-grid button, #tool-pan').forEach(btn => {
-                if (btn.id && btn.id.startsWith('tool-')) {
-                    btn.classList.remove('active');
-                }
-            });
-            const targetBtn = document.getElementById(`tool-${toolName}`);
-            if (targetBtn) targetBtn.classList.add('active');
-            
-            isPanning = false;
-            selectionPanel.style.display = (toolName === 'select') ? 'flex' : 'none';
-            
-            if (!['pen', 'eraser', 'dot'].includes(currentTool)) {
-                brushPreview.style.display = 'none';
-            }
-        }
-
-        function setAntiAlias(enable) {
-            isAntiAlias = enable;
-            document.getElementById('aa-off').classList.toggle('active', !enable);
-            document.getElementById('aa-on').classList.toggle('active', enable);
-            
-            layers.forEach(layer => {
-                layer.ctx.imageSmoothingEnabled = enable;
-                layer.canvas.style.imageRendering = enable ? 'auto' : 'pixelated';
-            });
-            previewCtx.imageSmoothingEnabled = enable;
-            previewCanvas.style.imageRendering = enable ? 'auto' : 'pixelated';
-            if(selection.active) drawSelectionPreview();
-        }
-
-        function toggleGrid() {
-            isGridVisible = !isGridVisible;
-            document.getElementById('grid-toggle').classList.toggle('active', isGridVisible);
-            updateGrid();
-        }
-
-        function updateGrid() {
-            const overlay = document.getElementById('grid-overlay');
-            if (isGridVisible && currentZoom >= 4) {
-                overlay.style.display = 'block';
-                overlay.style.backgroundImage = `
-                    linear-gradient(to right, rgba(128,128,128,0.3) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(128,128,128,0.3) 1px, transparent 1px)
-                `;
-                overlay.style.backgroundSize = `${currentZoom}px ${currentZoom}px`;
-            } else {
-                overlay.style.display = 'none';
-            }
-        }
-
-        function setColor(color) {
-            currentColor = color;
-            document.getElementById('color-picker').value = color;
-        }
-
-        function setPaletteColor(hex) {
-            setColor(hex);
-        }
-
-        function setLineWidth(width) {
-            currentLineWidth = parseInt(width, 10);
-            document.getElementById('line-width-display').innerText = width;
-        }
-
-        function setZoom(level, cx, cy) {
-            const oldZoom = currentZoom;
-            currentZoom = level;
-            
-            if (cx === undefined || cy === undefined) {
-                const wsRect = workspace.getBoundingClientRect();
-                cx = wsRect.left + wsRect.width / 2;
-                cy = wsRect.top + wsRect.height / 2;
-            }
-
-            const cwRectOld = canvasWrapper.getBoundingClientRect();
-            const offsetX = cx - cwRectOld.left;
-            const offsetY = cy - cwRectOld.top;
-            
-            canvasWrapper.style.width = (CANVAS_WIDTH * currentZoom) + 'px';
-            canvasWrapper.style.height = (CANVAS_HEIGHT * currentZoom) + 'px';
-            
-            document.querySelectorAll('#zoom-controls button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            const zBtn = document.getElementById(`zoom-${level}`);
-            if(zBtn) zBtn.classList.add('active');
-
-            updateGrid();
-
-            const newOffsetX = offsetX * (currentZoom / oldZoom);
-            const newOffsetY = offsetY * (currentZoom / oldZoom);
-            const cwRectNew = canvasWrapper.getBoundingClientRect();
-            
-            workspace.scrollLeft += (cwRectNew.left + newOffsetX) - cx;
-            workspace.scrollTop += (cwRectNew.top + newOffsetY) - cy;
-        }
-
-        function zoomStep(dir, cx, cy) {
-            const levels = [1, 2, 4, 8, 16, 32];
-            let idx = levels.indexOf(currentZoom);
-            if (idx === -1) idx = 0;
-            idx += dir;
-            if (idx < 0) idx = 0;
-            if (idx >= levels.length) idx = levels.length - 1;
-            if (levels[idx] !== currentZoom) {
-                setZoom(levels[idx], cx, cy);
-            }
-        }
-
-        // --- パンニング（移動）制御 ---
-        function startPanning(e) {
-            isPanning = true;
-            let clientX, clientY;
-            if (e.touches) {
-                if (e.touches.length >= 2) {
-                    clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                    clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                } else {
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                }
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
-            panStartX = clientX;
-            panStartY = clientY;
-            panScrollX = workspace.scrollLeft;
-            panScrollY = workspace.scrollTop;
-        }
-
-        function doPan(e) {
-            if (!isPanning) return;
-            let clientX, clientY;
-            if (e.touches) {
-                if (e.touches.length >= 2) {
-                    clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                    clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                } else {
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                }
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
-            const dx = clientX - panStartX;
-            const dy = clientY - panStartY;
-            workspace.scrollLeft = panScrollX - dx;
-            workspace.scrollTop = panScrollY - dy;
-        }
-
-        function stopPanning() {
-            isPanning = false;
-        }
-
-        // --- 描画イベントハンドリング ---
-        function getMousePos(e) {
-            const rect = previewCanvas.getBoundingClientRect();
-            let clientX = e.clientX;
-            let clientY = e.clientY;
-
-            if (e.touches && e.touches.length > 0) {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            } else if (e.changedTouches && e.changedTouches.length > 0) {
-                clientX = e.changedTouches[0].clientX;
-                clientY = e.changedTouches[0].clientY;
-            }
-
-            const scaleX = CANVAS_WIDTH / rect.width;
-            const scaleY = CANVAS_HEIGHT / rect.height;
-            return {
-                x: (clientX - rect.left) * scaleX,
-                y: (clientY - rect.top) * scaleY
-            };
-        }
-
-        function setupPreviewCanvasEvents() {
-            const overlay = document.createElement('div');
-            overlay.style.position = 'absolute';
-            overlay.style.top = '0';
-            overlay.style.left = '0';
-            overlay.style.width = '100%';
-            overlay.style.height = '100%';
-            overlay.style.zIndex = '10000';
-            overlay.style.cursor = 'crosshair';
-            canvasWrapper.appendChild(overlay);
-
-            window.addEventListener('mouseout', (e) => {
-                brushPreview.style.display = 'none';
-            });
-
-            overlay.addEventListener('wheel', (e) => {
-                e.preventDefault(); 
-                if (e.deltaY < 0) zoomStep(1, e.clientX, e.clientY);
-                else zoomStep(-1, e.clientX, e.clientY);
-            }, { passive: false });
-
-            overlay.addEventListener('mousedown', (e) => {
-                if (currentTool === 'pan') {
-                    startPanning(e);
-                } else {
-                    startDrawing(e);
-                }
-            });
-            window.addEventListener('mousemove', (e) => {
-                updateBrushPreview(e.clientX, e.clientY); 
-                if (isPanning && currentTool === 'pan') {
-                    doPan(e);
-                } else if (isDrawing || isDraggingSelection) {
-                    draw(e);
-                }
-            });
-            window.addEventListener('mouseup', (e) => {
-                if (isPanning) stopPanning();
-                if (isDrawing || isDraggingSelection) stopDrawing(e);
-            });
-
-            overlay.addEventListener('touchstart', (e) => {
-                if (e.touches && e.touches.length > 0) {
-                    updateBrushPreview(e.touches[0].clientX, e.touches[0].clientY);
-                }
-                if (e.touches && e.touches.length >= 2) {
-                    e.preventDefault();
-                    startPanning(e);
-                    initialPinchDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    return;
-                }
-                
-                if (currentTool === 'pan') {
-                    e.preventDefault();
-                    startPanning(e);
-                } else {
-                    e.preventDefault(); 
-                    startDrawing(e);
-                }
-            }, { passive: false });
-            
-            window.addEventListener('touchmove', (e) => {
-                if (e.touches && e.touches.length > 0) {
-                    updateBrushPreview(e.touches[0].clientX, e.touches[0].clientY);
-                }
-                if (e.touches && e.touches.length >= 2) {
-                    e.preventDefault();
-                    const currentDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    const pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                    const pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-
-                    if (initialPinchDistance) {
-                        const ratio = currentDistance / initialPinchDistance;
-                        if (ratio > 1.2) {
-                            zoomStep(1, pinchCenterX, pinchCenterY);
-                            initialPinchDistance = currentDistance;
-                        } else if (ratio < 0.8) {
-                            zoomStep(-1, pinchCenterX, pinchCenterY);
-                            initialPinchDistance = currentDistance;
-                        }
-                    }
-                    if (isPanning) doPan(e);
-                    return;
-                }
-
-                if (isPanning) {
-                    e.preventDefault();
-                    doPan(e);
-                } else if (isDrawing || isDraggingSelection) {
-                    e.preventDefault(); 
-                    draw(e);
-                }
-            }, { passive: false });
-            
-            window.addEventListener('touchend', (e) => {
-                brushPreview.style.display = 'none'; 
-                initialPinchDistance = null;
-                if (isPanning) stopPanning();
-                if (isDrawing || isDraggingSelection) stopDrawing(e);
-            });
-            window.addEventListener('touchcancel', (e) => {
-                brushPreview.style.display = 'none'; 
-                initialPinchDistance = null;
-                if (isPanning) stopPanning();
-                if (isDrawing || isDraggingSelection) stopDrawing(e);
-            });
-        }
-
-        function setupContextStyle(ctx, isEraser = false) {
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.lineWidth = currentLineWidth;
-            
-            if (isEraser) {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.strokeStyle = 'rgba(0,0,0,1)';
-            } else {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.strokeStyle = currentColor;
-                ctx.fillStyle = currentColor;
-            }
-        }
-
-        function startDrawing(e) {
-            if (!currentLayerId) return;
-            const layer = layers.find(l => l.id === currentLayerId);
-            if (!layer || !layer.visible) {
-                alert("現在選択されているレイヤーは非表示か存在しません。");
-                return;
-            }
-
-            const pos = getMousePos(e);
-            
-            if (currentTool === 'select') {
-                if (selection.active &&
-                    pos.x >= selection.x && pos.x <= selection.x + selection.w &&
-                    pos.y >= selection.y && pos.y <= selection.y + selection.h) {
-                    
-                    isDraggingSelection = true;
-                    if (!selection.isFloating) {
-                        selection.canvas = document.createElement('canvas');
-                        selection.canvas.width = selection.w;
-                        selection.canvas.height = selection.h;
-                        selection.canvas.getContext('2d').drawImage(layer.canvas, selection.x, selection.y, selection.w, selection.h, 0, 0, selection.w, selection.h);
-                        layer.ctx.clearRect(selection.x, selection.y, selection.w, selection.h);
-                        selection.isFloating = true;
-                    }
-                    dragOffsetX = pos.x - selection.x;
-                    dragOffsetY = pos.y - selection.y;
-                } else {
-                    finalizeSelection(); 
-                    startX = pos.x;
-                    startY = pos.y;
-                    isDrawing = true; 
-                }
-                return;
-            }
-            
-            startX = pos.x;
-            startY = pos.y;
-            hasMoved = false; 
-
-            if (currentTool === 'dot') {
-                const ctx = getCurrentContext();
-                setupContextStyle(ctx, false);
-                if (!isAntiAlias) {
-                    drawBresenhamLine(ctx, startX, startY, startX, startY, false);
-                } else {
-                    ctx.beginPath();
-                    ctx.arc(startX, startY, currentLineWidth / 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                saveState();
-                return; 
-            }
-
-            isDrawing = true;
-
-            if (currentTool === 'bucket') {
-                isDrawing = false;
-                executeFloodFill(Math.floor(startX), Math.floor(startY));
-                saveState();
-                return;
-            }
-
-            if (currentTool === 'pen' || currentTool === 'eraser') {
-                const ctx = getCurrentContext();
-                setupContextStyle(ctx, currentTool === 'eraser');
-                
-                if (isAntiAlias) {
-                    ctx.beginPath();
-                    ctx.moveTo(startX, startY);
-                }
-            }
-        }
-
-        function draw(e) {
-            const pos = getMousePos(e);
-            hasMoved = true;
-
-            if (currentTool === 'select') {
-                if (isDraggingSelection) {
-                    selection.x = pos.x - dragOffsetX;
-                    selection.y = pos.y - dragOffsetY;
-                    if (!isAntiAlias) {
-                        selection.x = Math.round(selection.x);
-                        selection.y = Math.round(selection.y);
-                    }
-                    drawSelectionPreview();
-                } else if (isDrawing) {
-                    previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                    previewCtx.beginPath();
-                    previewCtx.setLineDash([5, 5]);
-                    previewCtx.strokeStyle = '#00ffff'; 
-                    previewCtx.lineWidth = 1;
-                    const w = pos.x - startX;
-                    const h = pos.y - startY;
-                    previewCtx.strokeRect(startX, startY, w, h);
-                    previewCtx.setLineDash([]);
-                }
-                return;
-            }
-
-            if (!isDrawing) return;
-
-            if (currentTool === 'pen' || currentTool === 'eraser') {
-                const ctx = getCurrentContext();
-                if (!isAntiAlias) {
-                    drawBresenhamLine(ctx, startX, startY, pos.x, pos.y, currentTool === 'eraser');
-                    startX = pos.x;
-                    startY = pos.y;
-                } else {
-                    ctx.lineTo(pos.x, pos.y);
-                    ctx.stroke();
-                }
-            } else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(currentTool)) {
-                previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                setupContextStyle(previewCtx, false); 
-                
-                if (currentTool === 'crop') {
-                    previewCtx.beginPath();
-                    previewCtx.setLineDash([5, 5]);
-                    previewCtx.strokeStyle = '#ff0000';
-                    previewCtx.lineWidth = 1;
-                    const width = pos.x - startX;
-                    const height = pos.y - startY;
-                    previewCtx.strokeRect(startX, startY, width, height);
-                    previewCtx.setLineDash([]); 
-                } else if (currentTool === 'line') {
-                    if (!isAntiAlias) {
-                        drawBresenhamLine(previewCtx, startX, startY, pos.x, pos.y, false);
-                    } else {
-                        previewCtx.beginPath();
-                        previewCtx.moveTo(startX, startY);
-                        previewCtx.lineTo(pos.x, pos.y);
-                        previewCtx.stroke();
-                    }
-                } else if (currentTool === 'rect' || currentTool === 'rect-fill') {
-                    if (!isAntiAlias) {
-                        if (currentTool === 'rect-fill') {
-                            let rx = Math.floor(Math.min(startX, pos.x));
-                            let ry = Math.floor(Math.min(startY, pos.y));
-                            let rw = Math.floor(Math.max(startX, pos.x)) - rx + 1;
-                            let rh = Math.floor(Math.max(startY, pos.y)) - ry + 1;
-                            previewCtx.fillRect(rx, ry, rw, rh);
-                        } else {
-                            drawBresenhamLine(previewCtx, startX, startY, pos.x, startY, false);
-                            drawBresenhamLine(previewCtx, pos.x, startY, pos.x, pos.y, false);
-                            drawBresenhamLine(previewCtx, pos.x, pos.y, startX, pos.y, false);
-                            drawBresenhamLine(previewCtx, startX, pos.y, startX, startY, false);
-                        }
-                    } else {
-                        let rx = startX, ry = startY, rw = pos.x - startX, rh = pos.y - startY;
-                        previewCtx.beginPath();
-                        if (currentTool === 'rect-fill') {
-                            previewCtx.fillRect(rx, ry, rw, rh);
-                        } else {
-                            previewCtx.strokeRect(rx, ry, rw, rh);
-                        }
-                    }
-                } else if (currentTool === 'circle' || currentTool === 'circle-fill') {
-                    const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
-                    const isFill = (currentTool === 'circle-fill');
-                    if (!isAntiAlias) {
-                        drawBresenhamCircle(previewCtx, startX, startY, radius, isFill, false);
-                    } else {
-                        previewCtx.beginPath();
-                        previewCtx.arc(startX, startY, radius, 0, Math.PI * 2);
-                        if (isFill) previewCtx.fill(); else previewCtx.stroke();
-                    }
-                } else if (currentTool === 'ellipse' || currentTool === 'ellipse-fill') {
-                    let rx = Math.abs(pos.x - startX) / 2;
-                    let ry = Math.abs(pos.y - startY) / 2;
-                    let cx = Math.min(startX, pos.x) + rx;
-                    let cy = Math.min(startY, pos.y) + ry;
-                    const isFill = (currentTool === 'ellipse-fill');
-                    
-                    if (!isAntiAlias) {
-                        drawBresenhamEllipse(previewCtx, cx, cy, rx, ry, isFill, false);
-                    } else {
-                        previewCtx.beginPath();
-                        previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
-                        if (isFill) previewCtx.fill(); else previewCtx.stroke();
-                    }
-                }
-            }
-        }
-
-        function stopDrawing(e) {
-            if (currentTool === 'select') {
-                if (isDraggingSelection) {
-                    isDraggingSelection = false;
-                    drawSelectionPreview();
-                } else if (isDrawing) {
-                    isDrawing = false;
-                    const pos = getMousePos(e);
-                    const rx = Math.min(startX, pos.x);
-                    const ry = Math.min(startY, pos.y);
-                    const rw = Math.abs(pos.x - startX);
-                    const rh = Math.abs(pos.y - startY);
-                    
-                    if (rw > 2 && rh > 2) {
-                        selection.x = !isAntiAlias ? Math.round(rx) : rx;
-                        selection.y = !isAntiAlias ? Math.round(ry) : ry;
-                        selection.w = !isAntiAlias ? Math.round(rw) : rw;
-                        selection.h = !isAntiAlias ? Math.round(rh) : rh;
-                        selection.active = true;
-                        selection.isFloating = false;
-                        drawSelectionPreview();
-                    } else {
-                        selection.active = false;
-                        previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                    }
-                }
-                return; 
-            }
-
-            if (!isDrawing) return;
-            isDrawing = false;
-            
-            const ctx = getCurrentContext();
-
-            if (currentTool === 'pen' || currentTool === 'eraser') {
-                if (isAntiAlias) {
-                    ctx.closePath();
-                }
-                
-                if (!hasMoved) {
-                    if (!isAntiAlias) {
-                        drawBresenhamLine(ctx, startX, startY, startX, startY, currentTool === 'eraser');
-                    } else {
-                        ctx.beginPath();
-                        ctx.arc(startX, startY, currentLineWidth / 2, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-
-                if (currentTool === 'eraser') ctx.globalCompositeOperation = 'source-over';
-            } else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(currentTool)) {
-                setupContextStyle(ctx, false);
-                const pos = getMousePos(e);
-                
-                if (currentTool === 'crop') {
-                    previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                    const rectX = Math.min(startX, pos.x);
-                    const rectY = Math.min(startY, pos.y);
-                    const rectW = Math.abs(pos.x - startX);
-                    const rectH = Math.abs(pos.y - startY);
-                    
-                    if (rectW > 5 && rectH > 5) {
-                        finalizeSelection();
-                        executeResize(rectW, rectH, rectX, rectY);
-                    }
-                    saveState();
-                    return;
-                }
-
-                if (currentTool === 'line') {
-                    if (!isAntiAlias) {
-                        drawBresenhamLine(ctx, startX, startY, pos.x, pos.y, false);
-                    } else {
-                        ctx.beginPath();
-                        ctx.moveTo(startX, startY);
-                        ctx.lineTo(pos.x, pos.y);
-                        ctx.stroke();
-                    }
-                } else if (currentTool === 'rect' || currentTool === 'rect-fill') {
-                    if (!isAntiAlias) {
-                        if (currentTool === 'rect-fill') {
-                            let rx = Math.floor(Math.min(startX, pos.x));
-                            let ry = Math.floor(Math.min(startY, pos.y));
-                            let rw = Math.floor(Math.max(startX, pos.x)) - rx + 1;
-                            let rh = Math.floor(Math.max(startY, pos.y)) - ry + 1;
-                            ctx.fillRect(rx, ry, rw, rh);
-                        } else {
-                            drawBresenhamLine(ctx, startX, startY, pos.x, startY, false);
-                            drawBresenhamLine(ctx, pos.x, startY, pos.x, pos.y, false);
-                            drawBresenhamLine(ctx, pos.x, pos.y, startX, pos.y, false);
-                            drawBresenhamLine(ctx, startX, pos.y, startX, startY, false);
-                        }
-                    } else {
-                        let rx = startX, ry = startY, rw = pos.x - startX, rh = pos.y - startY;
-                        ctx.beginPath();
-                        if (currentTool === 'rect-fill') {
-                            ctx.fillRect(rx, ry, rw, rh);
-                        } else {
-                            ctx.strokeRect(rx, ry, rw, rh);
-                        }
-                    }
-                } else if (currentTool === 'circle' || currentTool === 'circle-fill') {
-                    const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
-                    const isFill = (currentTool === 'circle-fill');
-                    if (!isAntiAlias) {
-                        drawBresenhamCircle(ctx, startX, startY, radius, isFill, false);
-                    } else {
-                        ctx.beginPath();
-                        ctx.arc(startX, startY, radius, 0, Math.PI * 2);
-                        if (isFill) ctx.fill(); else ctx.stroke();
-                    }
-                } else if (currentTool === 'ellipse' || currentTool === 'ellipse-fill') {
-                    let rx = Math.abs(pos.x - startX) / 2;
-                    let ry = Math.abs(pos.y - startY) / 2;
-                    let cx = Math.min(startX, pos.x) + rx;
-                    let cy = Math.min(startY, pos.y) + ry;
-                    const isFill = (currentTool === 'ellipse-fill');
-                    
-                    if (!isAntiAlias) {
-                        drawBresenhamEllipse(ctx, cx, cy, rx, ry, isFill, false);
-                    } else {
-                        ctx.beginPath();
-                        ctx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
-                        if (isFill) ctx.fill(); else ctx.stroke();
-                    }
-                }
-                previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            }
-            
-            saveState();
-        }
-
-        // --- ブレゼンハム アルゴリズム (ピクセルパーフェクト描画用) ---
+        // ==========================================
+        //  描画エンジンモジュール
+        // ==========================================
         function drawBresenhamLine(ctx, x0, y0, x1, y1, isEraser) {
             x0 = Math.floor(x0); y0 = Math.floor(y0);
             x1 = Math.floor(x1); y1 = Math.floor(y1);
@@ -1397,7 +727,6 @@
             }
         }
 
-        // --- バケツツール (表示レイヤー対象・色差許容値対応) ---
         function hexToRgba(hex) {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
             return result ? [
@@ -1502,80 +831,12 @@
                     }
                 }
             }
-
             ctx.putImageData(activeImageData, 0, 0);
         }
 
-        // --- 選択ツールモジュール ---
-        function drawSelectionPreview() {
-            previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            if (selection.isFloating && selection.canvas) {
-                previewCtx.imageSmoothingEnabled = isAntiAlias;
-                previewCtx.drawImage(selection.canvas, selection.x, selection.y);
-            }
-            if (selection.active) {
-                previewCtx.beginPath();
-                previewCtx.setLineDash([5, 5]);
-                previewCtx.strokeStyle = '#00ffff';
-                previewCtx.lineWidth = 1;
-                previewCtx.strokeRect(selection.x, selection.y, selection.w, selection.h);
-                previewCtx.setLineDash([]);
-            }
-        }
-
-        function duplicateSelection() {
-            if (!selection.active) return;
-            const layer = layers.find(l => l.id === currentLayerId);
-            if (!layer) return;
-            
-            if (selection.isFloating) {
-                layer.ctx.imageSmoothingEnabled = isAntiAlias;
-                layer.ctx.drawImage(selection.canvas, selection.x, selection.y);
-            } else {
-                selection.canvas = document.createElement('canvas');
-                selection.canvas.width = selection.w;
-                selection.canvas.height = selection.h;
-                selection.canvas.getContext('2d').drawImage(layer.canvas, selection.x, selection.y, selection.w, selection.h, 0, 0, selection.w, selection.h);
-                selection.isFloating = true;
-            }
-            
-            selection.x += 10;
-            selection.y += 10;
-            if(!isAntiAlias){
-                selection.x = Math.round(selection.x);
-                selection.y = Math.round(selection.y);
-            }
-            drawSelectionPreview();
-        }
-
-        function deleteSelection() {
-            if (!selection.active) return;
-            if (!selection.isFloating) {
-                const layer = layers.find(l => l.id === currentLayerId);
-                if (layer) layer.ctx.clearRect(selection.x, selection.y, selection.w, selection.h);
-            }
-            selection.active = false;
-            selection.isFloating = false;
-            previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            saveState();
-        }
-
-        function finalizeSelection() {
-            if (!selection.active) return;
-            if (selection.isFloating && selection.canvas) {
-                const layer = layers.find(l => l.id === currentLayerId);
-                if (layer) {
-                    layer.ctx.imageSmoothingEnabled = isAntiAlias;
-                    layer.ctx.drawImage(selection.canvas, selection.x, selection.y);
-                }
-            }
-            selection.active = false;
-            selection.isFloating = false;
-            previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            saveState();
-        }
-
-        // --- レイヤー管理ロジック ---
+        // ==========================================
+        //  レイヤー管理モジュール
+        // ==========================================
         function addLayer(name = null) {
             const id = `layer_${layerCounter++}`;
             const zIndex = layers.length;
@@ -1685,7 +946,180 @@
             return layer ? layer.ctx : null;
         }
 
-        // --- 新規作成・キャンバス変形・解像度変更モジュール ---
+        // ==========================================
+        //  状態保存（Undo/Redo）モジュール
+        // ==========================================
+        function getSnapshot() {
+            return layers.map(layer => ({
+                id: layer.id,
+                name: layer.name,
+                visible: layer.visible,
+                dataURL: layer.canvas.toDataURL()
+            }));
+        }
+
+        function saveState() {
+            const s = {
+                width: CANVAS_WIDTH,
+                height: CANVAS_HEIGHT,
+                layers: getSnapshot()
+            };
+            historyStack.push(s);
+            if (historyStack.length > MAX_HISTORY) {
+                historyStack.shift();
+            }
+            redoStack = []; 
+            updateStatusBar();
+        }
+
+        function restoreState(s) {
+            CANVAS_WIDTH = s.width;
+            CANVAS_HEIGHT = s.height;
+            canvasWrapper.style.width = (CANVAS_WIDTH * currentZoom) + 'px';
+            canvasWrapper.style.height = (CANVAS_HEIGHT * currentZoom) + 'px';
+            previewCanvas.width = CANVAS_WIDTH;
+            previewCanvas.height = CANVAS_HEIGHT;
+            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+            previewCtx.imageSmoothingEnabled = isAntiAlias;
+
+            layers.forEach(l => canvasWrapper.removeChild(l.canvas));
+            layers = [];
+            
+            let loadedCount = 0;
+            const totalLayers = s.layers.length;
+
+            s.layers.forEach((layerData, index) => {
+                const canvas = document.createElement('canvas');
+                canvas.id = layerData.id;
+                canvas.width = CANVAS_WIDTH;
+                canvas.height = CANVAS_HEIGHT;
+                canvas.style.zIndex = index;
+                canvas.style.display = layerData.visible ? 'block' : 'none';
+                canvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+                
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.imageSmoothingEnabled = isAntiAlias;
+                
+                canvasWrapper.insertBefore(canvas, previewCanvas);
+
+                const layerObj = {
+                    id: layerData.id,
+                    name: layerData.name,
+                    canvas: canvas,
+                    ctx: ctx,
+                    visible: layerData.visible
+                };
+                layers.push(layerObj);
+
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0);
+                    loadedCount++;
+                    if (loadedCount === totalLayers) {
+                        const prevSelectedExists = layers.some(l => l.id === currentLayerId);
+                        if (!prevSelectedExists) {
+                            currentLayerId = layers[layers.length - 1].id;
+                        }
+                        renderLayerPanel();
+                    }
+                };
+                img.src = layerData.dataURL;
+            });
+
+            layerCounter = Math.max(layerCounter, ...s.layers.map(ls => parseInt(ls.id.split('_')[1] || 0))) + 1;
+            updateStatusBar();
+        }
+
+        function undo() {
+            finalizeSelection();
+            if (historyStack.length > 1) {
+                const currentState = historyStack.pop();
+                redoStack.push(currentState);
+                const previousState = historyStack[historyStack.length - 1];
+                restoreState(previousState);
+            }
+        }
+
+        function redo() {
+            finalizeSelection();
+            if (redoStack.length > 0) {
+                const nextState = redoStack.pop();
+                historyStack.push(nextState);
+                restoreState(nextState);
+            }
+        }
+
+        // ==========================================
+        //  キャンバス I/O・選択ツール モジュール
+        // ==========================================
+        function drawSelectionPreview() {
+            previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            if (selection.isFloating && selection.canvas) {
+                previewCtx.imageSmoothingEnabled = isAntiAlias;
+                previewCtx.drawImage(selection.canvas, selection.x, selection.y);
+            }
+            if (selection.active) {
+                previewCtx.beginPath();
+                previewCtx.setLineDash([5, 5]);
+                previewCtx.strokeStyle = '#00ffff';
+                previewCtx.lineWidth = 1;
+                previewCtx.strokeRect(selection.x, selection.y, selection.w, selection.h);
+                previewCtx.setLineDash([]);
+            }
+        }
+
+        function duplicateSelection() {
+            if (!selection.active) return;
+            const layer = layers.find(l => l.id === currentLayerId);
+            if (!layer) return;
+            
+            if (selection.isFloating) {
+                layer.ctx.imageSmoothingEnabled = isAntiAlias;
+                layer.ctx.drawImage(selection.canvas, selection.x, selection.y);
+            } else {
+                selection.canvas = document.createElement('canvas');
+                selection.canvas.width = selection.w;
+                selection.canvas.height = selection.h;
+                selection.canvas.getContext('2d').drawImage(layer.canvas, selection.x, selection.y, selection.w, selection.h, 0, 0, selection.w, selection.h);
+                selection.isFloating = true;
+            }
+            
+            selection.x += 10;
+            selection.y += 10;
+            if(!isAntiAlias){
+                selection.x = Math.round(selection.x);
+                selection.y = Math.round(selection.y);
+            }
+            drawSelectionPreview();
+        }
+
+        function deleteSelection() {
+            if (!selection.active) return;
+            if (!selection.isFloating) {
+                const layer = layers.find(l => l.id === currentLayerId);
+                if (layer) layer.ctx.clearRect(selection.x, selection.y, selection.w, selection.h);
+            }
+            selection.active = false;
+            selection.isFloating = false;
+            previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            saveState();
+        }
+
+        function finalizeSelection() {
+            if (!selection.active) return;
+            if (selection.isFloating && selection.canvas) {
+                const layer = layers.find(l => l.id === currentLayerId);
+                if (layer) {
+                    layer.ctx.imageSmoothingEnabled = isAntiAlias;
+                    layer.ctx.drawImage(selection.canvas, selection.x, selection.y);
+                }
+            }
+            selection.active = false;
+            selection.isFloating = false;
+            previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            saveState();
+        }
+
         function createNewCanvas() {
             if (!confirm("現在のデータは破棄されます。よろしいですか？")) return;
             const w = prompt("新規キャンバスの幅（ピクセル）を入力してください:", CANVAS_WIDTH);
@@ -1816,7 +1250,6 @@
             setZoom(currentZoom);
         }
 
-        // --- 画像インポート共通処理 ---
         function handleImageImport(img, fileName) {
             finalizeSelection();
             
@@ -1829,7 +1262,6 @@
             saveState();
         }
 
-        // --- クリップボード モジュール ---
         async function copyToClipboard() {
             try {
                 const tempCanvas = document.createElement('canvas');
@@ -1875,7 +1307,6 @@
             }
         }
 
-        // --- 画像読み込みモジュール ---
         function loadImageAsLayer(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1896,7 +1327,6 @@
             reader.readAsDataURL(file);
         }
 
-        // --- エクスポート モジュール ---
         function exportImage(format) {
             finalizeSelection();
             const tempCanvas = document.createElement('canvas');
@@ -1925,112 +1355,10 @@
             document.body.removeChild(a);
         }
 
-        // --- Undo / Redo 機能 ---
-        function getSnapshot() {
-            return layers.map(layer => ({
-                id: layer.id,
-                name: layer.name,
-                visible: layer.visible,
-                dataURL: layer.canvas.toDataURL()
-            }));
-        }
-
-        function saveState() {
-            const state = {
-                width: CANVAS_WIDTH,
-                height: CANVAS_HEIGHT,
-                layers: getSnapshot()
-            };
-            historyStack.push(state);
-            if (historyStack.length > MAX_HISTORY) {
-                historyStack.shift();
-            }
-            redoStack = []; 
-            updateStatusBar();
-        }
-
-        function restoreState(state) {
-            CANVAS_WIDTH = state.width;
-            CANVAS_HEIGHT = state.height;
-            canvasWrapper.style.width = (CANVAS_WIDTH * currentZoom) + 'px';
-            canvasWrapper.style.height = (CANVAS_HEIGHT * currentZoom) + 'px';
-            previewCanvas.width = CANVAS_WIDTH;
-            previewCanvas.height = CANVAS_HEIGHT;
-            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
-            previewCtx.imageSmoothingEnabled = isAntiAlias;
-
-            layers.forEach(l => canvasWrapper.removeChild(l.canvas));
-            layers = [];
-            
-            let loadedCount = 0;
-            const totalLayers = state.layers.length;
-
-            state.layers.forEach((layerData, index) => {
-                const canvas = document.createElement('canvas');
-                canvas.id = layerData.id;
-                canvas.width = CANVAS_WIDTH;
-                canvas.height = CANVAS_HEIGHT;
-                canvas.style.zIndex = index;
-                canvas.style.display = layerData.visible ? 'block' : 'none';
-                canvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
-                
-                const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                ctx.imageSmoothingEnabled = isAntiAlias;
-                
-                canvasWrapper.insertBefore(canvas, previewCanvas);
-
-                const layerObj = {
-                    id: layerData.id,
-                    name: layerData.name,
-                    canvas: canvas,
-                    ctx: ctx,
-                    visible: layerData.visible
-                };
-                layers.push(layerObj);
-
-                const img = new Image();
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0);
-                    loadedCount++;
-                    if (loadedCount === totalLayers) {
-                        const prevSelectedExists = layers.some(l => l.id === currentLayerId);
-                        if (!prevSelectedExists) {
-                            currentLayerId = layers[layers.length - 1].id;
-                        }
-                        renderLayerPanel();
-                    }
-                };
-                img.src = layerData.dataURL;
-            });
-
-            layerCounter = Math.max(layerCounter, ...state.layers.map(s => parseInt(s.id.split('_')[1] || 0))) + 1;
-            updateStatusBar();
-        }
-
-        function undo() {
-            finalizeSelection();
-            if (historyStack.length > 1) {
-                const currentState = historyStack.pop();
-                redoStack.push(currentState);
-                const previousState = historyStack[historyStack.length - 1];
-                restoreState(previousState);
-            }
-        }
-
-        function redo() {
-            finalizeSelection();
-            if (redoStack.length > 0) {
-                const nextState = redoStack.pop();
-                historyStack.push(nextState);
-                restoreState(nextState);
-            }
-        }
-
-        // --- Save / Load 機能 ---
         function saveProject() {
             finalizeSelection();
             const projectData = {
-                version: '4.0',
+                version: '6.0_Integrated',
                 width: CANVAS_WIDTH,
                 height: CANVAS_HEIGHT,
                 layers: getSnapshot()
@@ -2082,9 +1410,908 @@
             event.target.value = '';
         }
 
-        // --- システム起動 ---
-        window.onload = init;
+        // ==========================================
+        //  ベクター図形変形 モジュール
+        // ==========================================
+        function startShapeEdit(x, y) {
+            if (!currentLayerId) return;
 
+            if (editingShape) {
+                const handleIdx = hitTestHandle(x, y);
+                if (handleIdx !== -1) {
+                    isDraggingHandle = true;
+                    hoveredHandle = handleIdx;
+                    return;
+                } else {
+                    finalizeShape();
+                }
+            }
+
+            editingShape = {
+                type: currentTool,
+                x1: x,
+                y1: y,
+                x2: x,
+                y2: y,
+                color: currentColor,
+                lineWidth: currentLineWidth
+            };
+            isDraggingHandle = false;
+            hoveredHandle = 1; 
+        }
+
+        function moveShapeEdit(x, y) {
+            if (!editingShape) return;
+
+            if (isDraggingHandle) {
+                updateHandlePosition(x, y);
+            } else {
+                editingShape.x2 = x;
+                editingShape.y2 = y;
+            }
+            drawShapePreview();
+        }
+
+        function endShapeEdit(x, y) {
+            if (!editingShape) return;
+            isDraggingHandle = false;
+
+            const s = editingShape;
+            if (Math.abs(s.x2 - s.x1) < 2 && Math.abs(s.y2 - s.y1) < 2) {
+                editingShape = null;
+                previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else {
+                drawShapePreview();
+            }
+        }
+
+        function hitTestHandle(x, y) {
+            const handles = getHandles(editingShape);
+            for (let i = 0; i < handles.length; i++) {
+                const h = handles[i];
+                if (Math.abs(x - h.x) <= 6 && Math.abs(y - h.y) <= 6) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        function getHandles(shape) {
+            if (!shape) return [];
+            const { x1, y1, x2, y2, type } = shape;
+            if (type === 'edit-line') {
+                return [ {x: x1, y: y1}, {x: x2, y: y2} ];
+            } else {
+                return [
+                    {x: x1, y: y1}, 
+                    {x: x2, y: y1}, 
+                    {x: x2, y: y2}, 
+                    {x: x1, y: y2}  
+                ];
+            }
+        }
+
+        function updateHandlePosition(x, y) {
+            const s = editingShape;
+            const i = hoveredHandle;
+            
+            if (s.type === 'edit-line') {
+                if (i === 0) { s.x1 = x; s.y1 = y; }
+                else if (i === 1) { s.x2 = x; s.y2 = y; }
+            } else {
+                if (i === 0) { s.x1 = x; s.y1 = y; }
+                else if (i === 1) { s.x2 = x; s.y1 = y; }
+                else if (i === 2) { s.x2 = x; s.y2 = y; }
+                else if (i === 3) { s.x1 = x; s.y2 = y; }
+            }
+        }
+
+        function drawShapePreview() {
+            previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            if (!editingShape) return;
+
+            const s = editingShape;
+            const oldColor = currentColor;
+            const oldWidth = currentLineWidth;
+            currentColor = s.color;
+            currentLineWidth = s.lineWidth;
+
+            renderShapeToContext(previewCtx, s, isAntiAlias);
+
+            currentColor = oldColor;
+            currentLineWidth = oldWidth;
+
+            const handles = getHandles(s);
+            previewCtx.fillStyle = '#00ff00';
+            previewCtx.strokeStyle = '#000000';
+            previewCtx.lineWidth = 1;
+            handles.forEach((h) => {
+                previewCtx.fillRect(h.x - 4, h.y - 4, 8, 8);
+                previewCtx.strokeRect(h.x - 4, h.y - 4, 8, 8);
+            });
+        }
+
+        function finalizeShape() {
+            if (!editingShape) return;
+            const ctx = getCurrentContext();
+            if (!ctx) return;
+
+            const s = editingShape;
+            const oldColor = currentColor;
+            const oldWidth = currentLineWidth;
+            currentColor = s.color;
+            currentLineWidth = s.lineWidth;
+
+            renderShapeToContext(ctx, s, isAntiAlias);
+
+            currentColor = oldColor;
+            currentLineWidth = oldWidth;
+
+            editingShape = null;
+            previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            saveState();
+        }
+
+        function renderShapeToContext(ctx, s, useAA) {
+            if (s.type === 'edit-line') {
+                if (!useAA) {
+                    drawBresenhamLine(ctx, s.x1, s.y1, s.x2, s.y2, false);
+                } else {
+                    ctx.beginPath();
+                    ctx.strokeStyle = s.color;
+                    ctx.lineWidth = s.lineWidth;
+                    ctx.moveTo(s.x1, s.y1);
+                    ctx.lineTo(s.x2, s.y2);
+                    ctx.stroke();
+                }
+            } else if (s.type === 'edit-rect' || s.type === 'edit-rect-fill') {
+                let rx = Math.min(s.x1, s.x2);
+                let ry = Math.min(s.y1, s.y2);
+                let rw = Math.max(s.x1, s.x2) - rx + 1;
+                let rh = Math.max(s.y1, s.y2) - ry + 1;
+                let maxX = Math.max(s.x1, s.x2);
+                let maxY = Math.max(s.y1, s.y2);
+                
+                if (!useAA) {
+                    if (s.type === 'edit-rect-fill') {
+                        ctx.fillStyle = s.color;
+                        ctx.fillRect(rx, ry, rw, rh);
+                    } else {
+                        drawBresenhamLine(ctx, rx, ry, maxX, ry, false);
+                        drawBresenhamLine(ctx, maxX, ry, maxX, maxY, false);
+                        drawBresenhamLine(ctx, maxX, maxY, rx, maxY, false);
+                        drawBresenhamLine(ctx, rx, maxY, rx, ry, false);
+                    }
+                } else {
+                    ctx.beginPath();
+                    ctx.strokeStyle = s.color;
+                    ctx.fillStyle = s.color;
+                    ctx.lineWidth = s.lineWidth;
+                    if (s.type === 'edit-rect-fill') {
+                        ctx.fillRect(rx, ry, rw, rh);
+                    } else {
+                        ctx.strokeRect(rx, ry, rw, rh);
+                    }
+                }
+            } else if (s.type === 'edit-ellipse' || s.type === 'edit-ellipse-fill') {
+                let rx = Math.abs(s.x2 - s.x1) / 2;
+                let ry = Math.abs(s.y2 - s.y1) / 2;
+                let cx = Math.min(s.x1, s.x2) + rx;
+                let cy = Math.min(s.y1, s.y2) + ry;
+                const isFill = s.type === 'edit-ellipse-fill';
+                
+                if (!useAA) {
+                    drawBresenhamEllipse(ctx, cx, cy, rx, ry, isFill, false);
+                } else {
+                    ctx.beginPath();
+                    ctx.strokeStyle = s.color;
+                    ctx.fillStyle = s.color;
+                    ctx.lineWidth = s.lineWidth;
+                    ctx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
+                    if (isFill) ctx.fill(); else ctx.stroke();
+                }
+            }
+        }
+
+        // ==========================================
+        //  メイン・アプリケーション ロジック
+        // ==========================================
+        function updateStatusBar() {
+            const sizeDisplay = document.getElementById('status-size');
+            if (sizeDisplay) {
+                sizeDisplay.innerText = `${CANVAS_WIDTH} x ${CANVAS_HEIGHT} px`;
+            }
+        }
+
+        function updateBrushPreview(clientX, clientY) {
+            if (['pen', 'eraser', 'dot'].includes(currentTool)) {
+                const size = currentLineWidth * currentZoom;
+                brushPreview.style.width = size + 'px';
+                brushPreview.style.height = size + 'px';
+                brushPreview.style.left = clientX + 'px';
+                brushPreview.style.top = clientY + 'px';
+                brushPreview.style.display = 'block';
+
+                if (currentTool !== 'pen' || isAntiAlias) {
+                    brushPreview.style.borderRadius = '50%';
+                } else {
+                    brushPreview.style.borderRadius = '0';
+                }
+            } else {
+                brushPreview.style.display = 'none';
+            }
+        }
+
+        function setTool(toolName) {
+            if (currentTool === 'select' && toolName !== 'select') {
+                finalizeSelection();
+            }
+            
+            if (currentTool.startsWith('edit-') && !toolName.startsWith('edit-')) {
+                finalizeShape();
+            }
+
+            currentTool = toolName;
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                if (btn.id && btn.id.startsWith('tool-')) {
+                    btn.classList.remove('active');
+                }
+            });
+            const targetBtn = document.getElementById(`tool-${toolName}`);
+            if (targetBtn) targetBtn.classList.add('active');
+            
+            isPanning = false;
+            selectionPanel.style.display = (toolName === 'select') ? 'flex' : 'none';
+            
+            if (!['pen', 'eraser', 'dot'].includes(currentTool)) {
+                brushPreview.style.display = 'none';
+            }
+        }
+
+        function setAntiAlias(enable) {
+            isAntiAlias = enable;
+            document.getElementById('aa-off').classList.toggle('active', !enable);
+            document.getElementById('aa-on').classList.toggle('active', enable);
+            
+            layers.forEach(layer => {
+                layer.ctx.imageSmoothingEnabled = enable;
+                layer.canvas.style.imageRendering = enable ? 'auto' : 'pixelated';
+            });
+            previewCtx.imageSmoothingEnabled = enable;
+            previewCanvas.style.imageRendering = enable ? 'auto' : 'pixelated';
+            if(selection.active) drawSelectionPreview();
+        }
+
+        function toggleGrid() {
+            isGridVisible = !isGridVisible;
+            document.getElementById('grid-toggle').classList.toggle('active', isGridVisible);
+            updateGrid();
+        }
+
+        function updateGrid() {
+            const overlay = document.getElementById('grid-overlay');
+            if (isGridVisible && currentZoom >= 4) {
+                overlay.style.display = 'block';
+                overlay.style.backgroundImage = `
+                    linear-gradient(to right, rgba(128,128,128,0.3) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(128,128,128,0.3) 1px, transparent 1px)
+                `;
+                overlay.style.backgroundSize = `${currentZoom}px ${currentZoom}px`;
+            } else {
+                overlay.style.display = 'none';
+            }
+        }
+
+        function setColor(color) {
+            currentColor = color;
+            document.getElementById('color-picker').value = color;
+        }
+
+        function setPaletteColor(hex) {
+            setColor(hex);
+        }
+
+        function setLineWidth(width) {
+            currentLineWidth = parseInt(width, 10);
+            document.getElementById('line-width-display').innerText = width;
+        }
+
+        function setZoom(level, cx, cy) {
+            const oldZoom = currentZoom;
+            currentZoom = level;
+            
+            if (cx === undefined || cy === undefined) {
+                const wsRect = workspace.getBoundingClientRect();
+                cx = wsRect.left + wsRect.width / 2;
+                cy = wsRect.top + wsRect.height / 2;
+            }
+
+            const cwRectOld = canvasWrapper.getBoundingClientRect();
+            const offsetX = cx - cwRectOld.left;
+            const offsetY = cy - cwRectOld.top;
+            
+            canvasWrapper.style.width = (CANVAS_WIDTH * currentZoom) + 'px';
+            canvasWrapper.style.height = (CANVAS_HEIGHT * currentZoom) + 'px';
+            
+            document.querySelectorAll('#zoom-controls button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const zBtn = document.getElementById(`zoom-${level}`);
+            if(zBtn) zBtn.classList.add('active');
+
+            updateGrid();
+
+            const newOffsetX = offsetX * (currentZoom / oldZoom);
+            const newOffsetY = offsetY * (currentZoom / oldZoom);
+            const cwRectNew = canvasWrapper.getBoundingClientRect();
+            
+            workspace.scrollLeft += (cwRectNew.left + newOffsetX) - cx;
+            workspace.scrollTop += (cwRectNew.top + newOffsetY) - cy;
+        }
+
+        function zoomStep(dir, cx, cy) {
+            const levels = [1, 2, 4, 8, 16, 32];
+            let idx = levels.indexOf(currentZoom);
+            if (idx === -1) idx = 0;
+            idx += dir;
+            if (idx < 0) idx = 0;
+            if (idx >= levels.length) idx = levels.length - 1;
+            if (levels[idx] !== currentZoom) {
+                setZoom(levels[idx], cx, cy);
+            }
+        }
+
+        function startPanning(e) {
+            isPanning = true;
+            let clientX, clientY;
+            if (e.touches) {
+                if (e.touches.length >= 2) {
+                    clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                } else {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            panStartX = clientX;
+            panStartY = clientY;
+            panScrollX = workspace.scrollLeft;
+            panScrollY = workspace.scrollTop;
+        }
+
+        function doPan(e) {
+            if (!isPanning) return;
+            let clientX, clientY;
+            if (e.touches) {
+                if (e.touches.length >= 2) {
+                    clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                } else {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            const dx = clientX - panStartX;
+            const dy = clientY - panStartY;
+            workspace.scrollLeft = panScrollX - dx;
+            workspace.scrollTop = panScrollY - dy;
+        }
+
+        function stopPanning() {
+            isPanning = false;
+        }
+
+        function getMousePos(e) {
+            const rect = previewCanvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            }
+
+            const scaleX = CANVAS_WIDTH / rect.width;
+            const scaleY = CANVAS_HEIGHT / rect.height;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function setupPreviewCanvasEvents() {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.zIndex = '10000';
+            overlay.style.cursor = 'crosshair';
+            canvasWrapper.appendChild(overlay);
+
+            window.addEventListener('mouseout', (e) => {
+                brushPreview.style.display = 'none';
+            });
+
+            overlay.addEventListener('wheel', (e) => {
+                e.preventDefault(); 
+                if (e.deltaY < 0) zoomStep(1, e.clientX, e.clientY);
+                else zoomStep(-1, e.clientX, e.clientY);
+            }, { passive: false });
+
+            overlay.addEventListener('mousedown', (e) => {
+                if (currentTool === 'pan') {
+                    startPanning(e);
+                } else {
+                    startDrawing(e);
+                }
+            });
+            window.addEventListener('mousemove', (e) => {
+                updateBrushPreview(e.clientX, e.clientY); 
+                if (isPanning && currentTool === 'pan') {
+                    doPan(e);
+                } else if (isDrawing || isDraggingSelection || isDraggingHandle) {
+                    draw(e);
+                }
+            });
+            window.addEventListener('mouseup', (e) => {
+                if (isPanning) stopPanning();
+                if (isDrawing || isDraggingSelection || isDraggingHandle) stopDrawing(e);
+            });
+
+            overlay.addEventListener('touchstart', (e) => {
+                if (e.touches && e.touches.length > 0) {
+                    updateBrushPreview(e.touches[0].clientX, e.touches[0].clientY);
+                }
+                if (e.touches && e.touches.length >= 2) {
+                    e.preventDefault();
+                    startPanning(e);
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    return;
+                }
+                
+                if (currentTool === 'pan') {
+                    e.preventDefault();
+                    startPanning(e);
+                } else {
+                    e.preventDefault(); 
+                    startDrawing(e);
+                }
+            }, { passive: false });
+            
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches && e.touches.length > 0) {
+                    updateBrushPreview(e.touches[0].clientX, e.touches[0].clientY);
+                }
+                if (e.touches && e.touches.length >= 2) {
+                    e.preventDefault();
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    const pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+                    if (initialPinchDistance) {
+                        const ratio = currentDistance / initialPinchDistance;
+                        if (ratio > 1.2) {
+                            zoomStep(1, pinchCenterX, pinchCenterY);
+                            initialPinchDistance = currentDistance;
+                        } else if (ratio < 0.8) {
+                            zoomStep(-1, pinchCenterX, pinchCenterY);
+                            initialPinchDistance = currentDistance;
+                        }
+                    }
+                    if (isPanning) doPan(e);
+                    return;
+                }
+
+                if (isPanning) {
+                    e.preventDefault();
+                    doPan(e);
+                } else if (isDrawing || isDraggingSelection || isDraggingHandle) {
+                    e.preventDefault(); 
+                    draw(e);
+                }
+            }, { passive: false });
+            
+            window.addEventListener('touchend', (e) => {
+                brushPreview.style.display = 'none'; 
+                initialPinchDistance = null;
+                if (isPanning) stopPanning();
+                if (isDrawing || isDraggingSelection || isDraggingHandle) stopDrawing(e);
+            });
+            window.addEventListener('touchcancel', (e) => {
+                brushPreview.style.display = 'none'; 
+                initialPinchDistance = null;
+                if (isPanning) stopPanning();
+                if (isDrawing || isDraggingSelection || isDraggingHandle) stopDrawing(e);
+            });
+        }
+
+        function setupContextStyle(ctx, isEraser = false) {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = currentLineWidth;
+            
+            if (isEraser) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = 'rgba(0,0,0,1)';
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+                ctx.fillStyle = currentColor;
+            }
+        }
+
+        function startDrawing(e) {
+            if (!currentLayerId) return;
+            const layer = layers.find(l => l.id === currentLayerId);
+            if (!layer || !layer.visible) {
+                alert("現在選択されているレイヤーは非表示か存在しません。");
+                return;
+            }
+
+            const pos = getMousePos(e);
+            
+            if (currentTool.startsWith('edit-')) {
+                startShapeEdit(pos.x, pos.y);
+                return;
+            }
+
+            if (currentTool === 'select') {
+                if (selection.active &&
+                    pos.x >= selection.x && pos.x <= selection.x + selection.w &&
+                    pos.y >= selection.y && pos.y <= selection.y + selection.h) {
+                    
+                    isDraggingSelection = true;
+                    if (!selection.isFloating) {
+                        selection.canvas = document.createElement('canvas');
+                        selection.canvas.width = selection.w;
+                        selection.canvas.height = selection.h;
+                        selection.canvas.getContext('2d').drawImage(layer.canvas, selection.x, selection.y, selection.w, selection.h, 0, 0, selection.w, selection.h);
+                        layer.ctx.clearRect(selection.x, selection.y, selection.w, selection.h);
+                        selection.isFloating = true;
+                    }
+                    dragOffsetX = pos.x - selection.x;
+                    dragOffsetY = pos.y - selection.y;
+                } else {
+                    finalizeSelection(); 
+                    startX = pos.x;
+                    startY = pos.y;
+                    isDrawing = true; 
+                }
+                return;
+            }
+            
+            startX = pos.x;
+            startY = pos.y;
+            hasMoved = false; 
+
+            if (currentTool === 'dot') {
+                const ctx = getCurrentContext();
+                setupContextStyle(ctx, false);
+                if (!isAntiAlias) {
+                    drawBresenhamLine(ctx, startX, startY, startX, startY, false);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, currentLineWidth / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                saveState();
+                return; 
+            }
+
+            isDrawing = true;
+
+            if (currentTool === 'bucket') {
+                isDrawing = false;
+                executeFloodFill(Math.floor(startX), Math.floor(startY));
+                saveState();
+                return;
+            }
+
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                const ctx = getCurrentContext();
+                setupContextStyle(ctx, currentTool === 'eraser');
+                
+                if (isAntiAlias) {
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                }
+            }
+        }
+
+        function draw(e) {
+            const pos = getMousePos(e);
+            hasMoved = true;
+
+            if (currentTool.startsWith('edit-')) {
+                moveShapeEdit(pos.x, pos.y);
+                return;
+            }
+
+            if (currentTool === 'select') {
+                if (isDraggingSelection) {
+                    selection.x = pos.x - dragOffsetX;
+                    selection.y = pos.y - dragOffsetY;
+                    if (!isAntiAlias) {
+                        selection.x = Math.round(selection.x);
+                        selection.y = Math.round(selection.y);
+                    }
+                    drawSelectionPreview();
+                } else if (isDrawing) {
+                    previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                    previewCtx.beginPath();
+                    previewCtx.setLineDash([5, 5]);
+                    previewCtx.strokeStyle = '#00ffff'; 
+                    previewCtx.lineWidth = 1;
+                    const w = pos.x - startX;
+                    const h = pos.y - startY;
+                    previewCtx.strokeRect(startX, startY, w, h);
+                    previewCtx.setLineDash([]);
+                }
+                return;
+            }
+
+            if (!isDrawing) return;
+
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                const ctx = getCurrentContext();
+                if (!isAntiAlias) {
+                    drawBresenhamLine(ctx, startX, startY, pos.x, pos.y, currentTool === 'eraser');
+                    startX = pos.x;
+                    startY = pos.y;
+                } else {
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                }
+            } else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(currentTool)) {
+                previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                setupContextStyle(previewCtx, false); 
+                
+                if (currentTool === 'crop') {
+                    previewCtx.beginPath();
+                    previewCtx.setLineDash([5, 5]);
+                    previewCtx.strokeStyle = '#ff0000';
+                    previewCtx.lineWidth = 1;
+                    const width = pos.x - startX;
+                    const height = pos.y - startY;
+                    previewCtx.strokeRect(startX, startY, width, height);
+                    previewCtx.setLineDash([]); 
+                } else if (currentTool === 'line') {
+                    if (!isAntiAlias) {
+                        drawBresenhamLine(previewCtx, startX, startY, pos.x, pos.y, false);
+                    } else {
+                        previewCtx.beginPath();
+                        previewCtx.moveTo(startX, startY);
+                        previewCtx.lineTo(pos.x, pos.y);
+                        previewCtx.stroke();
+                    }
+                } else if (currentTool === 'rect' || currentTool === 'rect-fill') {
+                    if (!isAntiAlias) {
+                        if (currentTool === 'rect-fill') {
+                            let rx = Math.floor(Math.min(startX, pos.x));
+                            let ry = Math.floor(Math.min(startY, pos.y));
+                            let rw = Math.floor(Math.max(startX, pos.x)) - rx + 1;
+                            let rh = Math.floor(Math.max(startY, pos.y)) - ry + 1;
+                            previewCtx.fillRect(rx, ry, rw, rh);
+                        } else {
+                            drawBresenhamLine(previewCtx, startX, startY, pos.x, startY, false);
+                            drawBresenhamLine(previewCtx, pos.x, startY, pos.x, pos.y, false);
+                            drawBresenhamLine(previewCtx, pos.x, pos.y, startX, pos.y, false);
+                            drawBresenhamLine(previewCtx, startX, pos.y, startX, startY, false);
+                        }
+                    } else {
+                        let rx = startX, ry = startY, rw = pos.x - startX, rh = pos.y - startY;
+                        previewCtx.beginPath();
+                        if (currentTool === 'rect-fill') {
+                            previewCtx.fillRect(rx, ry, rw, rh);
+                        } else {
+                            previewCtx.strokeRect(rx, ry, rw, rh);
+                        }
+                    }
+                } else if (currentTool === 'circle' || currentTool === 'circle-fill') {
+                    const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+                    const isFill = (currentTool === 'circle-fill');
+                    if (!isAntiAlias) {
+                        drawBresenhamCircle(previewCtx, startX, startY, radius, isFill, false);
+                    } else {
+                        previewCtx.beginPath();
+                        previewCtx.arc(startX, startY, radius, 0, Math.PI * 2);
+                        if (isFill) previewCtx.fill(); else previewCtx.stroke();
+                    }
+                } else if (currentTool === 'ellipse' || currentTool === 'ellipse-fill') {
+                    let rx = Math.abs(pos.x - startX) / 2;
+                    let ry = Math.abs(pos.y - startY) / 2;
+                    let cx = Math.min(startX, pos.x) + rx;
+                    let cy = Math.min(startY, pos.y) + ry;
+                    const isFill = (currentTool === 'ellipse-fill');
+                    
+                    if (!isAntiAlias) {
+                        drawBresenhamEllipse(previewCtx, cx, cy, rx, ry, isFill, false);
+                    } else {
+                        previewCtx.beginPath();
+                        previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
+                        if (isFill) previewCtx.fill(); else previewCtx.stroke();
+                    }
+                }
+            }
+        }
+
+        function stopDrawing(e) {
+            const pos = getMousePos(e);
+
+            if (currentTool.startsWith('edit-')) {
+                endShapeEdit(pos.x, pos.y);
+                return;
+            }
+
+            if (currentTool === 'select') {
+                if (isDraggingSelection) {
+                    isDraggingSelection = false;
+                    drawSelectionPreview();
+                } else if (isDrawing) {
+                    isDrawing = false;
+                    const rx = Math.min(startX, pos.x);
+                    const ry = Math.min(startY, pos.y);
+                    const rw = Math.abs(pos.x - startX);
+                    const rh = Math.abs(pos.y - startY);
+                    
+                    if (rw > 2 && rh > 2) {
+                        selection.x = !isAntiAlias ? Math.round(rx) : rx;
+                        selection.y = !isAntiAlias ? Math.round(ry) : ry;
+                        selection.w = !isAntiAlias ? Math.round(rw) : rw;
+                        selection.h = !isAntiAlias ? Math.round(rh) : rh;
+                        selection.active = true;
+                        selection.isFloating = false;
+                        drawSelectionPreview();
+                    } else {
+                        selection.active = false;
+                        previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                    }
+                }
+                return; 
+            }
+
+            if (!isDrawing) return;
+            isDrawing = false;
+            
+            const ctx = getCurrentContext();
+
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                if (isAntiAlias) {
+                    ctx.closePath();
+                }
+                
+                if (!hasMoved) {
+                    if (!isAntiAlias) {
+                        drawBresenhamLine(ctx, startX, startY, startX, startY, currentTool === 'eraser');
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, currentLineWidth / 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                if (currentTool === 'eraser') ctx.globalCompositeOperation = 'source-over';
+            } else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(currentTool)) {
+                setupContextStyle(ctx, false);
+                
+                if (currentTool === 'crop') {
+                    previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                    const rectX = Math.min(startX, pos.x);
+                    const rectY = Math.min(startY, pos.y);
+                    const rectW = Math.abs(pos.x - startX);
+                    const rectH = Math.abs(pos.y - startY);
+                    
+                    if (rectW > 5 && rectH > 5) {
+                        finalizeSelection();
+                        executeResize(rectW, rectH, rectX, rectY);
+                    }
+                    saveState();
+                    return;
+                }
+
+                if (currentTool === 'line') {
+                    if (!isAntiAlias) {
+                        drawBresenhamLine(ctx, startX, startY, pos.x, pos.y, false);
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(startX, startY);
+                        ctx.lineTo(pos.x, pos.y);
+                        ctx.stroke();
+                    }
+                } else if (currentTool === 'rect' || currentTool === 'rect-fill') {
+                    if (!isAntiAlias) {
+                        if (currentTool === 'rect-fill') {
+                            let rx = Math.floor(Math.min(startX, pos.x));
+                            let ry = Math.floor(Math.min(startY, pos.y));
+                            let rw = Math.floor(Math.max(startX, pos.x)) - rx + 1;
+                            let rh = Math.floor(Math.max(startY, pos.y)) - ry + 1;
+                            ctx.fillRect(rx, ry, rw, rh);
+                        } else {
+                            drawBresenhamLine(ctx, startX, startY, pos.x, startY, false);
+                            drawBresenhamLine(ctx, pos.x, startY, pos.x, pos.y, false);
+                            drawBresenhamLine(ctx, pos.x, pos.y, startX, pos.y, false);
+                            drawBresenhamLine(ctx, startX, pos.y, startX, startY, false);
+                        }
+                    } else {
+                        let rx = startX, ry = startY, rw = pos.x - startX, rh = pos.y - startY;
+                        ctx.beginPath();
+                        if (currentTool === 'rect-fill') {
+                            ctx.fillRect(rx, ry, rw, rh);
+                        } else {
+                            ctx.strokeRect(rx, ry, rw, rh);
+                        }
+                    }
+                } else if (currentTool === 'circle' || currentTool === 'circle-fill') {
+                    const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+                    const isFill = (currentTool === 'circle-fill');
+                    if (!isAntiAlias) {
+                        drawBresenhamCircle(ctx, startX, startY, radius, isFill, false);
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+                        if (isFill) ctx.fill(); else ctx.stroke();
+                    }
+                } else if (currentTool === 'ellipse' || currentTool === 'ellipse-fill') {
+                    let rx = Math.abs(pos.x - startX) / 2;
+                    let ry = Math.abs(pos.y - startY) / 2;
+                    let cx = Math.min(startX, pos.x) + rx;
+                    let cy = Math.min(startY, pos.y) + ry;
+                    const isFill = (currentTool === 'ellipse-fill');
+                    
+                    if (!isAntiAlias) {
+                        drawBresenhamEllipse(ctx, cx, cy, rx, ry, isFill, false);
+                    } else {
+                        ctx.beginPath();
+                        ctx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
+                        if (isFill) ctx.fill(); else ctx.stroke();
+                    }
+                }
+                previewCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
+            
+            saveState();
+        }
+
+        function init() {
+            previewCtx.imageSmoothingEnabled = isAntiAlias;
+            previewCanvas.style.imageRendering = isAntiAlias ? 'auto' : 'pixelated';
+            
+            const paletteGrid = document.getElementById('famicom-palette');
+            if (paletteGrid) {
+                paletteGrid.innerHTML = '';
+                famicomColors.forEach(color => {
+                    const div = document.createElement('div');
+                    div.className = 'palette-color';
+                    div.style.backgroundColor = color;
+                    div.onclick = () => setPaletteColor(color);
+                    paletteGrid.appendChild(div);
+                });
+            }
+
+            addLayer('レイヤー 1');
+            saveState(); 
+            setupPreviewCanvasEvents();
+            updateStatusBar();
+        }
+
+        window.onload = init;
     </script>
 </body>
 </html>

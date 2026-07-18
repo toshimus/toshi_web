@@ -13,7 +13,7 @@
             <div class="panel-header">システム・コントロール</div>
             
             <div class="tool-section">
-                <label>ツール選択</label>
+                <label>直接描画ツール</label>
                 <div class="icon-grid" id="tool-grid">
                     <button id="tool-pen" class="tool-btn active" onclick="setTool('pen')">
                         <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
@@ -27,11 +27,14 @@
                         <svg viewBox="0 0 24 24"><path d="M16.24 3.56l4.2 4.2c.78.78.78 2.05 0 2.83l-9.9 9.91c-.38.38-.88.59-1.41.59H3v-6.09c0-.53.21-1.04.59-1.41l9.82-9.83c.78-.78 2.05-.78 2.83 0zM5 19h3.09l7.5-7.5-3.09-3.09-7.5 7.5V19z"/></svg>
                         消しゴム
                     </button>
+                    <button id="tool-bucket" class="tool-btn" onclick="setTool('bucket')">
+                        <svg viewBox="0 0 24 24"><path d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15c-.59.59-.59 1.54 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l7.49-7.49c.59-.58.59-1.53 0-2.13zM8.45 15.46l-5.5-5.5 3.54-3.54 5.5 5.5-3.54 3.54zM13 22v-3h3v3h-3zm5 0v-3h3v3h-3z"/></svg>
+                        塗潰
+                    </button>
                     <button id="tool-line" class="tool-btn" onclick="setTool('line')">
                         <svg viewBox="0 0 24 24"><path d="M3 21L21 3v2L5 21H3z"/></svg>
                         直線
                     </button>
-
                     <button id="tool-rect" class="tool-btn" onclick="setTool('rect')">
                         <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5z"/></svg>
                         四角
@@ -48,7 +51,6 @@
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
                         円
                     </button>
-
                     <button id="tool-ellipse" class="tool-btn" onclick="setTool('ellipse')">
                         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
                         楕円
@@ -56,10 +58,6 @@
                     <button id="tool-ellipse-fill" class="tool-btn" onclick="setTool('ellipse-fill')">
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
                         楕円
-                    </button>
-                    <button id="tool-bucket" class="tool-btn" onclick="setTool('bucket')">
-                        <svg viewBox="0 0 24 24"><path d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15c-.59.59-.59 1.54 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l7.49-7.49c.59-.58.59-1.53 0-2.13zM8.45 15.46l-5.5-5.5 3.54-3.54 5.5 5.5-3.54 3.54zM13 22v-3h3v3h-3zm5 0v-3h3v3h-3z"/></svg>
-                        塗潰
                     </button>
                     <button id="tool-select" class="tool-btn" onclick="setTool('select')">
                         <svg viewBox="0 0 24 24"><path d="M3 3h4V1H1v6h2V3zm4 18H3v-4H1v6h6v-2zm14-4h-2v4h-4v2h6v-6zm-2-14h-4V1h6v6h-2V3zM9 1h6v2H9V1zm0 20h6v2H9v-2zm10-10h2v6h-2v-6zM1 9h2v6H1V9z"/></svg>
@@ -71,6 +69,18 @@
                     <svg viewBox="0 0 24 24" style="margin: 0;"><path d="M12 2L8 6h3v5H6V8L2 12l4 4v-3h5v5H8l4 4 4-4h-3v-5h5v3l4-4-4-4v3h-5V6h3L12 2z"/></svg>
                     <span>移動 (手のひら)</span>
                 </button>
+            </div>
+
+            <div class="tool-section" style="background-color: #2a1111; padding: 8px; border-radius: 4px; border: 1px solid #662222;">
+                <label style="color: #ffaaaa; margin-bottom: 5px; display: block;">ベクター変形ツール (■で修正)</label>
+                <div class="icon-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <button id="tool-edit-line" class="tool-btn" onclick="setTool('edit-line')" style="height: 35px;">直線</button>
+                    <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 35px;">□</button>
+                    <button id="tool-edit-rect-fill" class="tool-btn" onclick="setTool('edit-rect-fill')" style="height: 35px;">■</button>
+                    <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 35px;">〇</button>
+                    <button id="tool-edit-ellipse-fill" class="tool-btn" onclick="setTool('edit-ellipse-fill')" style="height: 35px;">●</button>
+                    <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 35px;">✅ 確定</button>
+                </div>
             </div>
 
             <div class="tool-section">

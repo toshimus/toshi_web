@@ -308,7 +308,7 @@ export function exportImage(format) {
 export function saveProject() {
     finalizeSelection();
     const projectData = {
-        version: '4.2',
+        version: '5.0',
         width: State.CANVAS_WIDTH,
         height: State.CANVAS_HEIGHT,
         layers: getSnapshot()

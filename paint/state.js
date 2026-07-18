@@ -30,7 +30,12 @@ export const State = {
     currentLayerId: null,
     layerCounter: 0,
     historyStack: [],
-    redoStack: []
+    redoStack: [],
+
+    // --- 新規追加：ベクター図形変形用ステート ---
+    editingShape: null,
+    hoveredHandle: -1,
+    isDraggingHandle: false
 };
 
 export const CONSTANTS = {

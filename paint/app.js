@@ -2,6 +2,7 @@ import { State, CONSTANTS, DOM } from './state.js';
 import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill } from './drawing_tools.js';
 import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer } from './layer_history.js';
 import { duplicateSelection, deleteSelection, finalizeSelection, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, loadProject, drawSelectionPreview } from './canvas_io.js';
+import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape } from './shape_editor.js';
 
 export function updateStatusBar() {
     const sizeDisplay = document.getElementById('status-size');
@@ -33,9 +34,13 @@ export function setTool(toolName) {
     if (State.currentTool === 'select' && toolName !== 'select') {
         finalizeSelection();
     }
+    
+    if (State.currentTool.startsWith('edit-') && !toolName.startsWith('edit-')) {
+        finalizeShape();
+    }
 
     State.currentTool = toolName;
-    document.querySelectorAll('#tool-grid button, #tool-pan').forEach(btn => {
+    document.querySelectorAll('.tool-btn').forEach(btn => {
         if (btn.id && btn.id.startsWith('tool-')) {
             btn.classList.remove('active');
         }
@@ -243,13 +248,13 @@ function setupPreviewCanvasEvents() {
         updateBrushPreview(e.clientX, e.clientY); 
         if (State.isPanning && State.currentTool === 'pan') {
             doPan(e);
-        } else if (State.isDrawing || State.isDraggingSelection) {
+        } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) {
             draw(e);
         }
     });
     window.addEventListener('mouseup', (e) => {
         if (State.isPanning) stopPanning();
-        if (State.isDrawing || State.isDraggingSelection) stopDrawing(e);
+        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) stopDrawing(e);
     });
 
     overlay.addEventListener('touchstart', (e) => {
@@ -305,7 +310,7 @@ function setupPreviewCanvasEvents() {
         if (State.isPanning) {
             e.preventDefault();
             doPan(e);
-        } else if (State.isDrawing || State.isDraggingSelection) {
+        } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) {
             e.preventDefault(); 
             draw(e);
         }
@@ -315,13 +320,13 @@ function setupPreviewCanvasEvents() {
         DOM.brushPreview.style.display = 'none'; 
         State.initialPinchDistance = null;
         if (State.isPanning) stopPanning();
-        if (State.isDrawing || State.isDraggingSelection) stopDrawing(e);
+        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) stopDrawing(e);
     });
     window.addEventListener('touchcancel', (e) => {
         DOM.brushPreview.style.display = 'none'; 
         State.initialPinchDistance = null;
         if (State.isPanning) stopPanning();
-        if (State.isDrawing || State.isDraggingSelection) stopDrawing(e);
+        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) stopDrawing(e);
     });
 }
 
@@ -350,6 +355,13 @@ function startDrawing(e) {
 
     const pos = getMousePos(e);
     
+    // 図形ツールの場合は、ドラッグ終了までストップさせない
+    if (State.currentTool.startsWith('edit-')) {
+        startShapeEdit(pos.x, pos.y);
+        State.isDrawing = true; 
+        return;
+    }
+
     if (State.currentTool === 'select') {
         if (State.selection.active &&
             pos.x >= State.selection.x && pos.x <= State.selection.x + State.selection.w &&
@@ -416,6 +428,11 @@ function startDrawing(e) {
 function draw(e) {
     const pos = getMousePos(e);
     State.hasMoved = true;
+
+    if (State.currentTool.startsWith('edit-')) {
+        moveShapeEdit(pos.x, pos.y);
+        return;
+    }
 
     if (State.currentTool === 'select') {
         if (State.isDraggingSelection) {
@@ -526,13 +543,23 @@ function draw(e) {
 }
 
 function stopDrawing(e) {
+    const pos = getMousePos(e);
+
+    // 図形ツールのドラッグ終了判定
+    if (State.currentTool.startsWith('edit-')) {
+        if (State.isDrawing) {
+            endShapeEdit(pos.x, pos.y);
+            State.isDrawing = false;
+        }
+        return;
+    }
+
     if (State.currentTool === 'select') {
         if (State.isDraggingSelection) {
             State.isDraggingSelection = false;
             drawSelectionPreview();
         } else if (State.isDrawing) {
             State.isDrawing = false;
-            const pos = getMousePos(e);
             const rx = Math.min(State.startX, pos.x);
             const ry = Math.min(State.startY, pos.y);
             const rw = Math.abs(pos.x - State.startX);
@@ -577,7 +604,6 @@ function stopDrawing(e) {
         if (State.currentTool === 'eraser') ctx.globalCompositeOperation = 'source-over';
     } else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(State.currentTool)) {
         setupContextStyle(ctx, false);
-        const pos = getMousePos(e);
         
         if (State.currentTool === 'crop') {
             DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
@@ -679,7 +705,6 @@ function init() {
     updateStatusBar();
 }
 
-// UIイベントのバインディング（HTML側から参照できるようにWindowオブジェクトに登録）
 window.setTool = setTool;
 window.setAntiAlias = setAntiAlias;
 window.toggleGrid = toggleGrid;
@@ -702,5 +727,6 @@ window.finalizeSelection = finalizeSelection;
 window.addLayer = addLayer;
 window.undo = undo;
 window.redo = redo;
+window.finalizeShape = finalizeShape; 
 
 window.onload = init;
