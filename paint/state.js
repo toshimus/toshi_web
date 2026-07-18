@@ -12,7 +12,7 @@ export const State = {
     gridSize: 16,
     isSnapToGrid: false,
     isSnapToObject: false,
-    snapIndicator: null, // {x, y} スナップ発生時の座標保持
+    snapIndicator: null,
     
     isDrawing: false,
     hasMoved: false,
@@ -39,14 +39,17 @@ export const State = {
     historyStack: [],
     redoStack: [],
 
-    // ベクター図形変形・移動用ステート
+    // ベクター図形変形・プロパティ用ステート
     editingShape: null,
     hoveredHandle: -1,
     isDraggingHandle: false,
     isDraggingBody: false,
     shapeDragOffsetX: 0,   
     shapeDragOffsetY: 0,   
-    isFinalizing: false
+    isFinalizing: false,
+    
+    isShapeFill: false,       // 塗りつぶしのON/OFF
+    isPolygonClosed: true     // パスを閉じるかどうかのON/OFF
 };
 
 export const CONSTANTS = {

@@ -8,7 +8,6 @@
 </head>
 <body>
 
-    <!-- トップメニューバー -->
     <div id="menu-bar">
         <div class="menu-item">ファイル
             <div class="dropdown-content">
@@ -44,9 +43,14 @@
                 <div class="dropdown-item" onclick="openColorAdjust()">色調補正...</div>
             </div>
         </div>
+        <div class="menu-item">レイヤー
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="duplicateCurrentLayer()">レイヤーの複製</div>
+                <div class="dropdown-item" onclick="mergeVisibleLayers()">表示レイヤーの結合</div>
+            </div>
+        </div>
     </div>
 
-    <!-- 非表示の入力系 -->
     <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
     <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
 
@@ -114,21 +118,36 @@
 
             <div class="tool-section" style="background-color: #2a1111; padding: 8px; border-radius: 4px; border: 1px solid #662222;">
                 <label style="color: #ffaaaa; margin-bottom: 5px; display: block;">ベクター (自動レイヤー化)</label>
-                <div class="icon-grid" style="grid-template-columns: repeat(2, 1fr);">
+                
+                <div class="icon-grid" style="grid-template-columns: repeat(3, 1fr);">
                     <button id="tool-edit-line" class="tool-btn" onclick="setTool('edit-line')" style="height: 35px;">直線</button>
-                    <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 35px;">□</button>
-                    <button id="tool-edit-rect-fill" class="tool-btn" onclick="setTool('edit-rect-fill')" style="height: 35px;">■</button>
-                    <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 35px;">〇</button>
-                    <button id="tool-edit-ellipse-fill" class="tool-btn" onclick="setTool('edit-ellipse-fill')" style="height: 35px;">●</button>
+                    <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 35px;">四角</button>
+                    <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 35px;">円/楕円</button>
+                    
+                    <button id="tool-edit-polygon" class="tool-btn" onclick="setTool('edit-polygon')" style="height: 35px;">正多角</button>
+                    <button id="tool-edit-free-polygon" class="tool-btn" onclick="setTool('edit-free-polygon')" style="height: 35px; border-color:#00ffff;">多角形</button>
+                    <button id="tool-edit-round-rect" class="tool-btn" onclick="setTool('edit-round-rect')" style="height: 35px;">角丸</button>
+                    
                     <button id="tool-edit-text" class="tool-btn" onclick="setTool('edit-text')" style="height: 35px;">文字</button>
                     <button id="tool-edit-table" class="tool-btn" onclick="setTool('edit-table')" style="height: 35px;">表(Grid)</button>
                     <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 35px;">✅ 確定</button>
                 </div>
+
+                <div style="margin-top: 5px; display: flex; gap: 10px; align-items: center; background: #1a1a1a; padding: 6px; border-radius: 4px; border: 1px solid #444;">
+                    <label style="font-size: 11px; cursor: pointer; color:#fff;">
+                        <input type="checkbox" id="shape-fill-cb" onchange="toggleShapeFill(this.checked)"> 塗りつぶす
+                    </label>
+                    <label style="font-size: 11px; cursor: pointer; color:#fff;">
+                        <input type="checkbox" id="shape-close-cb" onchange="togglePolygonClose(this.checked)" checked> パスを閉じる
+                    </label>
+                </div>
+
                 <div style="margin-top: 5px;">
                     <input type="text" id="shape-text-input" placeholder="文字入力..." oninput="updateShapeProperties()" style="width: 100%; box-sizing: border-box; background: #111; color: #fff; border: 1px solid #444; padding: 4px; margin-bottom: 4px;">
-                    <div style="display:flex; gap:5px;">
+                    <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
                         <label style="font-size:10px; color:#aaa;">行:<input type="number" id="table-rows" value="3" min="1" oninput="updateShapeProperties()" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
                         <label style="font-size:10px; color:#aaa;">列:<input type="number" id="table-cols" value="3" min="1" oninput="updateShapeProperties()" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                        <label style="font-size:10px; color:#aaa;">角数/丸み:<input type="number" id="shape-param" value="5" min="0" oninput="updateShapeProperties()" style="width:40px; background: #111; color: #fff; border: 1px solid #444;"></label>
                     </div>
                 </div>
             </div>
@@ -148,7 +167,6 @@
                     <button id="grid-toggle" onclick="toggleGrid()" style="flex:1;">表示切替</button>
                     <label style="font-size:10px; color:#aaa; white-space:nowrap;">サイズ:<input type="number" id="grid-size" value="16" min="2" onchange="setGridSize(this.value)" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
                 </div>
-                <!-- 追加: スナップ設定 -->
                 <div class="button-grid" style="margin-top:5px;">
                     <button id="snap-grid-btn" onclick="toggleSnapToGrid()">グリッド吸着</button>
                     <button id="snap-obj-btn" onclick="toggleSnapToObject()">頂点/円周吸着</button>

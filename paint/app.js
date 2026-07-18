@@ -3,6 +3,8 @@ import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFl
 import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer } from './layer_history.js';
 import { duplicateSelection, deleteSelection, finalizeSelection, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, loadProject, drawSelectionPreview } from './canvas_io.js';
 import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape, drawShapePreview, applySnap } from './shape_editor.js';
+// ...既存のインポートの下に以下を追加
+import { duplicateLayer, mergeVisibleLayers } from './layer_history.js';
 
 export function updateStatusBar() {
     const sizeDisplay = document.getElementById('status-size');
@@ -95,6 +97,7 @@ function updateGrid() {
 export function setColor(color) {
     State.currentColor = color;
     document.getElementById('color-picker').value = color;
+    if (typeof window.updateShapeProperties === 'function') window.updateShapeProperties();
 }
 
 export function setPaletteColor(hex) {
@@ -104,6 +107,7 @@ export function setPaletteColor(hex) {
 export function setLineWidth(width) {
     State.currentLineWidth = parseInt(width, 10);
     document.getElementById('line-width-display').innerText = width;
+    if (typeof window.updateShapeProperties === 'function') window.updateShapeProperties();
 }
 
 export function setZoom(level, cx, cy) {
@@ -260,9 +264,12 @@ function setupPreviewCanvasEvents() {
         } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) {
             draw(e);
         } else {
-            // ホバー時のスナッププレビュー
+            // ホバー時のスナップおよび多角形のプレビュー線更新
             if (State.currentTool.startsWith('edit-')) {
-                applySnap(pos.x, pos.y);
+                let snappedPos = applySnap(pos.x, pos.y);
+                if (State.editingShape && State.editingShape.isDrawingFree) {
+                    State.editingShape.tempPoint = snappedPos;
+                }
                 drawShapePreview();
             }
         }
@@ -372,7 +379,7 @@ function startDrawing(e) {
     let pos = getMousePos(e);
     
     if (State.currentTool.startsWith('edit-')) {
-        pos = applySnap(pos.x, pos.y); // スナップ適用
+        pos = applySnap(pos.x, pos.y); 
         startShapeEdit(pos.x, pos.y);
         State.isDrawing = true; 
         return;
@@ -446,7 +453,7 @@ function draw(e) {
     State.hasMoved = true;
 
     if (State.currentTool.startsWith('edit-')) {
-        pos = applySnap(pos.x, pos.y); // スナップ適用
+        pos = applySnap(pos.x, pos.y); 
         moveShapeEdit(pos.x, pos.y);
         return;
     }
@@ -528,9 +535,9 @@ function draw(e) {
                 let rx = State.startX, ry = State.startY, rw = pos.x - State.startX, rh = pos.y - State.startY;
                 DOM.previewCtx.beginPath();
                 if (State.currentTool === 'rect-fill') {
-                    DOM.previewCtx.fillRect(rx, ry, rw, rh);
+                    ctx.fillRect(rx, ry, rw, rh);
                 } else {
-                    DOM.previewCtx.strokeRect(rx, ry, rw, rh);
+                    ctx.strokeRect(rx, ry, rw, rh);
                 }
             }
         } else if (State.currentTool === 'circle' || State.currentTool === 'circle-fill') {
@@ -539,9 +546,9 @@ function draw(e) {
             if (!State.isAntiAlias) {
                 drawBresenhamCircle(DOM.previewCtx, State.startX, State.startY, radius, isFill, false);
             } else {
-                DOM.previewCtx.beginPath();
-                DOM.previewCtx.arc(State.startX, State.startY, radius, 0, Math.PI * 2);
-                if (isFill) DOM.previewCtx.fill(); else DOM.previewCtx.stroke();
+                ctx.beginPath();
+                ctx.arc(State.startX, State.startY, radius, 0, Math.PI * 2);
+                if (isFill) ctx.fill(); else ctx.stroke();
             }
         } else if (State.currentTool === 'ellipse' || State.currentTool === 'ellipse-fill') {
             let rx = Math.abs(pos.x - State.startX) / 2;
@@ -554,8 +561,8 @@ function draw(e) {
                 drawBresenhamEllipse(DOM.previewCtx, cx, cy, rx, ry, isFill, false);
             } else {
                 ctx.beginPath();
-                DOM.previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
-                if (isFill) DOM.previewCtx.fill(); else DOM.previewCtx.stroke();
+                ctx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
+                if (isFill) ctx.fill(); else ctx.stroke();
             }
         }
     }
@@ -566,11 +573,10 @@ function stopDrawing(e) {
 
     if (State.currentTool.startsWith('edit-')) {
         if (State.isDrawing) {
-            pos = applySnap(pos.x, pos.y); // スナップ適用
+            pos = applySnap(pos.x, pos.y); 
             endShapeEdit(pos.x, pos.y);
             State.isDrawing = false;
         }
-        State.snapIndicator = null;
         drawShapePreview();
         return;
     }
@@ -700,8 +706,6 @@ function stopDrawing(e) {
                 if (isFill) ctx.fill(); else ctx.stroke();
             }
         }
-        DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
-        drawShapePreview();
     }
     
     saveState();
@@ -727,6 +731,18 @@ function init() {
     saveState(); 
     setupPreviewCanvasEvents();
     updateStatusBar();
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            if (State.editingShape && State.editingShape.isDrawingFree) {
+                State.editingShape.isDrawingFree = false;
+                State.editingShape.tempPoint = null;
+                drawShapePreview();
+            } else if (State.editingShape) {
+                finalizeShape();
+            }
+        }
+    });
 }
 
 export function updateShapeProperties() {
@@ -738,17 +754,44 @@ export function updateShapeProperties() {
             State.editingShape.rows = parseInt(document.getElementById('table-rows').value) || 1;
             State.editingShape.cols = parseInt(document.getElementById('table-cols').value) || 1;
         }
+        if (['edit-polygon', 'edit-round-rect'].includes(State.editingShape.type)) {
+            State.editingShape.param = parseInt(document.getElementById('shape-param').value) || 5;
+        }
+        
+        State.editingShape.color = State.currentColor;
+        State.editingShape.lineWidth = State.currentLineWidth;
+        
+        const fillCb = document.getElementById('shape-fill-cb');
+        if (fillCb) State.editingShape.isFill = fillCb.checked;
+        
+        const closeCb = document.getElementById('shape-close-cb');
+        if (closeCb) State.editingShape.isClosed = closeCb.checked;
+
         drawShapePreview();
     }
 }
 
-// グローバル関数公開
 window.onLayerSelected = (layerId) => {
     const layer = State.layers.find(l => l.id === layerId);
     if (layer && layer.type === 'vector' && layer.shape) {
         setTool(layer.shape.type);
         State.editingShape = JSON.parse(JSON.stringify(layer.shape));
         State.editingShape.layerId = layer.id;
+        
+        State.currentColor = layer.shape.color;
+        document.getElementById('color-picker').value = layer.shape.color;
+        State.currentLineWidth = layer.shape.lineWidth;
+        document.getElementById('line-width').value = layer.shape.lineWidth;
+        document.getElementById('line-width-display').innerText = layer.shape.lineWidth;
+
+        State.isShapeFill = !!layer.shape.isFill;
+        const fillCb = document.getElementById('shape-fill-cb');
+        if (fillCb) fillCb.checked = State.isShapeFill;
+        
+        State.isPolygonClosed = layer.shape.isClosed !== false;
+        const closeCb = document.getElementById('shape-close-cb');
+        if (closeCb) closeCb.checked = State.isPolygonClosed;
+
         layer.ctx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
         drawShapePreview();
         
@@ -762,7 +805,20 @@ window.onLayerSelected = (layerId) => {
             if (tr) tr.value = layer.shape.rows || 3;
             if (tc) tc.value = layer.shape.cols || 3;
         }
+        if (['edit-polygon', 'edit-round-rect'].includes(layer.shape.type)) {
+            const sp = document.getElementById('shape-param');
+            if (sp) sp.value = layer.shape.param || 5;
+        }
     }
+};
+
+window.toggleShapeFill = (checked) => {
+    State.isShapeFill = checked;
+    if (typeof window.updateShapeProperties === 'function') window.updateShapeProperties();
+};
+window.togglePolygonClose = (checked) => {
+    State.isPolygonClosed = checked;
+    if (typeof window.updateShapeProperties === 'function') window.updateShapeProperties();
 };
 
 window.setGridSize = (val) => {
@@ -777,6 +833,15 @@ window.toggleSnapToObject = () => {
     State.isSnapToObject = !State.isSnapToObject;
     document.getElementById('snap-obj-btn').classList.toggle('active', State.isSnapToObject);
 };
+
+
+// ...ウィンドウ関数への登録
+window.duplicateCurrentLayer = () => {
+    if (State.currentLayerId) duplicateLayer(State.currentLayerId);
+};
+
+window.mergeVisibleLayers = mergeVisibleLayers;
+
 
 window.setTool = setTool;
 window.setAntiAlias = setAntiAlias;

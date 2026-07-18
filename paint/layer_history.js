@@ -275,3 +275,44 @@ export function redo() {
         restoreState(nextState);
     }
 }
+
+// レイヤーの複製
+export function duplicateLayer(id) {
+    const sourceLayer = State.layers.find(l => l.id === id);
+    if (!sourceLayer) return;
+
+    const newLayer = addLayer(sourceLayer.name + ' (コピー)');
+    newLayer.ctx.drawImage(sourceLayer.canvas, 0, 0);
+    newLayer.type = sourceLayer.type;
+    newLayer.shape = sourceLayer.shape ? JSON.parse(JSON.stringify(sourceLayer.shape)) : null;
+    
+    renderLayerPanel();
+    saveState();
+}
+
+// 表示レイヤーの結合
+export function mergeVisibleLayers() {
+    if (!confirm("表示されている全レイヤーを結合しますか？")) return;
+    
+    const visibleLayers = State.layers.filter(l => l.visible);
+    if (visibleLayers.length <= 1) return;
+
+    const newLayer = addLayer('結合レイヤー');
+    visibleLayers.forEach(l => {
+        newLayer.ctx.drawImage(l.canvas, 0, 0);
+    });
+
+    // 結合元を削除（下から順に）
+    const idsToRemove = visibleLayers.map(l => l.id);
+    idsToRemove.forEach(id => {
+        const idx = State.layers.findIndex(l => l.id === id);
+        if (idx !== -1) {
+            DOM.canvasWrapper.removeChild(State.layers[idx].canvas);
+            State.layers.splice(idx, 1);
+        }
+    });
+
+    selectLayer(newLayer.id);
+    saveState();
+}
+
