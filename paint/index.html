@@ -8,9 +8,50 @@
 </head>
 <body>
 
+    <!-- トップメニューバー -->
+    <div id="menu-bar">
+        <div class="menu-item">ファイル
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="createNewCanvas()">新規作成</div>
+                <div class="dropdown-item" onclick="document.getElementById('load-input').click()">開く (JSON)</div>
+                <div class="dropdown-item" onclick="saveProject()">保存 (JSON)</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" onclick="document.getElementById('image-load-input').click()">画像読込</div>
+                <div class="dropdown-item" onclick="exportImage('png')">エクスポート (PNG)</div>
+                <div class="dropdown-item" onclick="exportImage('jpeg')">エクスポート (JPG)</div>
+                <div class="dropdown-item" onclick="exportImage('bmp')">エクスポート (BMP)</div>
+            </div>
+        </div>
+        <div class="menu-item">編集
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="undo()">元に戻す (Undo)</div>
+                <div class="dropdown-item" onclick="redo()">やり直す (Redo)</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" onclick="copyToClipboard()">コピー</div>
+                <div class="dropdown-item" onclick="pasteFromClipboard()">貼り付け</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" onclick="duplicateSelection()">選択範囲の複製</div>
+                <div class="dropdown-item" onclick="deleteSelection()">選択範囲の削除</div>
+                <div class="dropdown-item" onclick="finalizeSelection()">選択範囲の確定</div>
+            </div>
+        </div>
+        <div class="menu-item">画像
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="resizeCanvasPrompt()">キャンバスサイズ変更</div>
+                <div class="dropdown-item" onclick="scaleImagePrompt()">解像度拡縮</div>
+                <div class="dropdown-item" onclick="setTool('crop')">トリミング</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" onclick="openColorAdjust()">色調補正...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 非表示の入力系 -->
+    <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
+    <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
+
     <div id="main-area">
         <div id="toolbar">
-            <div class="panel-header">システム・コントロール</div>
             
             <div class="tool-section">
                 <label>直接描画ツール</label>
@@ -72,14 +113,23 @@
             </div>
 
             <div class="tool-section" style="background-color: #2a1111; padding: 8px; border-radius: 4px; border: 1px solid #662222;">
-                <label style="color: #ffaaaa; margin-bottom: 5px; display: block;">ベクター変形ツール (■で修正)</label>
+                <label style="color: #ffaaaa; margin-bottom: 5px; display: block;">ベクター (自動レイヤー化)</label>
                 <div class="icon-grid" style="grid-template-columns: repeat(2, 1fr);">
                     <button id="tool-edit-line" class="tool-btn" onclick="setTool('edit-line')" style="height: 35px;">直線</button>
                     <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 35px;">□</button>
                     <button id="tool-edit-rect-fill" class="tool-btn" onclick="setTool('edit-rect-fill')" style="height: 35px;">■</button>
                     <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 35px;">〇</button>
                     <button id="tool-edit-ellipse-fill" class="tool-btn" onclick="setTool('edit-ellipse-fill')" style="height: 35px;">●</button>
+                    <button id="tool-edit-text" class="tool-btn" onclick="setTool('edit-text')" style="height: 35px;">文字</button>
+                    <button id="tool-edit-table" class="tool-btn" onclick="setTool('edit-table')" style="height: 35px;">表(Grid)</button>
                     <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 35px;">✅ 確定</button>
+                </div>
+                <div style="margin-top: 5px;">
+                    <input type="text" id="shape-text-input" placeholder="文字入力..." oninput="updateShapeProperties()" style="width: 100%; box-sizing: border-box; background: #111; color: #fff; border: 1px solid #444; padding: 4px; margin-bottom: 4px;">
+                    <div style="display:flex; gap:5px;">
+                        <label style="font-size:10px; color:#aaa;">行:<input type="number" id="table-rows" value="3" min="1" oninput="updateShapeProperties()" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                        <label style="font-size:10px; color:#aaa;">列:<input type="number" id="table-cols" value="3" min="1" oninput="updateShapeProperties()" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                    </div>
                 </div>
             </div>
 
@@ -88,21 +138,20 @@
                 <input type="range" id="line-width" min="1" max="50" value="1" oninput="setLineWidth(this.value)">
             </div>
 
-            <div class="tool-section" id="selection-panel" style="display: none; background-color: #3a2222; padding: 10px; border-radius: 4px; border: 1px solid #ff4444;">
-                <label style="color: #ffaaaa;">選択範囲オプション</label>
-                <div class="button-grid">
-                    <button onclick="duplicateSelection()">複製</button>
-                    <button onclick="deleteSelection()">削除</button>
-                    <button onclick="finalizeSelection()" style="grid-column: span 2; background-color: #552222;">確定 (スタンプ)</button>
-                </div>
-            </div>
-
             <div class="tool-section">
-                <label>ドット絵サポート</label>
-                <div class="button-grid">
-                    <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット</button>
-                    <button id="aa-on" onclick="setAntiAlias(true)">滑らか</button>
-                    <button id="grid-toggle" onclick="toggleGrid()" style="grid-column: span 2;">グリッド表示 (x4以上)</button>
+                <label>ドット絵・グリッドサポート</label>
+                <div class="button-grid" style="grid-template-columns: 1fr 1fr;">
+                    <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット(AAオフ)</button>
+                    <button id="aa-on" onclick="setAntiAlias(true)">滑らか(AAオン)</button>
+                </div>
+                <div style="display:flex; gap:5px; margin-top:5px; align-items:center;">
+                    <button id="grid-toggle" onclick="toggleGrid()" style="flex:1;">表示切替</button>
+                    <label style="font-size:10px; color:#aaa; white-space:nowrap;">サイズ:<input type="number" id="grid-size" value="16" min="2" onchange="setGridSize(this.value)" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                </div>
+                <!-- 追加: スナップ設定 -->
+                <div class="button-grid" style="margin-top:5px;">
+                    <button id="snap-grid-btn" onclick="toggleSnapToGrid()">グリッド吸着</button>
+                    <button id="snap-obj-btn" onclick="toggleSnapToObject()">頂点/円周吸着</button>
                 </div>
             </div>
 
@@ -121,53 +170,8 @@
             <div class="tool-section">
                 <label>FC パレット</label>
                 <div class="palette-grid" id="famicom-palette">
-                    <!-- JavaScriptで自動生成されます -->
                 </div>
                 <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 5px;">
-            </div>
-
-            <hr style="border-color: var(--border-color); width: 100%;">
-
-            <div class="tool-section">
-                <label>クリップボード</label>
-                <div class="button-grid">
-                    <button onclick="copyToClipboard()">コピー</button>
-                    <button onclick="pasteFromClipboard()">貼付</button>
-                </div>
-            </div>
-
-            <div class="tool-section">
-                <label>キャンバス操作</label>
-                <div class="button-grid">
-                    <button onclick="createNewCanvas()" style="grid-column: span 2; background-color: #442222;">新規作成</button>
-                    <button onclick="resizeCanvasPrompt()">サイズ変更</button>
-                    <button onclick="scaleImagePrompt()">解像度拡縮</button>
-                    <button id="tool-crop" onclick="setTool('crop')" style="grid-column: span 2;">トリミング</button>
-                </div>
-            </div>
-
-            <div class="tool-section">
-                <label>画像入出力</label>
-                <div class="button-grid">
-                    <button onclick="document.getElementById('image-load-input').click()" style="grid-column: span 2; background-color: #224422;">読込 (JPG/PNG/BMP)</button>
-                    <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
-                    <button onclick="exportImage('png')">PNG</button>
-                    <button onclick="exportImage('jpeg')">JPG</button>
-                    <button onclick="exportImage('bmp')" style="grid-column: span 2;">BMP</button>
-                </div>
-            </div>
-
-            <hr style="border-color: var(--border-color); width: 100%;">
-
-            <div class="tool-section">
-                <label>履歴・管理</label>
-                <div class="button-grid">
-                    <button onclick="undo()">Undo</button>
-                    <button onclick="redo()">Redo</button>
-                    <button onclick="saveProject()">Save(JSON)</button>
-                    <button onclick="document.getElementById('load-input').click()">Load(JSON)</button>
-                    <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
-                </div>
             </div>
             
             <div style="height: 10px; flex-shrink: 0;"></div>
@@ -196,7 +200,21 @@
         </div>
     </div>
 
-    <!-- ES6モジュール形式でアプリケーションを読み込み -->
+    <!-- 色調補正モーダル -->
+    <div id="color-adjust-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#2a2a2a; padding:20px; border:1px solid #ff0000; z-index:20000; border-radius:8px; width: 300px; box-shadow: 0 0 15px rgba(0,0,0,0.8);">
+        <h3 style="margin-top:0; color:#ffaaaa;">色調補正（現在のレイヤー）</h3>
+        <label style="display:block; margin-bottom:5px;">明るさ: <span id="bright-val">0</span></label>
+        <input type="range" id="adj-brightness" min="-128" max="128" value="0" oninput="document.getElementById('bright-val').innerText=this.value" style="width:100%;">
+        <br><br>
+        <label style="display:block; margin-bottom:5px;">コントラスト: <span id="contrast-val">0</span></label>
+        <input type="range" id="adj-contrast" min="-128" max="128" value="0" oninput="document.getElementById('contrast-val').innerText=this.value" style="width:100%;">
+        <br><br>
+        <div style="text-align:right;">
+            <button onclick="document.getElementById('color-adjust-modal').style.display='none'" style="margin-right: 10px;">キャンセル</button>
+            <button onclick="executeColorAdjust()" style="background-color:#ff3333; color:white;">適用</button>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
 </body>
 </html>

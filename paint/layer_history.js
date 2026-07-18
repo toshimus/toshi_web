@@ -22,7 +22,9 @@ export function addLayer(name = null) {
         name: name || `レイヤー ${State.layerCounter}`,
         canvas: canvas,
         ctx: ctx,
-        visible: true
+        visible: true,
+        type: 'pixel',
+        shape: null
     };
 
     State.layers.push(layerObj);
@@ -36,8 +38,14 @@ export function addLayer(name = null) {
 }
 
 export function selectLayer(id) {
+    if (State.currentLayerId !== id && State.editingShape && !State.isFinalizing) {
+        if (window.finalizeShape) window.finalizeShape();
+    }
     State.currentLayerId = id;
     renderLayerPanel();
+    if (typeof window.onLayerSelected === 'function') {
+        window.onLayerSelected(id);
+    }
 }
 
 export function toggleLayerVisibility(id, event) {
@@ -47,6 +55,30 @@ export function toggleLayerVisibility(id, event) {
         layer.visible = !layer.visible;
         layer.canvas.style.display = layer.visible ? 'block' : 'none';
         renderLayerPanel();
+    }
+}
+
+export function moveLayerUp(id, event) {
+    event.stopPropagation();
+    const index = State.layers.findIndex(l => l.id === id);
+    if (index < State.layers.length - 1) {
+        const temp = State.layers[index];
+        State.layers[index] = State.layers[index + 1];
+        State.layers[index + 1] = temp;
+        renderLayerPanel();
+        saveState();
+    }
+}
+
+export function moveLayerDown(id, event) {
+    event.stopPropagation();
+    const index = State.layers.findIndex(l => l.id === id);
+    if (index > 0) {
+        const temp = State.layers[index];
+        State.layers[index] = State.layers[index - 1];
+        State.layers[index - 1] = temp;
+        renderLayerPanel();
+        saveState();
     }
 }
 
@@ -80,23 +112,53 @@ export function renderLayerPanel() {
         item.className = `layer-item ${layer.id === State.currentLayerId ? 'active' : ''}`;
         item.onclick = () => selectLayer(layer.id);
 
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = layer.name;
+        nameInput.title = layer.type === 'vector' ? 'ベクターレイヤー' : 'ピクセルレイヤー';
+        if (layer.type === 'vector') nameInput.style.color = '#00ffff'; 
+        nameInput.onclick = (e) => e.stopPropagation();
+        nameInput.onchange = (e) => { layer.name = e.target.value; };
+
+        const controls = document.createElement('div');
+        controls.className = 'layer-controls';
+
+        if (layer.type === 'vector') {
+            const rasterizeBtn = document.createElement('button');
+            rasterizeBtn.innerText = 'R';
+            rasterizeBtn.title = 'ラスタライズ (ピクセル化して通常の描画を可能にする)';
+            rasterizeBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (State.editingShape && State.editingShape.layerId === layer.id) {
+                    if (window.finalizeShape) window.finalizeShape();
+                }
+                layer.type = 'pixel';
+                layer.shape = null;
+                renderLayerPanel();
+                saveState();
+            };
+            controls.appendChild(rasterizeBtn);
+        }
+
         const visibilityBtn = document.createElement('button');
         visibilityBtn.innerText = layer.visible ? '👁️' : 'ー';
         visibilityBtn.onclick = (e) => toggleLayerVisibility(layer.id, e);
 
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.value = layer.name;
-        nameInput.onclick = (e) => e.stopPropagation();
-        nameInput.onchange = (e) => { layer.name = e.target.value; };
+        const downBtn = document.createElement('button');
+        downBtn.innerText = '↓';
+        downBtn.onclick = (e) => moveLayerDown(layer.id, e);
+        
+        const upBtn = document.createElement('button');
+        upBtn.innerText = '↑';
+        upBtn.onclick = (e) => moveLayerUp(layer.id, e);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.innerText = '✖';
         deleteBtn.onclick = (e) => deleteLayer(layer.id, e);
 
-        const controls = document.createElement('div');
-        controls.className = 'layer-controls';
         controls.appendChild(visibilityBtn);
+        controls.appendChild(downBtn);
+        controls.appendChild(upBtn);
         controls.appendChild(deleteBtn);
 
         item.appendChild(nameInput);
@@ -115,6 +177,8 @@ export function getSnapshot() {
         id: layer.id,
         name: layer.name,
         visible: layer.visible,
+        type: layer.type || 'pixel',
+        shape: layer.shape ? JSON.parse(JSON.stringify(layer.shape)) : null,
         dataURL: layer.canvas.toDataURL()
     }));
 }
@@ -168,7 +232,9 @@ export function restoreState(s) {
             name: layerData.name,
             canvas: canvas,
             ctx: ctx,
-            visible: layerData.visible
+            visible: layerData.visible,
+            type: layerData.type || 'pixel',
+            shape: layerData.shape || null
         };
         State.layers.push(layerObj);
 

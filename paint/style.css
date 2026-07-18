@@ -20,6 +20,64 @@ body {
     overscroll-behavior: none;
 }
 
+#menu-bar {
+    display: flex;
+    background-color: #1e1e1e;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 10px;
+    height: 32px;
+    align-items: center;
+    z-index: 20000;
+    flex-shrink: 0;
+}
+
+.menu-item {
+    position: relative;
+    padding: 6px 15px;
+    cursor: pointer;
+    font-size: 0.85em;
+    color: var(--text-color);
+    user-select: none;
+}
+
+.menu-item:hover {
+    background-color: #333;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #2a2a2a;
+    min-width: 200px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    border: 1px solid var(--border-color);
+    z-index: 20001;
+}
+
+.menu-item:hover .dropdown-content {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 8px 15px;
+    font-size: 0.9em;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: var(--accent-color);
+    color: #fff;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 4px 0;
+}
+
 #main-area {
     display: flex;
     flex-grow: 1;
@@ -248,12 +306,13 @@ input[type="range"] {
     background-color: #332222;
 }
 
+/* ボタンが増えたためテキストエリア幅を少し縮小 */
 .layer-item input[type="text"] {
     background: transparent;
     border: none;
     color: var(--text-color);
     font-size: 0.85em;
-    width: 90px;
+    width: 65px;
 }
 
 .layer-item input[type="text"]:focus {
@@ -262,10 +321,11 @@ input[type="range"] {
 }
 
 .layer-controls button {
-    padding: 2px 6px;
+    padding: 2px 5px;
     font-size: 0.75em;
     background-color: transparent;
     border: 1px solid var(--border-color);
+    margin-left: 2px;
 }
 
 .layer-controls button:hover {

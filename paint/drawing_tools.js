@@ -247,3 +247,28 @@ export function executeFloodFill(startX, startY) {
 
     ctx.putImageData(activeImageData, 0, 0);
 }
+
+export function applyColorAdjustment(brightness, contrast) {
+    const ctx = getCurrentContext();
+    if (!ctx) return;
+    const imgData = ctx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    const data = imgData.data;
+    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i+3] === 0) continue; 
+        
+        let r = factor * (data[i] - 128) + 128;
+        let g = factor * (data[i+1] - 128) + 128;
+        let b = factor * (data[i+2] - 128) + 128;
+        
+        r += brightness;
+        g += brightness;
+        b += brightness;
+        
+        data[i] = Math.max(0, Math.min(255, r));
+        data[i+1] = Math.max(0, Math.min(255, g));
+        data[i+2] = Math.max(0, Math.min(255, b));
+    }
+    ctx.putImageData(imgData, 0, 0);
+}

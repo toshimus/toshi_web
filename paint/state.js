@@ -6,7 +6,14 @@ export const State = {
     currentLineWidth: 1,
     currentZoom: 1,
     isAntiAlias: false,
+    
+    // グリッド・スナップ用ステート
     isGridVisible: false,
+    gridSize: 16,
+    isSnapToGrid: false,
+    isSnapToObject: false,
+    snapIndicator: null, // {x, y} スナップ発生時の座標保持
+    
     isDrawing: false,
     hasMoved: false,
     startX: 0,
@@ -32,10 +39,14 @@ export const State = {
     historyStack: [],
     redoStack: [],
 
-    // --- 新規追加：ベクター図形変形用ステート ---
+    // ベクター図形変形・移動用ステート
     editingShape: null,
     hoveredHandle: -1,
-    isDraggingHandle: false
+    isDraggingHandle: false,
+    isDraggingBody: false,
+    shapeDragOffsetX: 0,   
+    shapeDragOffsetY: 0,   
+    isFinalizing: false
 };
 
 export const CONSTANTS = {

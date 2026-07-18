@@ -1,8 +1,8 @@
 import { State, CONSTANTS, DOM } from './state.js';
-import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill } from './drawing_tools.js';
+import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill, applyColorAdjustment } from './drawing_tools.js';
 import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer } from './layer_history.js';
 import { duplicateSelection, deleteSelection, finalizeSelection, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, loadProject, drawSelectionPreview } from './canvas_io.js';
-import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape } from './shape_editor.js';
+import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape, drawShapePreview, applySnap } from './shape_editor.js';
 
 export function updateStatusBar() {
     const sizeDisplay = document.getElementById('status-size');
@@ -40,7 +40,7 @@ export function setTool(toolName) {
     }
 
     State.currentTool = toolName;
-    document.querySelectorAll('.tool-btn').forEach(btn => {
+    document.querySelectorAll('.tool-btn, .dropdown-item').forEach(btn => {
         if (btn.id && btn.id.startsWith('tool-')) {
             btn.classList.remove('active');
         }
@@ -49,7 +49,7 @@ export function setTool(toolName) {
     if (targetBtn) targetBtn.classList.add('active');
     
     State.isPanning = false;
-    DOM.selectionPanel.style.display = (toolName === 'select') ? 'flex' : 'none';
+    if (DOM.selectionPanel) DOM.selectionPanel.style.display = (toolName === 'select') ? 'flex' : 'none';
     
     if (!['pen', 'eraser', 'dot'].includes(State.currentTool)) {
         DOM.brushPreview.style.display = 'none';
@@ -68,6 +68,7 @@ export function setAntiAlias(enable) {
     DOM.previewCtx.imageSmoothingEnabled = enable;
     DOM.previewCanvas.style.imageRendering = enable ? 'auto' : 'pixelated';
     if(State.selection.active) drawSelectionPreview();
+    drawShapePreview(); 
 }
 
 export function toggleGrid() {
@@ -78,13 +79,14 @@ export function toggleGrid() {
 
 function updateGrid() {
     const overlay = document.getElementById('grid-overlay');
-    if (State.isGridVisible && State.currentZoom >= 4) {
+    if (State.isGridVisible && State.currentZoom >= (16 / State.gridSize)) {
         overlay.style.display = 'block';
         overlay.style.backgroundImage = `
             linear-gradient(to right, rgba(128,128,128,0.3) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(128,128,128,0.3) 1px, transparent 1px)
         `;
-        overlay.style.backgroundSize = `${State.currentZoom}px ${State.currentZoom}px`;
+        const size = State.gridSize * State.currentZoom;
+        overlay.style.backgroundSize = `${size}px ${size}px`;
     } else {
         overlay.style.display = 'none';
     }
@@ -128,6 +130,7 @@ export function setZoom(level, cx, cy) {
     if(zBtn) zBtn.classList.add('active');
 
     updateGrid();
+    drawShapePreview(); 
 
     const newOffsetX = offsetX * (State.currentZoom / oldZoom);
     const newOffsetY = offsetY * (State.currentZoom / oldZoom);
@@ -229,6 +232,8 @@ function setupPreviewCanvasEvents() {
 
     window.addEventListener('mouseout', (e) => {
         DOM.brushPreview.style.display = 'none';
+        State.snapIndicator = null;
+        drawShapePreview();
     });
 
     overlay.addEventListener('wheel', (e) => {
@@ -244,17 +249,28 @@ function setupPreviewCanvasEvents() {
             startDrawing(e);
         }
     });
+    
     window.addEventListener('mousemove', (e) => {
         updateBrushPreview(e.clientX, e.clientY); 
+        
+        let pos = getMousePos(e);
+
         if (State.isPanning && State.currentTool === 'pan') {
             doPan(e);
-        } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) {
+        } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) {
             draw(e);
+        } else {
+            // ホバー時のスナッププレビュー
+            if (State.currentTool.startsWith('edit-')) {
+                applySnap(pos.x, pos.y);
+                drawShapePreview();
+            }
         }
     });
+    
     window.addEventListener('mouseup', (e) => {
         if (State.isPanning) stopPanning();
-        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) stopDrawing(e);
+        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) stopDrawing(e);
     });
 
     overlay.addEventListener('touchstart', (e) => {
@@ -310,7 +326,7 @@ function setupPreviewCanvasEvents() {
         if (State.isPanning) {
             e.preventDefault();
             doPan(e);
-        } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) {
+        } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) {
             e.preventDefault(); 
             draw(e);
         }
@@ -320,13 +336,13 @@ function setupPreviewCanvasEvents() {
         DOM.brushPreview.style.display = 'none'; 
         State.initialPinchDistance = null;
         if (State.isPanning) stopPanning();
-        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) stopDrawing(e);
+        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) stopDrawing(e);
     });
     window.addEventListener('touchcancel', (e) => {
         DOM.brushPreview.style.display = 'none'; 
         State.initialPinchDistance = null;
         if (State.isPanning) stopPanning();
-        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle) stopDrawing(e);
+        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) stopDrawing(e);
     });
 }
 
@@ -353,10 +369,10 @@ function startDrawing(e) {
         return;
     }
 
-    const pos = getMousePos(e);
+    let pos = getMousePos(e);
     
-    // 図形ツールの場合は、ドラッグ終了までストップさせない
     if (State.currentTool.startsWith('edit-')) {
+        pos = applySnap(pos.x, pos.y); // スナップ適用
         startShapeEdit(pos.x, pos.y);
         State.isDrawing = true; 
         return;
@@ -426,10 +442,11 @@ function startDrawing(e) {
 }
 
 function draw(e) {
-    const pos = getMousePos(e);
+    let pos = getMousePos(e);
     State.hasMoved = true;
 
     if (State.currentTool.startsWith('edit-')) {
+        pos = applySnap(pos.x, pos.y); // スナップ適用
         moveShapeEdit(pos.x, pos.y);
         return;
     }
@@ -445,6 +462,7 @@ function draw(e) {
             drawSelectionPreview();
         } else if (State.isDrawing) {
             DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+            drawShapePreview(); 
             DOM.previewCtx.beginPath();
             DOM.previewCtx.setLineDash([5, 5]);
             DOM.previewCtx.strokeStyle = '#00ffff'; 
@@ -471,6 +489,7 @@ function draw(e) {
         }
     } else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(State.currentTool)) {
         DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+        drawShapePreview(); 
         setupContextStyle(DOM.previewCtx, false); 
         
         if (State.currentTool === 'crop') {
@@ -534,7 +553,7 @@ function draw(e) {
             if (!State.isAntiAlias) {
                 drawBresenhamEllipse(DOM.previewCtx, cx, cy, rx, ry, isFill, false);
             } else {
-                DOM.previewCtx.beginPath();
+                ctx.beginPath();
                 DOM.previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
                 if (isFill) DOM.previewCtx.fill(); else DOM.previewCtx.stroke();
             }
@@ -543,14 +562,16 @@ function draw(e) {
 }
 
 function stopDrawing(e) {
-    const pos = getMousePos(e);
+    let pos = getMousePos(e);
 
-    // 図形ツールのドラッグ終了判定
     if (State.currentTool.startsWith('edit-')) {
         if (State.isDrawing) {
+            pos = applySnap(pos.x, pos.y); // スナップ適用
             endShapeEdit(pos.x, pos.y);
             State.isDrawing = false;
         }
+        State.snapIndicator = null;
+        drawShapePreview();
         return;
     }
 
@@ -576,6 +597,7 @@ function stopDrawing(e) {
             } else {
                 State.selection.active = false;
                 DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+                drawShapePreview();
             }
         }
         return; 
@@ -607,6 +629,7 @@ function stopDrawing(e) {
         
         if (State.currentTool === 'crop') {
             DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+            drawShapePreview();
             const rectX = Math.min(State.startX, pos.x);
             const rectY = Math.min(State.startY, pos.y);
             const rectW = Math.abs(pos.x - State.startX);
@@ -678,6 +701,7 @@ function stopDrawing(e) {
             }
         }
         DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+        drawShapePreview();
     }
     
     saveState();
@@ -705,6 +729,55 @@ function init() {
     updateStatusBar();
 }
 
+export function updateShapeProperties() {
+    if (State.editingShape) {
+        if (State.editingShape.type === 'edit-text') {
+            State.editingShape.text = document.getElementById('shape-text-input').value;
+        }
+        if (State.editingShape.type === 'edit-table') {
+            State.editingShape.rows = parseInt(document.getElementById('table-rows').value) || 1;
+            State.editingShape.cols = parseInt(document.getElementById('table-cols').value) || 1;
+        }
+        drawShapePreview();
+    }
+}
+
+// グローバル関数公開
+window.onLayerSelected = (layerId) => {
+    const layer = State.layers.find(l => l.id === layerId);
+    if (layer && layer.type === 'vector' && layer.shape) {
+        setTool(layer.shape.type);
+        State.editingShape = JSON.parse(JSON.stringify(layer.shape));
+        State.editingShape.layerId = layer.id;
+        layer.ctx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+        drawShapePreview();
+        
+        if (layer.shape.type === 'edit-text') {
+            const ti = document.getElementById('shape-text-input');
+            if (ti) ti.value = layer.shape.text || '';
+        }
+        if (layer.shape.type === 'edit-table') {
+            const tr = document.getElementById('table-rows');
+            const tc = document.getElementById('table-cols');
+            if (tr) tr.value = layer.shape.rows || 3;
+            if (tc) tc.value = layer.shape.cols || 3;
+        }
+    }
+};
+
+window.setGridSize = (val) => {
+    State.gridSize = Math.max(2, parseInt(val) || 16);
+    updateGrid();
+};
+window.toggleSnapToGrid = () => {
+    State.isSnapToGrid = !State.isSnapToGrid;
+    document.getElementById('snap-grid-btn').classList.toggle('active', State.isSnapToGrid);
+};
+window.toggleSnapToObject = () => {
+    State.isSnapToObject = !State.isSnapToObject;
+    document.getElementById('snap-obj-btn').classList.toggle('active', State.isSnapToObject);
+};
+
 window.setTool = setTool;
 window.setAntiAlias = setAntiAlias;
 window.toggleGrid = toggleGrid;
@@ -728,5 +801,21 @@ window.addLayer = addLayer;
 window.undo = undo;
 window.redo = redo;
 window.finalizeShape = finalizeShape; 
+window.updateShapeProperties = updateShapeProperties;
+
+window.openColorAdjust = () => {
+    document.getElementById('adj-brightness').value = 0;
+    document.getElementById('adj-contrast').value = 0;
+    document.getElementById('bright-val').innerText = '0';
+    document.getElementById('contrast-val').innerText = '0';
+    document.getElementById('color-adjust-modal').style.display = 'block';
+};
+window.executeColorAdjust = () => {
+    const b = parseInt(document.getElementById('adj-brightness').value);
+    const c = parseInt(document.getElementById('adj-contrast').value);
+    applyColorAdjustment(b, c);
+    saveState();
+    document.getElementById('color-adjust-modal').style.display = 'none';
+};
 
 window.onload = init;

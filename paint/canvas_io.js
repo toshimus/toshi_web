@@ -1,9 +1,12 @@
 import { State, DOM } from './state.js';
 import { addLayer, saveState, renderLayerPanel, restoreState, getSnapshot } from './layer_history.js';
 import { setZoom, updateStatusBar } from './app.js';
+import { drawShapePreview, finalizeShape } from './shape_editor.js';
 
 export function drawSelectionPreview() {
     DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    drawShapePreview();
+
     if (State.selection.isFloating && State.selection.canvas) {
         DOM.previewCtx.imageSmoothingEnabled = State.isAntiAlias;
         DOM.previewCtx.drawImage(State.selection.canvas, State.selection.x, State.selection.y);
@@ -52,6 +55,7 @@ export function deleteSelection() {
     State.selection.active = false;
     State.selection.isFloating = false;
     DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    drawShapePreview();
     saveState();
 }
 
@@ -67,6 +71,7 @@ export function finalizeSelection() {
     State.selection.active = false;
     State.selection.isFloating = false;
     DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    drawShapePreview();
     saveState();
 }
 
@@ -213,6 +218,7 @@ export function handleImageImport(img, fileName) {
 }
 
 export async function copyToClipboard() {
+    if (window.finalizeShape) window.finalizeShape(true);
     try {
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = State.CANVAS_WIDTH;
@@ -232,7 +238,7 @@ export async function copyToClipboard() {
             }
         }, 'image/png');
     } catch (err) {
-        alert("システム・エラー: コピーに失敗しました。Safari等の環境設定をご確認ください。");
+        alert("システム・エラー: コピーに失敗しました。環境設定をご確認ください。");
         console.error(err);
     }
 }
@@ -252,7 +258,7 @@ export async function pasteFromClipboard() {
         }
         alert("システム: クリップボードに有効な画像データがありません。");
     } catch (err) {
-        alert("システム・エラー: 貼り付けに失敗しました。iPadの設定でクリップボード許可をご確認ください。");
+        alert("システム・エラー: 貼り付けに失敗しました。クリップボード許可をご確認ください。");
         console.error(err);
     }
 }
@@ -260,7 +266,6 @@ export async function pasteFromClipboard() {
 export function loadImageAsLayer(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     event.target.value = '';
 
     if (!file.type.match('image.*')) {
@@ -279,6 +284,8 @@ export function loadImageAsLayer(event) {
 
 export function exportImage(format) {
     finalizeSelection();
+    if (window.finalizeShape) window.finalizeShape(true);
+
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = State.CANVAS_WIDTH;
     tempCanvas.height = State.CANVAS_HEIGHT;
@@ -307,8 +314,10 @@ export function exportImage(format) {
 
 export function saveProject() {
     finalizeSelection();
+    if (window.finalizeShape) window.finalizeShape(true);
+
     const projectData = {
-        version: '5.0',
+        version: '6.0',
         width: State.CANVAS_WIDTH,
         height: State.CANVAS_HEIGHT,
         layers: getSnapshot()
