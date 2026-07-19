@@ -49,6 +49,8 @@ export const State = {
     isShapeFill: false,
     isPolygonClosed: true,
     
+    fillTolerance: 30, // 0-255 の範囲で初期値を設定
+    
     currentProjectHandle: null, 
     currentDirectoryHandle: null // 新規追加：作業用フォルダの参照
 };

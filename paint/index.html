@@ -113,6 +113,10 @@
                         <svg viewBox="0 0 24 24"><path d="M3 3h4V1H1v6h2V3zm4 18H3v-4H1v6h6v-2zm14-4h-2v4h-4v2h6v-6zm-2-14h-4V1h6v6h-2V3zM9 1h6v2H9V1zm0 20h6v2H9v-2zm10-10h2v6h-2v-6zM1 9h2v6H1V9z"/></svg>
                         選択
                     </button>
+
+                    <label>塗潰し許容範囲: <span id="fill-tolerance-display">30</span></label>
+                    <input type="range" id="fill-tolerance" min="0" max="255" value="30" oninput="document.getElementById('fill-tolerance-display').innerText = this.value; State.fillTolerance = parseInt(this.value);">
+
                 </div>
                 
                 <button id="tool-pan" class="tool-btn" style="height: 35px; flex-direction: row; gap: 5px;" onclick="setTool('pan')">
@@ -164,19 +168,22 @@
                     <!-- 文字拡張オプション UI -->
                     <div id="text-properties" style="display:none; background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #444; margin-bottom:4px;">
                         <div style="font-size:10px; color:#ffaaaa; margin-bottom:4px;">文字オプション</div>
-
-
-                        <!-- ★追加：フォント選択 -->
+                        
                         <div style="margin-bottom:4px;">
                             <select id="text-font-select" onchange="updateShapeProperties()" style="width:100%; font-size:10px; background:#111; color:#fff; border:1px solid #444;">
-                                <option value="sans-serif">Sans-serif (ゴシック)</option>
-                                <option value="serif">Serif (明朝)</option>
+                                <option value="sans-serif">Sans-serif (標準ゴシック)</option>
+                                <option value="serif">Serif (標準明朝)</option>
                                 <option value="monospace">Monospace (等幅)</option>
-                                <option value="cursive">Cursive (手書き風)</option>
-                                <option value="fantasy">Fantasy (装飾)</option>
+                                <option value="'HGSoeiKakugothicUB', sans-serif">HG創英角ゴシックUB</option>
+                                <option value="'MS Gothic', monospace">MS ゴシック</option>
+                                <option value="'MS Mincho', serif">MS 明朝</option>
+                                <option value="'Yu Gothic', sans-serif">游ゴシック</option>
+                                <option value="'Yu Mincho', serif">游明朝</option>
+                                <option value="'HGMinchoE', serif">HG明朝E</option>
+                                <option value="'Arial', sans-serif">Arial</option>
+                                <option value="'Times New Roman', serif">Times New Roman</option>
                             </select>
                         </div>
-
 
                         <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center; margin-bottom:4px;">
                             <label style="font-size:10px; color:#fff;"><input type="checkbox" id="text-border-cb" onchange="updateShapeProperties()"> ふち</label>

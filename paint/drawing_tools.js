@@ -190,6 +190,21 @@ export function executeFloodFill(startX, startY) {
 
     if (startColor32 === fillColor32 && activeData32[startIdx] === fillColor32) return; 
 
+    // 修正: State.fillTolerance を使用
+    const tolerance = State.fillTolerance; 
+
+    function matchStartColor(idx) {
+        const r = compData8[idx * 4];
+        const g = compData8[idx * 4 + 1];
+        const b = compData8[idx * 4 + 2];
+        const a = compData8[idx * 4 + 3];
+        
+        // RGBAそれぞれの差の合計で判定（またはユークリッド距離など）
+        const diff = Math.abs(r - sr) + Math.abs(g - sg) + Math.abs(b - sb) + Math.abs(a - sa);
+        return diff <= tolerance; // toleranceが0なら完全一致のみ
+    }
+    
+    /*
     const tolerance = State.isAntiAlias ? 120 : 0;
 
     function matchStartColor(idx) {
@@ -203,6 +218,7 @@ export function executeFloodFill(startX, startY) {
         const diff = Math.abs(r - sr) + Math.abs(g - sg) + Math.abs(b - sb) + Math.abs(a - sa);
         return diff <= tolerance;
     }
+    */
 
     const stack = [startIdx];
     const visited = new Uint8Array(State.CANVAS_WIDTH * State.CANVAS_HEIGHT);
