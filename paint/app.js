@@ -783,7 +783,7 @@ function setupModalDrag() {
     let isDragging = false;
     let offsetX, offsetY;
 
-    header.addEventListener('mousedown', (e) => {
+    const startDrag = (x, y) => {
         isDragging = true;
         const rect = modal.getBoundingClientRect();
         
@@ -791,19 +791,43 @@ function setupModalDrag() {
         modal.style.left = rect.left + 'px';
         modal.style.top = rect.top + 'px';
         
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-    });
+        offsetX = x - rect.left;
+        offsetY = y - rect.top;
+    };
 
-    window.addEventListener('mousemove', (e) => {
+    const doDrag = (x, y) => {
         if (!isDragging) return;
-        modal.style.left = (e.clientX - offsetX) + 'px';
-        modal.style.top = (e.clientY - offsetY) + 'px';
-    });
+        modal.style.left = (x - offsetX) + 'px';
+        modal.style.top = (y - offsetY) + 'px';
+    };
 
-    window.addEventListener('mouseup', () => {
+    const stopDrag = () => {
         isDragging = false;
+    };
+
+    header.addEventListener('mousedown', (e) => {
+        startDrag(e.clientX, e.clientY);
     });
+    window.addEventListener('mousemove', (e) => {
+        doDrag(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', stopDrag);
+
+    header.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) {
+            startDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: false });
+    
+    window.addEventListener('touchmove', (e) => {
+        if (isDragging && e.touches.length > 0) {
+            e.preventDefault(); 
+            doDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: false });
+    
+    window.addEventListener('touchend', stopDrag);
+    window.addEventListener('touchcancel', stopDrag);
 }
 
 function init() {

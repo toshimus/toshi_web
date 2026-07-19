@@ -28,7 +28,7 @@ export const State = {
         x: 0, y: 0, w: 0, h: 0,
         canvas: null,
         isFloating: false,
-        type: 'rect', // 'rect', 'ellipse', 'lasso', 'wand'
+        type: 'rect',
         path: null,
         maskCanvas: null
     },
@@ -52,7 +52,7 @@ export const State = {
     isShapeFill: false,
     isPolygonClosed: true,
     
-    fillTolerance: 30, // 0-255 の範囲で初期値を設定
+    fillTolerance: 30, 
     
     currentProjectHandle: null, 
     currentDirectoryHandle: null 

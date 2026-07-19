@@ -39,7 +39,6 @@ export function floatSelection(layer) {
     sCtx.globalCompositeOperation = 'destination-in';
     applySelectionMask(sCtx, 0, 0);
 
-    // ★修正: 切り抜き完了後、必ず標準モードに戻し、その後の色調補正プレビュー時における画像消失を防止します。
     sCtx.globalCompositeOperation = 'source-over';
 
     layer.ctx.save();

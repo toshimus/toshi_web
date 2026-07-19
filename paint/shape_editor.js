@@ -358,9 +358,7 @@ function getHandles(shape) {
     
     if (type === 'edit-free-polygon') {
         return shape.points.map(p => ({x: p.x, y: p.y}));
-    } else if (type === 'edit-line') {
-        return [ {x: x1, y: y1}, {x: x2, y: y2} ];
-    } else if (type === 'edit-circle-cr') {
+    } else if (type === 'edit-line' || type === 'edit-circle-cr') {
         return [ {x: x1, y: y1}, {x: x2, y: y2} ];
     } else {
         return [

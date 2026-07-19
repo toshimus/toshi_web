@@ -43,16 +43,23 @@ export function drawBresenhamCircle(ctx, xc, yc, r, fill, isEraser) {
     let offset = Math.floor(State.currentLineWidth / 2);
     let drawSize = State.currentLineWidth;
 
-    const getCirclePoints = (cx, cy, r) => {
-        let points = [];
+    if (fill) {
+        let lines = {};
         let x = 0;
         let y = r;
         let p = 3 - 2 * r;
         const addSymmetric = (px, py) => {
-            points.push([cx + px, cy + py], [cx - px, cy + py],
-                        [cx + px, cy - py], [cx - px, cy - py],
-                        [cx + py, cy + px], [cx - py, cy + px],
-                        [cx + py, cy - px], [cx - py, cy - px]);
+            const updateLine = (yy, xx) => {
+                if (!lines[yy]) lines[yy] = [xx, xx];
+                else {
+                    lines[yy][0] = Math.min(lines[yy][0], xx);
+                    lines[yy][1] = Math.max(lines[yy][1], xx);
+                }
+            };
+            updateLine(yc + py, xc - px); updateLine(yc + py, xc + px);
+            updateLine(yc - py, xc - px); updateLine(yc - py, xc + px);
+            updateLine(yc + px, xc - py); updateLine(yc + px, xc + py);
+            updateLine(yc - px, xc - py); updateLine(yc - px, xc + py);
         };
         while (y >= x) {
             addSymmetric(x, y);
@@ -60,21 +67,31 @@ export function drawBresenhamCircle(ctx, xc, yc, r, fill, isEraser) {
             if (p > 0) { y--; p += 4 * (x - y) + 10; }
             else { p += 4 * x + 6; }
         }
-        return points;
-    };
-
-    if (fill) {
-        for (let y = yc - r; y <= yc + r; y++) {
-            let minX = xc + r, maxX = xc - r;
-            for (let x = xc - r; x <= xc + r; x++) {
-                if ((x - xc) ** 2 + (y - yc) ** 2 <= r ** 2) {
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                }
-            }
-            ctx.fillRect(minX - offset, y - offset, (maxX - minX + 1) * drawSize, drawSize);
+        for (let yy in lines) {
+            let [minX, maxX] = lines[yy];
+            ctx.fillRect(minX - offset, parseInt(yy) - offset, maxX - minX + drawSize, drawSize);
         }
     } else {
+        const getCirclePoints = (cx, cy, r) => {
+            let points = [];
+            let x = 0;
+            let y = r;
+            let p = 3 - 2 * r;
+            const addSymmetric = (px, py) => {
+                points.push([cx + px, cy + py], [cx - px, cy + py],
+                            [cx + px, cy - py], [cx - px, cy - py],
+                            [cx + py, cy + px], [cx - py, cy + px],
+                            [cx + py, cy - px], [cx - py, cy - px]);
+            };
+            while (y >= x) {
+                addSymmetric(x, y);
+                x++;
+                if (p > 0) { y--; p += 4 * (x - y) + 10; }
+                else { p += 4 * x + 6; }
+            }
+            return points;
+        };
+
         const points = getCirclePoints(xc, yc, r);
         points.forEach(pt => {
             ctx.fillRect(pt[0] - offset, pt[1] - offset, drawSize, drawSize);
@@ -97,18 +114,53 @@ export function drawBresenhamEllipse(ctx, xc, yc, rx, ry, fill, isEraser) {
     let offset = Math.floor(State.currentLineWidth / 2);
     let drawSize = State.currentLineWidth;
 
+    let x = 0;
+    let y = ry;
+    let a2 = rx * rx;
+    let b2 = ry * ry;
+    let d = Math.round(b2 - a2 * ry + 0.25 * a2);
+
     if (fill) {
-        for (let y = -ry; y <= ry; y++) {
-            let maxX = Math.floor(rx * Math.sqrt(1 - (y * y) / (ry * ry)));
-            ctx.fillRect(xc - maxX - offset, yc + y - offset, (maxX * 2 + 1) * drawSize, drawSize);
+        let lines = {};
+        const plot = (px, py) => {
+            const updateLine = (yy, xx) => {
+                if (!lines[yy]) lines[yy] = [xx, xx];
+                else {
+                    lines[yy][0] = Math.min(lines[yy][0], xx);
+                    lines[yy][1] = Math.max(lines[yy][1], xx);
+                }
+            };
+            updateLine(yc + py, xc - px); updateLine(yc + py, xc + px);
+            updateLine(yc - py, xc - px); updateLine(yc - py, xc + px);
+        };
+
+        while (a2 * y > b2 * x) {
+            plot(x, y);
+            if (d < 0) {
+                d += b2 * (2 * x + 3);
+            } else {
+                d += b2 * (2 * x + 3) + a2 * (-2 * y + 2);
+                y--;
+            }
+            x++;
+        }
+        let d2 = Math.round(b2 * (x + 0.5)**2 + a2 * (y - 1)**2 - a2 * b2);
+        while (y >= 0) {
+            plot(x, y);
+            if (d2 > 0) {
+                d2 += a2 * (-2 * y + 3);
+            } else {
+                d2 += b2 * (2 * x + 2) + a2 * (-2 * y + 3);
+                x++;
+            }
+            y--;
+        }
+
+        for (let yy in lines) {
+            let [minX, maxX] = lines[yy];
+            ctx.fillRect(minX - offset, parseInt(yy) - offset, maxX - minX + drawSize, drawSize);
         }
     } else {
-        let x = 0;
-        let y = ry;
-        let a2 = rx * rx;
-        let b2 = ry * ry;
-        let d = Math.round(b2 - a2 * ry + 0.25 * a2);
-
         const plot = (px, py) => {
             ctx.fillRect(xc + px - offset, yc + py - offset, drawSize, drawSize);
             ctx.fillRect(xc - px - offset, yc + py - offset, drawSize, drawSize);
@@ -190,7 +242,6 @@ export function executeFloodFill(startX, startY) {
 
     if (startColor32 === fillColor32 && activeData32[startIdx] === fillColor32) return; 
 
-    // 0-255 の許容範囲設定を 0-1020 (RGBA各255の最大差分合計) スケールに適応するよう修正
     const tolerance = State.fillTolerance * 4; 
 
     function matchStartColor(idx) {
@@ -291,7 +342,7 @@ export function executeWandSelection(startX, startY) {
     const maskCtx = maskCanvas.getContext('2d');
     const maskImgData = maskCtx.createImageData(State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     const maskData32 = new Uint32Array(maskImgData.data.buffer);
-    const fillC = 0xFFFFFFFF; // Solid White Mask
+    const fillC = 0xFFFFFFFF; 
 
     const stack = [startIdx];
     const visited = new Uint8Array(State.CANVAS_WIDTH * State.CANVAS_HEIGHT);
@@ -353,7 +404,6 @@ export function executeWandSelection(startX, startY) {
 
     return { x: minX, y: minY, w, h, maskCanvas: cropCanvas };
 }
-
 
 export function applyColorAdjustment(ctx, w, h, b_val, c_val, h_val, s_val, grayscale, invert, sepia, edge, anime, mosaic) {
     let imgData = ctx.getImageData(0, 0, w, h);
