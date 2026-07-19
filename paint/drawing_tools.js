@@ -190,35 +190,17 @@ export function executeFloodFill(startX, startY) {
 
     if (startColor32 === fillColor32 && activeData32[startIdx] === fillColor32) return; 
 
-    // 修正: State.fillTolerance を使用
-    const tolerance = State.fillTolerance; 
+    // 0-255 の許容範囲設定を 0-1020 (RGBA各255の最大差分合計) スケールに適応するよう修正
+    const tolerance = State.fillTolerance * 4; 
 
     function matchStartColor(idx) {
         const r = compData8[idx * 4];
         const g = compData8[idx * 4 + 1];
         const b = compData8[idx * 4 + 2];
         const a = compData8[idx * 4 + 3];
-        
-        // RGBAそれぞれの差の合計で判定（またはユークリッド距離など）
         const diff = Math.abs(r - sr) + Math.abs(g - sg) + Math.abs(b - sb) + Math.abs(a - sa);
-        return diff <= tolerance; // toleranceが0なら完全一致のみ
+        return diff <= tolerance; 
     }
-    
-    /*
-    const tolerance = State.isAntiAlias ? 120 : 0;
-
-    function matchStartColor(idx) {
-        if (tolerance === 0) {
-            return compData32[idx] === startColor32;
-        }
-        const r = compData8[idx * 4];
-        const g = compData8[idx * 4 + 1];
-        const b = compData8[idx * 4 + 2];
-        const a = compData8[idx * 4 + 3];
-        const diff = Math.abs(r - sr) + Math.abs(g - sg) + Math.abs(b - sb) + Math.abs(a - sa);
-        return diff <= tolerance;
-    }
-    */
 
     const stack = [startIdx];
     const visited = new Uint8Array(State.CANVAS_WIDTH * State.CANVAS_HEIGHT);
@@ -264,18 +246,125 @@ export function executeFloodFill(startX, startY) {
     ctx.putImageData(activeImageData, 0, 0);
 }
 
+export function executeWandSelection(startX, startY) {
+    const ctx = getCurrentContext();
+    if (!ctx) return null;
+
+    startX = Math.floor(startX);
+    startY = Math.floor(startY);
+
+    if (startX < 0 || startY < 0 || startX >= State.CANVAS_WIDTH || startY >= State.CANVAS_HEIGHT) return null;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = State.CANVAS_WIDTH;
+    tempCanvas.height = State.CANVAS_HEIGHT;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    
+    State.layers.forEach(layer => {
+        if (layer.visible) tempCtx.drawImage(layer.canvas, 0, 0);
+    });
+
+    const compImageData = tempCtx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    const compData8 = new Uint8ClampedArray(compImageData.data.buffer);
+    
+    const startIdx = startY * State.CANVAS_WIDTH + startX;
+    
+    const sr = compData8[startIdx * 4];
+    const sg = compData8[startIdx * 4 + 1];
+    const sb = compData8[startIdx * 4 + 2];
+    const sa = compData8[startIdx * 4 + 3];
+    
+    const tolerance = State.fillTolerance * 4; 
+
+    function matchStartColor(idx) {
+        const r = compData8[idx * 4];
+        const g = compData8[idx * 4 + 1];
+        const b = compData8[idx * 4 + 2];
+        const a = compData8[idx * 4 + 3];
+        const diff = Math.abs(r - sr) + Math.abs(g - sg) + Math.abs(b - sb) + Math.abs(a - sa);
+        return diff <= tolerance; 
+    }
+
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = State.CANVAS_WIDTH;
+    maskCanvas.height = State.CANVAS_HEIGHT;
+    const maskCtx = maskCanvas.getContext('2d');
+    const maskImgData = maskCtx.createImageData(State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    const maskData32 = new Uint32Array(maskImgData.data.buffer);
+    const fillC = 0xFFFFFFFF; // Solid White Mask
+
+    const stack = [startIdx];
+    const visited = new Uint8Array(State.CANVAS_WIDTH * State.CANVAS_HEIGHT);
+    
+    let minX = State.CANVAS_WIDTH, minY = State.CANVAS_HEIGHT, maxX = 0, maxY = 0;
+
+    while (stack.length > 0) {
+        let idx = stack.pop();
+        if (visited[idx]) continue;
+
+        let y = Math.floor(idx / State.CANVAS_WIDTH);
+        let x = idx % State.CANVAS_WIDTH;
+
+        let left = x;
+        while (left > 0 && !visited[y * State.CANVAS_WIDTH + (left - 1)] && matchStartColor(y * State.CANVAS_WIDTH + (left - 1))) {
+            left--;
+        }
+
+        let right = x;
+        while (right < State.CANVAS_WIDTH - 1 && !visited[y * State.CANVAS_WIDTH + (right + 1)] && matchStartColor(y * State.CANVAS_WIDTH + (right + 1))) {
+            right++;
+        }
+
+        for (let i = left; i <= right; i++) {
+            let currentIdx = y * State.CANVAS_WIDTH + i;
+            maskData32[currentIdx] = fillC;
+            visited[currentIdx] = 1;
+            
+            if (i < minX) minX = i;
+            if (i > maxX) maxX = i;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+
+            if (y > 0) {
+                let upIdx = (y - 1) * State.CANVAS_WIDTH + i;
+                if (!visited[upIdx] && matchStartColor(upIdx)) {
+                    stack.push(upIdx);
+                }
+            }
+            if (y < State.CANVAS_HEIGHT - 1) {
+                let downIdx = (y + 1) * State.CANVAS_WIDTH + i;
+                if (!visited[downIdx] && matchStartColor(downIdx)) {
+                    stack.push(downIdx);
+                }
+            }
+        }
+    }
+
+    if (minX > maxX) return null;
+
+    maskCtx.putImageData(maskImgData, 0, 0);
+    const w = maxX - minX + 1;
+    const h = maxY - minY + 1;
+    
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = w;
+    cropCanvas.height = h;
+    cropCanvas.getContext('2d').drawImage(maskCanvas, minX, minY, w, h, 0, 0, w, h);
+
+    return { x: minX, y: minY, w, h, maskCanvas: cropCanvas };
+}
+
+
 export function applyColorAdjustment(ctx, w, h, b_val, c_val, h_val, s_val, grayscale, invert, sepia, edge, anime, mosaic) {
     let imgData = ctx.getImageData(0, 0, w, h);
     let data = imgData.data;
 
-    // ★ 修正箇所: モザイク処理で透明ピクセルが広がり透明の穴が開くバグを修正
     if (mosaic > 1) {
         const mData = new Uint8ClampedArray(data);
         for (let y = 0; y < h; y += mosaic) {
             for (let x = 0; x < w; x += mosaic) {
                 let r = 0, g = 0, b = 0, a = 0;
                 
-                // ブロック内で最初に完全透明でないピクセルを代表色とする
                 for (let my = 0; my < mosaic && y + my < h; my++) {
                     for (let mx = 0; mx < mosaic && x + mx < w; mx++) {
                         const mi = ((y + my) * w + (x + mx)) * 4;
@@ -290,7 +379,6 @@ export function applyColorAdjustment(ctx, w, h, b_val, c_val, h_val, s_val, gray
                 for (let my = 0; my < mosaic && y + my < h; my++) {
                     for (let mx = 0; mx < mosaic && x + mx < w; mx++) {
                         const mi = ((y + my) * w + (x + mx)) * 4;
-                        // 元のアルファ値を維持することで不要な透明化を防ぐ
                         if (mData[mi+3] > 0) { 
                             data[mi] = r; data[mi+1] = g; data[mi+2] = b; data[mi+3] = mData[mi+3];
                         }

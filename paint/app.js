@@ -1,7 +1,7 @@
 import { State, CONSTANTS, DOM } from './state.js';
-import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill, applyColorAdjustment } from './drawing_tools.js';
+import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill, executeWandSelection, applyColorAdjustment } from './drawing_tools.js';
 import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer, duplicateLayer, mergeVisibleLayers } from './layer_history.js';
-import { duplicateSelection, deleteSelection, finalizeSelection, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder } from './canvas_io.js';
+import { duplicateSelection, deleteSelection, finalizeSelection, floatSelection, invertSelection, deselect, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder } from './canvas_io.js';
 import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape, drawShapePreview, applySnap } from './shape_editor.js';
 
 export function updateStatusBar() {
@@ -31,7 +31,7 @@ function updateBrushPreview(clientX, clientY) {
 }
 
 export function setTool(toolName) {
-    if (State.currentTool === 'select' && toolName !== 'select') {
+    if (State.currentTool.startsWith('select') && !toolName.startsWith('select')) {
         finalizeSelection();
     }
     
@@ -49,9 +49,8 @@ export function setTool(toolName) {
     if (targetBtn) targetBtn.classList.add('active');
     
     State.isPanning = false;
-    if (DOM.selectionPanel) DOM.selectionPanel.style.display = (toolName === 'select') ? 'flex' : 'none';
+    if (DOM.selectionPanel) DOM.selectionPanel.style.display = (toolName.startsWith('select')) ? 'flex' : 'none';
     
-    // 文字プロパティパネルの表示切替
     const textProps = document.getElementById('text-properties');
     if (textProps) {
         textProps.style.display = (toolName === 'edit-text') ? 'block' : 'none';
@@ -242,7 +241,7 @@ function setupPreviewCanvasEvents() {
         DOM.brushPreview.style.display = 'none';
         State.snapIndicator = null;
         if (State.selection.active) {
-            import('./canvas_io.js').then(c => c.drawSelectionPreview());
+            drawSelectionPreview();
         } else {
             drawShapePreview();
         }
@@ -383,7 +382,7 @@ function startDrawing(e) {
         return;
     }
 
-    if (!State.currentTool.startsWith('edit-') && State.currentTool !== 'select' && layer.type === 'vector') {
+    if (!State.currentTool.startsWith('edit-') && !State.currentTool.startsWith('select') && layer.type === 'vector') {
         alert("ベクターレイヤーには直接ペン等で描画できません。レイヤーパネルの「R」でラスタライズするか、新しいレイヤーを追加してください。");
         return;
     }
@@ -397,19 +396,17 @@ function startDrawing(e) {
         return;
     }
 
-    if (State.currentTool === 'select') {
-        if (State.selection.active &&
-            pos.x >= State.selection.x && pos.x <= State.selection.x + State.selection.w &&
-            pos.y >= State.selection.y && pos.y <= State.selection.y + State.selection.h) {
-            
+    if (State.currentTool.startsWith('select')) {
+        let inSelection = false;
+        if (State.selection.active) {
+            inSelection = (pos.x >= State.selection.x && pos.x <= State.selection.x + State.selection.w &&
+                           pos.y >= State.selection.y && pos.y <= State.selection.y + State.selection.h);
+        }
+        
+        if (inSelection) {
             State.isDraggingSelection = true;
             if (!State.selection.isFloating) {
-                State.selection.canvas = document.createElement('canvas');
-                State.selection.canvas.width = State.selection.w;
-                State.selection.canvas.height = State.selection.h;
-                State.selection.canvas.getContext('2d').drawImage(layer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
-                layer.ctx.clearRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
-                State.selection.isFloating = true;
+                floatSelection(layer);
             }
             State.dragOffsetX = pos.x - State.selection.x;
             State.dragOffsetY = pos.y - State.selection.y;
@@ -417,7 +414,26 @@ function startDrawing(e) {
             finalizeSelection(); 
             State.startX = pos.x;
             State.startY = pos.y;
-            State.isDrawing = true; 
+            
+            if (State.currentTool === 'select-wand') {
+                const wandRes = executeWandSelection(pos.x, pos.y);
+                if (wandRes) {
+                    State.selection.x = wandRes.x;
+                    State.selection.y = wandRes.y;
+                    State.selection.w = wandRes.w;
+                    State.selection.h = wandRes.h;
+                    State.selection.type = 'wand';
+                    State.selection.maskCanvas = wandRes.maskCanvas;
+                    State.selection.active = true;
+                    State.selection.isFloating = false;
+                    drawSelectionPreview();
+                }
+            } else if (State.currentTool === 'select-lasso') {
+                State.selection.path = [{x: pos.x, y: pos.y}];
+                State.isDrawing = true;
+            } else {
+                State.isDrawing = true; 
+            }
         }
         return;
     }
@@ -470,7 +486,7 @@ function draw(e) {
         return;
     }
 
-    if (State.currentTool === 'select') {
+    if (State.currentTool.startsWith('select')) {
         if (State.isDraggingSelection) {
             State.selection.x = pos.x - State.dragOffsetX;
             State.selection.y = pos.y - State.dragOffsetY;
@@ -480,16 +496,31 @@ function draw(e) {
             }
             drawSelectionPreview();
         } else if (State.isDrawing) {
-            DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
-            drawShapePreview(); 
-            DOM.previewCtx.beginPath();
-            DOM.previewCtx.setLineDash([5, 5]);
-            DOM.previewCtx.strokeStyle = '#00ffff'; 
-            DOM.previewCtx.lineWidth = 1;
-            const w = pos.x - State.startX;
-            const h = pos.y - State.startY;
-            DOM.previewCtx.strokeRect(State.startX, State.startY, w, h);
-            DOM.previewCtx.setLineDash([]);
+            if (State.currentTool === 'select-lasso') {
+                State.selection.path.push({x: pos.x, y: pos.y});
+                drawSelectionPreview();
+            } else {
+                DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+                drawShapePreview(); 
+                DOM.previewCtx.beginPath();
+                DOM.previewCtx.setLineDash([5, 5]);
+                DOM.previewCtx.strokeStyle = '#00ffff'; 
+                DOM.previewCtx.lineWidth = 1;
+                
+                if (State.currentTool === 'select-ellipse') {
+                    let rx = Math.abs(pos.x - State.startX) / 2;
+                    let ry = Math.abs(pos.y - State.startY) / 2;
+                    let cx = Math.min(State.startX, pos.x) + rx;
+                    let cy = Math.min(State.startY, pos.y) + ry;
+                    DOM.previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
+                    DOM.previewCtx.stroke();
+                } else {
+                    const w = pos.x - State.startX;
+                    const h = pos.y - State.startY;
+                    DOM.previewCtx.strokeRect(State.startX, State.startY, w, h);
+                }
+                DOM.previewCtx.setLineDash([]);
+            }
         }
         return;
     }
@@ -547,9 +578,9 @@ function draw(e) {
                 let rx = State.startX, ry = State.startY, rw = pos.x - State.startX, rh = pos.y - State.startY;
                 DOM.previewCtx.beginPath();
                 if (State.currentTool === 'rect-fill') {
-                    ctx.fillRect(rx, ry, rw, rh);
+                    DOM.previewCtx.fillRect(rx, ry, rw, rh);
                 } else {
-                    ctx.strokeRect(rx, ry, rw, rh);
+                    DOM.previewCtx.strokeRect(rx, ry, rw, rh);
                 }
             }
         } else if (State.currentTool === 'circle' || State.currentTool === 'circle-fill') {
@@ -558,9 +589,9 @@ function draw(e) {
             if (!State.isAntiAlias) {
                 drawBresenhamCircle(DOM.previewCtx, State.startX, State.startY, radius, isFill, false);
             } else {
-                ctx.beginPath();
-                ctx.arc(State.startX, State.startY, radius, 0, Math.PI * 2);
-                if (isFill) ctx.fill(); else ctx.stroke();
+                DOM.previewCtx.beginPath();
+                DOM.previewCtx.arc(State.startX, State.startY, radius, 0, Math.PI * 2);
+                if (isFill) DOM.previewCtx.fill(); else DOM.previewCtx.stroke();
             }
         } else if (State.currentTool === 'ellipse' || State.currentTool === 'ellipse-fill') {
             let rx = Math.abs(pos.x - State.startX) / 2;
@@ -572,9 +603,9 @@ function draw(e) {
             if (!State.isAntiAlias) {
                 drawBresenhamEllipse(DOM.previewCtx, cx, cy, rx, ry, isFill, false);
             } else {
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
-                if (isFill) ctx.fill(); else ctx.stroke();
+                DOM.previewCtx.beginPath();
+                DOM.previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
+                if (isFill) DOM.previewCtx.fill(); else DOM.previewCtx.stroke();
             }
         }
     }
@@ -594,28 +625,51 @@ function stopDrawing(e) {
         return;
     }
 
-    if (State.currentTool === 'select') {
+    if (State.currentTool.startsWith('select')) {
         if (State.isDraggingSelection) {
             State.isDraggingSelection = false;
             drawSelectionPreview();
             saveState(); 
         } else if (State.isDrawing) {
             State.isDrawing = false;
-            const rx = Math.min(State.startX, pos.x);
-            const ry = Math.min(State.startY, pos.y);
-            const rw = Math.abs(pos.x - State.startX);
-            const rh = Math.abs(pos.y - State.startY);
-            
-            if (rw > 2 && rh > 2) {
-                State.selection.x = !State.isAntiAlias ? Math.round(rx) : rx;
-                State.selection.y = !State.isAntiAlias ? Math.round(ry) : ry;
-                State.selection.w = !State.isAntiAlias ? Math.round(rw) : rw;
-                State.selection.h = !State.isAntiAlias ? Math.round(rh) : rh;
-                State.selection.active = true;
-                State.selection.isFloating = false;
-                drawSelectionPreview();
+            if (State.currentTool === 'select-lasso') {
+                if (State.selection.path.length > 2) {
+                    let minX = State.CANVAS_WIDTH, minY = State.CANVAS_HEIGHT, maxX = 0, maxY = 0;
+                    State.selection.path.forEach(p => {
+                        if(p.x < minX) minX = p.x;
+                        if(p.x > maxX) maxX = p.x;
+                        if(p.y < minY) minY = p.y;
+                        if(p.y > maxY) maxY = p.y;
+                    });
+                    State.selection.x = minX;
+                    State.selection.y = minY;
+                    State.selection.w = maxX - minX;
+                    State.selection.h = maxY - minY;
+                    State.selection.type = 'lasso';
+                    State.selection.active = true;
+                    State.selection.isFloating = false;
+                    drawSelectionPreview();
+                } else {
+                    finalizeSelection();
+                }
             } else {
-                finalizeSelection(); 
+                const rx = Math.min(State.startX, pos.x);
+                const ry = Math.min(State.startY, pos.y);
+                const rw = Math.abs(pos.x - State.startX);
+                const rh = Math.abs(pos.y - State.startY);
+                
+                if (rw > 2 && rh > 2) {
+                    State.selection.x = !State.isAntiAlias ? Math.round(rx) : rx;
+                    State.selection.y = !State.isAntiAlias ? Math.round(ry) : ry;
+                    State.selection.w = !State.isAntiAlias ? Math.round(rw) : rw;
+                    State.selection.h = !State.isAntiAlias ? Math.round(rh) : rh;
+                    State.selection.type = State.currentTool === 'select-ellipse' ? 'ellipse' : 'rect';
+                    State.selection.active = true;
+                    State.selection.isFloating = false;
+                    drawSelectionPreview();
+                } else {
+                    finalizeSelection(); 
+                }
             }
         }
         return; 
@@ -792,11 +846,7 @@ export function updateShapeProperties() {
     if (State.editingShape) {
         if (State.editingShape.type === 'edit-text') {
             State.editingShape.text = document.getElementById('shape-text-input')?.value || 'テキスト';
-            
-            // ★追加：フォント情報の取得
             State.editingShape.font = document.getElementById('text-font-select')?.value || 'sans-serif';
-            State.editingShape.hasBorder = document.getElementById('text-border-cb')?.checked || false;
-            
             State.editingShape.hasBorder = document.getElementById('text-border-cb')?.checked || false;
             State.editingShape.borderType = document.getElementById('text-border-type')?.value || 'outer';
             State.editingShape.borderColor = document.getElementById('text-border-color')?.value || '#ffffff';
@@ -855,7 +905,6 @@ window.onLayerSelected = (layerId) => {
             const ti = document.getElementById('shape-text-input');
             if (ti) ti.value = layer.shape.text || '';
 
-            // ★追加：フォントの反映
             const tf = document.getElementById('text-font-select');
             if (tf) tf.value = layer.shape.font || 'sans-serif';
 
@@ -930,17 +979,8 @@ window.openColorAdjust = () => {
     }
 
     if (State.selection.active && !State.selection.isFloating) {
-        State.selection.x = Math.round(State.selection.x);
-        State.selection.y = Math.round(State.selection.y);
-        State.selection.w = Math.round(State.selection.w);
-        State.selection.h = Math.round(State.selection.h);
-
-        State.selection.canvas = document.createElement('canvas');
-        State.selection.canvas.width = State.selection.w;
-        State.selection.canvas.height = State.selection.h;
-        State.selection.canvas.getContext('2d').drawImage(targetLayer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
-        targetLayer.ctx.clearRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
-        State.selection.isFloating = true;
+        floatSelection(targetLayer);
+        drawSelectionPreview(); 
     }
 
     if (State.selection.active && State.selection.isFloating && State.selection.canvas) {
@@ -1007,14 +1047,14 @@ window.previewColorAdjust = () => {
     colorAdjustTargetCtx.drawImage(tempCanvas, 0, 0);
     
     if (State.selection.active && State.selection.isFloating) {
-        import('./canvas_io.js').then(c => c.drawSelectionPreview());
+        drawSelectionPreview();
     }
 };
 
 window.executeColorAdjust = () => {
     if (colorAdjustOriginalData && colorAdjustTargetCtx) {
         if (State.selection.active && State.selection.isFloating) {
-             import('./canvas_io.js').then(c => c.drawSelectionPreview());
+             drawSelectionPreview();
         }
     }
     saveState();
@@ -1025,7 +1065,7 @@ window.cancelColorAdjust = () => {
     if (colorAdjustOriginalData && colorAdjustTargetCtx) {
         colorAdjustTargetCtx.putImageData(colorAdjustOriginalData, 0, 0);
         if (State.selection.active && State.selection.isFloating) {
-            import('./canvas_io.js').then(c => c.drawSelectionPreview());
+            drawSelectionPreview();
         }
     }
     window.closeColorAdjust();
@@ -1058,6 +1098,8 @@ window.resizeCanvasPrompt = resizeCanvasPrompt;
 window.scaleImagePrompt = scaleImagePrompt;
 window.duplicateSelection = duplicateSelection;
 window.deleteSelection = deleteSelection;
+window.invertSelection = invertSelection;
+window.deselect = deselect;
 window.finalizeSelection = finalizeSelection;
 window.addLayer = addLayer;
 window.undo = undo;

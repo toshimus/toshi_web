@@ -27,7 +27,10 @@ export const State = {
         active: false,
         x: 0, y: 0, w: 0, h: 0,
         canvas: null,
-        isFloating: false
+        isFloating: false,
+        type: 'rect', // 'rect', 'ellipse', 'lasso', 'wand'
+        path: null,
+        maskCanvas: null
     },
     dragOffsetX: 0,
     dragOffsetY: 0,
@@ -52,7 +55,7 @@ export const State = {
     fillTolerance: 30, // 0-255 の範囲で初期値を設定
     
     currentProjectHandle: null, 
-    currentDirectoryHandle: null // 新規追加：作業用フォルダの参照
+    currentDirectoryHandle: null 
 };
 
 export const CONSTANTS = {

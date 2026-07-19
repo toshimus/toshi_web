@@ -33,6 +33,8 @@
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-item" onclick="duplicateSelection()">選択範囲の複製</div>
                 <div class="dropdown-item" onclick="deleteSelection()">選択範囲の削除</div>
+                <div class="dropdown-item" onclick="invertSelection()">選択範囲の反転</div>
+                <div class="dropdown-item" onclick="deselect()">選択範囲の解除</div>
                 <div class="dropdown-item" onclick="finalizeSelection()">選択範囲の確定</div>
             </div>
         </div>
@@ -55,7 +57,6 @@
         </div>
     </div>
 
-    <!-- 古いブラウザ向けのフォールバック用インプット -->
     <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
     <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
 
@@ -109,12 +110,20 @@
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
                         楕円
                     </button>
-                    <button id="tool-select" class="tool-btn" onclick="setTool('select')">
-                        <svg viewBox="0 0 24 24"><path d="M3 3h4V1H1v6h2V3zm4 18H3v-4H1v6h6v-2zm14-4h-2v4h-4v2h6v-6zm-2-14h-4V1h6v6h-2V3zM9 1h6v2H9V1zm0 20h6v2H9v-2zm10-10h2v6h-2v-6zM1 9h2v6H1V9z"/></svg>
-                        選択
+                    <button id="tool-select-rect" class="tool-btn" onclick="setTool('select-rect')">
+                        四角選択
+                    </button>
+                    <button id="tool-select-ellipse" class="tool-btn" onclick="setTool('select-ellipse')">
+                        楕円選択
+                    </button>
+                    <button id="tool-select-lasso" class="tool-btn" onclick="setTool('select-lasso')">
+                        輪投げ
+                    </button>
+                    <button id="tool-select-wand" class="tool-btn" onclick="setTool('select-wand')">
+                        自動選択
                     </button>
 
-                    <label>塗潰し許容範囲: <span id="fill-tolerance-display">30</span></label>
+                    <label>塗潰/自動 許容範囲: <span id="fill-tolerance-display">30</span></label>
                     <input type="range" id="fill-tolerance" min="0" max="255" value="30" oninput="document.getElementById('fill-tolerance-display').innerText = this.value; State.fillTolerance = parseInt(this.value);">
 
                 </div>
@@ -144,13 +153,14 @@
                     <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 24px;">四角</button>
                     <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 24px;">円/楕円</button>
                     
+                    <button id="tool-edit-circle-cr" class="tool-btn" onclick="setTool('edit-circle-cr')" style="height: 24px;">中心円</button>
                     <button id="tool-edit-polygon" class="tool-btn" onclick="setTool('edit-polygon')" style="height: 24px;">正多角</button>
                     <button id="tool-edit-free-polygon" class="tool-btn" onclick="setTool('edit-free-polygon')" style="height: 24px; border-color:#00ffff;">多角形</button>
-                    <button id="tool-edit-round-rect" class="tool-btn" onclick="setTool('edit-round-rect')" style="height: 24px;">角丸</button>
                     
+                    <button id="tool-edit-round-rect" class="tool-btn" onclick="setTool('edit-round-rect')" style="height: 24px;">角丸</button>
                     <button id="tool-edit-text" class="tool-btn" onclick="setTool('edit-text')" style="height: 24px;">文字</button>
                     <button id="tool-edit-table" class="tool-btn" onclick="setTool('edit-table')" style="height: 24px;">表(Grid)</button>
-                    <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 24px;">✅ 確定</button>
+                    <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 24px; grid-column: span 3;">✅ 確定</button>
                 </div>
 
                 <div style="margin-top: 5px; display: flex; gap: 10px; align-items: center; background: #1a1a1a; padding: 6px; border-radius: 4px; border: 1px solid #444;">
@@ -165,7 +175,6 @@
                 <div style="margin-top: 5px;">
                     <input type="text" id="shape-text-input" placeholder="文字入力..." oninput="updateShapeProperties()" style="width: 100%; box-sizing: border-box; background: #111; color: #fff; border: 1px solid #444; padding: 4px; margin-bottom: 4px;">
                     
-                    <!-- 文字拡張オプション UI -->
                     <div id="text-properties" style="display:none; background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #444; margin-bottom:4px;">
                         <div style="font-size:10px; color:#ffaaaa; margin-bottom:4px;">文字オプション</div>
                         

@@ -3,6 +3,53 @@ import { addLayer, saveState, renderLayerPanel, restoreState, getSnapshot } from
 import { setZoom, updateStatusBar } from './app.js';
 import { drawShapePreview, finalizeShape } from './shape_editor.js';
 
+export function applySelectionMask(ctx, offsetX, offsetY) {
+    ctx.save();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#FFFFFF';
+    
+    if (State.selection.type === 'rect') {
+        ctx.fillRect(offsetX, offsetY, State.selection.w, State.selection.h);
+    } else if (State.selection.type === 'ellipse') {
+        ctx.beginPath();
+        ctx.ellipse(offsetX + State.selection.w/2, offsetY + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
+        ctx.fill();
+    } else if (State.selection.type === 'lasso') {
+        ctx.beginPath();
+        ctx.moveTo(State.selection.path[0].x - State.selection.x + offsetX, State.selection.path[0].y - State.selection.y + offsetY);
+        for(let i=1; i<State.selection.path.length; i++) {
+            ctx.lineTo(State.selection.path[i].x - State.selection.x + offsetX, State.selection.path[i].y - State.selection.y + offsetY);
+        }
+        ctx.fill();
+    } else if (State.selection.type === 'wand' || State.selection.type === 'mask') {
+        ctx.drawImage(State.selection.maskCanvas, offsetX, offsetY);
+    }
+    
+    ctx.restore();
+}
+
+export function floatSelection(layer) {
+    State.selection.canvas = document.createElement('canvas');
+    State.selection.canvas.width = Math.max(1, State.selection.w);
+    State.selection.canvas.height = Math.max(1, State.selection.h);
+    const sCtx = State.selection.canvas.getContext('2d');
+
+    sCtx.drawImage(layer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
+
+    sCtx.globalCompositeOperation = 'destination-in';
+    applySelectionMask(sCtx, 0, 0);
+
+    // ★修正: 切り抜き完了後、必ず標準モードに戻し、その後の色調補正プレビュー時における画像消失を防止します。
+    sCtx.globalCompositeOperation = 'source-over';
+
+    layer.ctx.save();
+    layer.ctx.globalCompositeOperation = 'destination-out';
+    applySelectionMask(layer.ctx, State.selection.x, State.selection.y);
+    layer.ctx.restore();
+
+    State.selection.isFloating = true;
+}
+
 export function drawSelectionPreview() {
     DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     drawShapePreview();
@@ -16,7 +63,22 @@ export function drawSelectionPreview() {
         DOM.previewCtx.setLineDash([5, 5]);
         DOM.previewCtx.strokeStyle = '#00ffff';
         DOM.previewCtx.lineWidth = 1;
-        DOM.previewCtx.strokeRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+
+        if (State.selection.type === 'ellipse') {
+            DOM.previewCtx.ellipse(State.selection.x + State.selection.w/2, State.selection.y + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
+            DOM.previewCtx.stroke();
+        } else if (State.selection.type === 'lasso') {
+            DOM.previewCtx.moveTo(State.selection.path[0].x, State.selection.path[0].y);
+            for (let i = 1; i < State.selection.path.length; i++) {
+                DOM.previewCtx.lineTo(State.selection.path[i].x, State.selection.path[i].y);
+            }
+            DOM.previewCtx.closePath();
+            DOM.previewCtx.stroke();
+        } else if (State.selection.type === 'mask') {
+            DOM.previewCtx.strokeRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+        } else {
+            DOM.previewCtx.strokeRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+        }
         DOM.previewCtx.setLineDash([]);
     }
 }
@@ -30,11 +92,12 @@ export function duplicateSelection() {
         layer.ctx.imageSmoothingEnabled = State.isAntiAlias;
         layer.ctx.drawImage(State.selection.canvas, State.selection.x, State.selection.y);
     } else {
-        State.selection.canvas = document.createElement('canvas');
-        State.selection.canvas.width = State.selection.w;
-        State.selection.canvas.height = State.selection.h;
-        State.selection.canvas.getContext('2d').drawImage(layer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
-        State.selection.isFloating = true;
+        floatSelection(layer);
+        
+        layer.ctx.save();
+        layer.ctx.globalCompositeOperation = 'source-over';
+        layer.ctx.drawImage(State.selection.canvas, State.selection.x, State.selection.y);
+        layer.ctx.restore();
     }
     
     State.selection.x += 10;
@@ -50,7 +113,12 @@ export function deleteSelection() {
     if (!State.selection.active) return;
     if (!State.selection.isFloating) {
         const layer = State.layers.find(l => l.id === State.currentLayerId);
-        if (layer) layer.ctx.clearRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+        if (layer) {
+            layer.ctx.save();
+            layer.ctx.globalCompositeOperation = 'destination-out';
+            applySelectionMask(layer.ctx, State.selection.x, State.selection.y);
+            layer.ctx.restore();
+        }
     }
     State.selection.active = false;
     State.selection.isFloating = false;
@@ -73,6 +141,55 @@ export function finalizeSelection() {
     DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     drawShapePreview();
     saveState();
+}
+
+export function invertSelection() {
+    if (!State.selection.active) return;
+    
+    if (State.selection.isFloating) {
+        finalizeSelection();
+    }
+
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = State.CANVAS_WIDTH;
+    maskCanvas.height = State.CANVAS_HEIGHT;
+    const mCtx = maskCanvas.getContext('2d');
+    
+    mCtx.fillStyle = '#FFFFFF';
+    mCtx.fillRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    
+    mCtx.globalCompositeOperation = 'destination-out';
+    mCtx.fillStyle = '#FFFFFF';
+    
+    if (State.selection.type === 'rect') {
+        mCtx.fillRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+    } else if (State.selection.type === 'ellipse') {
+        mCtx.beginPath();
+        mCtx.ellipse(State.selection.x + State.selection.w/2, State.selection.y + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
+        mCtx.fill();
+    } else if (State.selection.type === 'lasso') {
+        mCtx.beginPath();
+        mCtx.moveTo(State.selection.path[0].x, State.selection.path[0].y);
+        for(let i=1; i<State.selection.path.length; i++) {
+            mCtx.lineTo(State.selection.path[i].x, State.selection.path[i].y);
+        }
+        mCtx.fill();
+    } else if (State.selection.type === 'wand' || State.selection.type === 'mask') {
+        mCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
+    }
+
+    State.selection.x = 0;
+    State.selection.y = 0;
+    State.selection.w = State.CANVAS_WIDTH;
+    State.selection.h = State.CANVAS_HEIGHT;
+    State.selection.type = 'mask';
+    State.selection.maskCanvas = maskCanvas;
+    
+    drawSelectionPreview();
+}
+
+export function deselect() {
+    finalizeSelection();
 }
 
 export function createNewCanvas() {
@@ -283,7 +400,6 @@ export function loadImageAsLayer(event) {
     reader.readAsDataURL(file);
 }
 
-// 保存先フォルダの選択
 export async function selectSaveFolder() {
     if (window.showDirectoryPicker) {
         try {
@@ -320,7 +436,6 @@ export async function exportImage(format) {
     const mimeType = `image/${format}`;
     const defaultFileName = `KITT_Export_${new Date().getTime()}.${ext}`;
 
-    // フォルダが指定されている場合は直接保存
     if (State.currentDirectoryHandle) {
         try {
             const fileHandle = await State.currentDirectoryHandle.getFileHandle(defaultFileName, { create: true });
@@ -387,7 +502,6 @@ export async function saveProject() {
             const writable = await State.currentProjectHandle.createWritable();
             await writable.write(jsonStr);
             await writable.close();
-            // 上書き時は目障りにならないようコンソールのみ
             console.log("プロジェクトを保存しました。");
         } catch (err) {
             console.error("保存がキャンセルされました", err);
@@ -482,20 +596,7 @@ export function rotateCanvasOrSelection(angleDeg) {
                 currentLayer.shape = null;
                 import('./layer_history.js').then(lh => lh.renderLayerPanel());
             }
-
-            State.selection.canvas = document.createElement('canvas');
-            State.selection.canvas.width = State.selection.w;
-            State.selection.canvas.height = State.selection.h;
-            const sCtx = State.selection.canvas.getContext('2d');
-            sCtx.imageSmoothingEnabled = State.isAntiAlias;
-            
-            State.layers.forEach(layer => {
-                if (layer.visible) {
-                    sCtx.drawImage(layer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
-                    layer.ctx.clearRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
-                }
-            });
-            State.selection.isFloating = true;
+            floatSelection(currentLayer);
         }
 
         const oldW = State.selection.w;
@@ -524,6 +625,7 @@ export function rotateCanvasOrSelection(angleDeg) {
         State.selection.y -= Math.round((newH - oldH) / 2);
         State.selection.w = newW;
         State.selection.h = newH;
+        State.selection.type = 'rect';
 
         drawSelectionPreview();
     } else {

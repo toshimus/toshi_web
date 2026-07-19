@@ -1,6 +1,6 @@
 import { State, DOM } from './state.js';
 import { getCurrentContext, saveState, addLayer } from './layer_history.js';
-import { drawBresenhamLine, drawBresenhamEllipse } from './drawing_tools.js';
+import { drawBresenhamLine, drawBresenhamEllipse, drawBresenhamCircle } from './drawing_tools.js';
 
 export function applySnap(x, y) {
     State.snapIndicator = null;
@@ -96,6 +96,10 @@ function getShapeSnapPoints(s) {
                 y: cy + ry * Math.sin(rad)
             });
         }
+    } else if (s.type === 'edit-circle-cr') {
+        const r = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
+        pts.push({x: s.x1, y: s.y1});
+        pts.push({x: s.x1 - r, y: s.y1}, {x: s.x1 + r, y: s.y1}, {x: s.x1, y: s.y1 - r}, {x: s.x1, y: s.y1 + r});
     }
     return pts;
 }
@@ -271,6 +275,13 @@ function hitTestBody(x, y) {
 
     const threshold = Math.max(4, 8 / State.currentZoom); 
 
+    if (s.type === 'edit-circle-cr') {
+        const r = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
+        const dist = Math.hypot(x - s.x1, y - s.y1);
+        if (s.isFill) return dist <= r;
+        return dist >= r - threshold && dist <= r + threshold;
+    }
+
     if (s.type === 'edit-text') {
         let minX = Math.min(s.x1, s.x2);
         let minY = Math.min(s.y1, s.y2);
@@ -349,6 +360,8 @@ function getHandles(shape) {
         return shape.points.map(p => ({x: p.x, y: p.y}));
     } else if (type === 'edit-line') {
         return [ {x: x1, y: y1}, {x: x2, y: y2} ];
+    } else if (type === 'edit-circle-cr') {
+        return [ {x: x1, y: y1}, {x: x2, y: y2} ];
     } else {
         return [
             {x: x1, y: y1}, 
@@ -368,7 +381,7 @@ function updateHandlePosition(x, y) {
             s.points[i].x = x;
             s.points[i].y = y;
         }
-    } else if (s.type === 'edit-line') {
+    } else if (s.type === 'edit-line' || s.type === 'edit-circle-cr') {
         if (i === 0) { s.x1 = x; s.y1 = y; }
         else if (i === 1) { s.x2 = x; s.y2 = y; }
     } else {
@@ -454,6 +467,7 @@ export function finalizeShape(keepSelected = false) {
         if (s.type === 'edit-round-rect') name = '角丸';
         if (s.type === 'edit-rect') name = '四角';
         if (s.type === 'edit-ellipse') name = '円';
+        if (s.type === 'edit-circle-cr') name = '中心円';
         
         layer = addLayer(name);
         layer.type = 'vector';
@@ -624,6 +638,18 @@ export function renderShapeToContext(ctx, s, useAA) {
             ctx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
             if (s.isFill) ctx.fill(); else ctx.stroke();
         }
+    } else if (s.type === 'edit-circle-cr') {
+        let r = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
+        if (!useAA) {
+            drawBresenhamCircle(ctx, s.x1, s.y1, r, s.isFill, false);
+        } else {
+            ctx.beginPath();
+            ctx.strokeStyle = s.color;
+            ctx.fillStyle = s.color;
+            ctx.lineWidth = s.lineWidth;
+            ctx.arc(s.x1, s.y1, r, 0, Math.PI * 2);
+            if (s.isFill) ctx.fill(); else ctx.stroke();
+        }
     } else if (s.type === 'edit-text') {
         ctx.textBaseline = 'top';
         let minX = Math.min(s.x1, s.x2);
@@ -631,13 +657,9 @@ export function renderShapeToContext(ctx, s, useAA) {
         let h = Math.abs(s.y2 - s.y1);
         if (h < 10) h = 10;
 
-
-        // ★修正：s.font を使用するように変更
         const fontFamily = s.font || 'sans-serif';
         ctx.font = `${h}px ${fontFamily}`;
 
-
-        //ctx.font = `${h}px sans-serif`;
         ctx.lineJoin = 'round';
         ctx.miterLimit = 2;
 
