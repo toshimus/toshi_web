@@ -12,9 +12,11 @@
         <div class="menu-item">ファイル
             <div class="dropdown-content">
                 <div class="dropdown-item" onclick="createNewCanvas()">新規作成</div>
-                <div class="dropdown-item" onclick="document.getElementById('load-input').click()">開く (JSON)</div>
-                <div class="dropdown-item" onclick="saveProject()">保存 (JSON)</div>
+                <div class="dropdown-item" onclick="loadProjectSystem()">開く (JSON)</div>
+                <div class="dropdown-item" onclick="saveProject()">上書き保存 (JSON)</div>
+                <div class="dropdown-item" onclick="saveProjectAs()">名前を付けて保存 (JSON)</div>
                 <div class="dropdown-divider"></div>
+                <div class="dropdown-item" onclick="selectSaveFolder()">📂 保存先フォルダを選択</div>
                 <div class="dropdown-item" onclick="document.getElementById('image-load-input').click()">画像読込</div>
                 <div class="dropdown-item" onclick="exportImage('png')">エクスポート (PNG)</div>
                 <div class="dropdown-item" onclick="exportImage('jpeg')">エクスポート (JPG)</div>
@@ -42,7 +44,7 @@
                 <div class="dropdown-item" onclick="rotateCanvasOrSelection(-45)">↶ 左に45°回転</div>
                 <div class="dropdown-item" onclick="rotateCanvasOrSelection(45)">↷ 右に45°回転</div>
                 <div class="dropdown-divider"></div>
-                <div class="dropdown-item" onclick="openColorAdjust()">色調補正...</div>
+                <div class="dropdown-item" onclick="openColorAdjust()">色調補正 / フィルタ...</div>
             </div>
         </div>
         <div class="menu-item">レイヤー
@@ -53,6 +55,7 @@
         </div>
     </div>
 
+    <!-- 古いブラウザ向けのフォールバック用インプット -->
     <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
     <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
 
@@ -133,17 +136,17 @@
                 <label style="color: #ffaaaa; margin-bottom: 5px; display: block;">ベクター (自動レイヤー化)</label>
                 
                 <div class="icon-grid" style="grid-template-columns: repeat(3, 1fr);">
-                    <button id="tool-edit-line" class="tool-btn" onclick="setTool('edit-line')" style="height: 35px;">直線</button>
-                    <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 35px;">四角</button>
-                    <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 35px;">円/楕円</button>
+                    <button id="tool-edit-line" class="tool-btn" onclick="setTool('edit-line')" style="height: 24px;">直線</button>
+                    <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 24px;">四角</button>
+                    <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 24px;">円/楕円</button>
                     
-                    <button id="tool-edit-polygon" class="tool-btn" onclick="setTool('edit-polygon')" style="height: 35px;">正多角</button>
-                    <button id="tool-edit-free-polygon" class="tool-btn" onclick="setTool('edit-free-polygon')" style="height: 35px; border-color:#00ffff;">多角形</button>
-                    <button id="tool-edit-round-rect" class="tool-btn" onclick="setTool('edit-round-rect')" style="height: 35px;">角丸</button>
+                    <button id="tool-edit-polygon" class="tool-btn" onclick="setTool('edit-polygon')" style="height: 24px;">正多角</button>
+                    <button id="tool-edit-free-polygon" class="tool-btn" onclick="setTool('edit-free-polygon')" style="height: 24px; border-color:#00ffff;">多角形</button>
+                    <button id="tool-edit-round-rect" class="tool-btn" onclick="setTool('edit-round-rect')" style="height: 24px;">角丸</button>
                     
-                    <button id="tool-edit-text" class="tool-btn" onclick="setTool('edit-text')" style="height: 35px;">文字</button>
-                    <button id="tool-edit-table" class="tool-btn" onclick="setTool('edit-table')" style="height: 35px;">表(Grid)</button>
-                    <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 35px;">✅ 確定</button>
+                    <button id="tool-edit-text" class="tool-btn" onclick="setTool('edit-text')" style="height: 24px;">文字</button>
+                    <button id="tool-edit-table" class="tool-btn" onclick="setTool('edit-table')" style="height: 24px;">表(Grid)</button>
+                    <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 24px;">✅ 確定</button>
                 </div>
 
                 <div style="margin-top: 5px; display: flex; gap: 10px; align-items: center; background: #1a1a1a; padding: 6px; border-radius: 4px; border: 1px solid #444;">
@@ -157,43 +160,60 @@
 
                 <div style="margin-top: 5px;">
                     <input type="text" id="shape-text-input" placeholder="文字入力..." oninput="updateShapeProperties()" style="width: 100%; box-sizing: border-box; background: #111; color: #fff; border: 1px solid #444; padding: 4px; margin-bottom: 4px;">
+                    
+                    <!-- 文字拡張オプション UI -->
+                    <div id="text-properties" style="display:none; background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #444; margin-bottom:4px;">
+                        <div style="font-size:10px; color:#ffaaaa; margin-bottom:4px;">文字オプション</div>
+
+
+                        <!-- ★追加：フォント選択 -->
+                        <div style="margin-bottom:4px;">
+                            <select id="text-font-select" onchange="updateShapeProperties()" style="width:100%; font-size:10px; background:#111; color:#fff; border:1px solid #444;">
+                                <option value="sans-serif">Sans-serif (ゴシック)</option>
+                                <option value="serif">Serif (明朝)</option>
+                                <option value="monospace">Monospace (等幅)</option>
+                                <option value="cursive">Cursive (手書き風)</option>
+                                <option value="fantasy">Fantasy (装飾)</option>
+                            </select>
+                        </div>
+
+
+                        <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center; margin-bottom:4px;">
+                            <label style="font-size:10px; color:#fff;"><input type="checkbox" id="text-border-cb" onchange="updateShapeProperties()"> ふち</label>
+                            <select id="text-border-type" onchange="updateShapeProperties()" style="font-size:10px; background:#111; color:#fff; border:1px solid #444;">
+                                <option value="outer">外側</option>
+                                <option value="inner">内側</option>
+                            </select>
+                            <input type="color" id="text-border-color" value="#ffffff" onchange="updateShapeProperties()" style="width:20px; height:16px; padding:0; border:none;">
+                            <label style="font-size:10px; color:#aaa;">太さ:<input type="number" id="text-border-width" value="2" min="1" max="20" oninput="updateShapeProperties()" style="width:30px; background:#111; color:#fff; border:1px solid #444;"></label>
+                        </div>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
+                            <label style="font-size:10px; color:#fff;"><input type="checkbox" id="text-shadow-cb" onchange="updateShapeProperties()"> 影(ぼかし)</label>
+                            <input type="color" id="text-shadow-color" value="#000000" onchange="updateShapeProperties()" style="width:20px; height:16px; padding:0; border:none;">
+                            <label style="font-size:10px; color:#aaa;">ぼかし:<input type="number" id="text-shadow-blur" value="5" min="1" max="50" oninput="updateShapeProperties()" style="width:30px; background:#111; color:#fff; border:1px solid #444;"></label>
+                        </div>
+                    </div>
+
                     <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
-                        <label style="font-size:10px; color:#aaa;">行:<input type="number" id="table-rows" value="3" min="1" oninput="updateShapeProperties()" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
-                        <label style="font-size:10px; color:#aaa;">列:<input type="number" id="table-cols" value="3" min="1" oninput="updateShapeProperties()" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
-                        <label style="font-size:10px; color:#aaa;">角数/丸み:<input type="number" id="shape-param" value="5" min="0" oninput="updateShapeProperties()" style="width:40px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                        <label style="font-size:10px; color:#aaa;">行:<input type="number" id="table-rows" value="3" min="1" oninput="updateShapeProperties()" style="width:32px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                        <label style="font-size:10px; color:#aaa;">列:<input type="number" id="table-cols" value="3" min="1" oninput="updateShapeProperties()" style="width:32px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                        <label style="font-size:10px; color:#aaa;">角数/丸み:<input type="number" id="shape-param" value="5" min="0" oninput="updateShapeProperties()" style="width:32px; background: #111; color: #fff; border: 1px solid #444;"></label>
                     </div>
                 </div>
             </div>
 
             <div class="tool-section">
                 <label>線の太さ: <span id="line-width-display">1</span>px</label>
-                <input type="range" id="line-width" min="1" max="50" value="1" oninput="setLineWidth(this.value)">
+                <input type="range" id="line-width" min="1" max="32" value="1" oninput="setLineWidth(this.value)">
             </div>
 
             <div class="tool-section">
-                <label>ドット絵・グリッドサポート</label>
-                <div class="button-grid" style="grid-template-columns: 1fr 1fr;">
-                    <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット(AAオフ)</button>
-                    <button id="aa-on" onclick="setAntiAlias(true)">滑らか(AAオン)</button>
+                <label>FC パレット</label>
+                <div class="palette-grid" id="famicom-palette">
                 </div>
-                <div style="display:flex; gap:5px; margin-top:5px; align-items:center;">
-                    <button id="grid-toggle" onclick="toggleGrid()" style="flex:1;">表示切替</button>
-                    <label style="font-size:10px; color:#aaa; white-space:nowrap;">サイズ:<input type="number" id="grid-size" value="16" min="2" onchange="setGridSize(this.value)" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
-                </div>
-                <div class="button-grid" style="margin-top:5px;">
-                    <button id="snap-grid-btn" onclick="toggleSnapToGrid()">グリッド吸着</button>
-                    <button id="snap-obj-btn" onclick="toggleSnapToObject()">頂点/円周吸着</button>
-                </div>
+                <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 0px;">
             </div>
-
-            <div class="tool-section">
-                <label>キャンバス操作</label>
-                <div class="button-grid">
-                    <button onclick="rotateCanvasOrSelection(-45)">↶ 全体 -45°</button>
-                    <button onclick="rotateCanvasOrSelection(45)">↷ 全体 +45°</button>
-                </div>
-            </div>
-
+            
             <div class="tool-section">
                 <label>表示倍率 (Zoom)</label>
                 <div class="zoom-grid" id="zoom-controls">
@@ -207,12 +227,21 @@
             </div>
 
             <div class="tool-section">
-                <label>FC パレット</label>
-                <div class="palette-grid" id="famicom-palette">
+                <label>ドット絵・グリッドサポート</label>
+                <div class="button-grid" style="grid-template-columns: 1fr 1fr;">
+                    <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット(AAオフ)</button>
+                    <button id="aa-on" onclick="setAntiAlias(true)">滑らか(AAオン)</button>
                 </div>
-                <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 5px;">
+                <div style="display:flex; gap:5px; margin-top:5px; align-items:center;">
+                    <button id="grid-toggle" onclick="toggleGrid()" style="flex:1;">グリッド表示切替</button>
+                    <label style="font-size:10px; color:#aaa; white-space:nowrap;">サイズ:<input type="number" id="grid-size" value="16" min="2" onchange="setGridSize(this.value)" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                </div>
+                <div class="button-grid" style="margin-top:5px;">
+                    <button id="snap-grid-btn" onclick="toggleSnapToGrid()">グリッド吸着</button>
+                    <button id="snap-obj-btn" onclick="toggleSnapToObject()">頂点/円周吸着</button>
+                </div>
             </div>
-            
+
             <div style="height: 10px; flex-shrink: 0;"></div>
         </div>
 
@@ -240,17 +269,36 @@
     </div>
 
     <!-- 色調補正モーダル -->
-    <div id="color-adjust-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#2a2a2a; padding:20px; border:1px solid #ff0000; z-index:20000; border-radius:8px; width: 300px; box-shadow: 0 0 15px rgba(0,0,0,0.8);">
-        <h3 style="margin-top:0; color:#ffaaaa;">色調補正（現在のレイヤー）</h3>
-        <label style="display:block; margin-bottom:5px;">明るさ: <span id="bright-val">0</span></label>
-        <input type="range" id="adj-brightness" min="-128" max="128" value="0" oninput="document.getElementById('bright-val').innerText=this.value" style="width:100%;">
-        <br><br>
-        <label style="display:block; margin-bottom:5px;">コントラスト: <span id="contrast-val">0</span></label>
-        <input type="range" id="adj-contrast" min="-128" max="128" value="0" oninput="document.getElementById('contrast-val').innerText=this.value" style="width:100%;">
-        <br><br>
+    <div id="color-adjust-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#2a2a2a; padding:20px; border:1px solid #ff0000; z-index:20000; border-radius:8px; width: 340px; box-shadow: 0 0 15px rgba(0,0,0,0.8);">
+    <h3 id="color-adjust-header" style="margin-top:0; color:#ffaaaa; font-size: 1.1em; border-bottom: 1px solid #444; padding-bottom: 5px; cursor: move;">高度色調補正 / フィルタ</h3>
+        <label style="display:flex; justify-content:space-between; font-size: 0.85em; margin-bottom: 2px;"><span>明るさ:</span> <span id="bright-val">0</span></label>
+        <input type="range" id="adj-brightness" min="-128" max="128" value="0" oninput="previewColorAdjust()" style="width:100%; margin-bottom: 10px;">
+        
+        <label style="display:flex; justify-content:space-between; font-size: 0.85em; margin-bottom: 2px;"><span>コントラスト:</span> <span id="contrast-val">0</span></label>
+        <input type="range" id="adj-contrast" min="-128" max="128" value="0" oninput="previewColorAdjust()" style="width:100%; margin-bottom: 10px;">
+        
+        <label style="display:flex; justify-content:space-between; font-size: 0.85em; margin-bottom: 2px;"><span>色相 (Hue):</span> <span id="hue-val">0</span></label>
+        <input type="range" id="adj-hue" min="-180" max="180" value="0" oninput="previewColorAdjust()" style="width:100%; margin-bottom: 10px;">
+        
+        <label style="display:flex; justify-content:space-between; font-size: 0.85em; margin-bottom: 2px;"><span>彩度 (Sat):</span> <span id="saturation-val">0</span></label>
+        <input type="range" id="adj-saturation" min="-100" max="100" value="0" oninput="previewColorAdjust()" style="width:100%; margin-bottom: 15px;">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; font-size: 0.85em;">
+            <label style="cursor: pointer;"><input type="checkbox" id="adj-grayscale" onchange="previewColorAdjust()"> グレースケール</label>
+            <label style="cursor: pointer;"><input type="checkbox" id="adj-invert" onchange="previewColorAdjust()"> 階調の反転</label>
+            <label style="cursor: pointer;"><input type="checkbox" id="adj-sepia" onchange="previewColorAdjust()"> セピア調</label>
+            <label style="cursor: pointer;"><input type="checkbox" id="adj-edge" onchange="previewColorAdjust()"> 線画抽出</label>
+        </div>
+
+        <label style="display:flex; justify-content:space-between; font-size: 0.85em; margin-bottom: 2px;"><span>アニメ風 (階調化):</span> <span id="anime-val">OFF</span></label>
+        <input type="range" id="adj-anime" min="0" max="16" value="0" oninput="previewColorAdjust()" style="width:100%; margin-bottom: 10px;">
+
+        <label style="display:flex; justify-content:space-between; font-size: 0.85em; margin-bottom: 2px;"><span>モザイク:</span> <span id="mosaic-val">OFF</span></label>
+        <input type="range" id="adj-mosaic" min="1" max="32" value="1" oninput="previewColorAdjust()" style="width:100%; margin-bottom: 15px;">
+
         <div style="text-align:right;">
-            <button onclick="document.getElementById('color-adjust-modal').style.display='none'" style="margin-right: 10px;">キャンセル</button>
-            <button onclick="executeColorAdjust()" style="background-color:#ff3333; color:white;">適用</button>
+            <button onclick="cancelColorAdjust()" style="margin-right: 10px; background-color: #444; color: #fff;">キャンセル</button>
+            <button onclick="executeColorAdjust()" style="background-color:#ff3333; color:white;">確定</button>
         </div>
     </div>
 

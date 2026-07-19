@@ -161,6 +161,13 @@ export function startShapeEdit(x, y) {
         color: State.currentColor,
         lineWidth: State.currentLineWidth,
         text: document.getElementById('shape-text-input')?.value || 'テキスト',
+        hasBorder: document.getElementById('text-border-cb')?.checked || false,
+        borderType: document.getElementById('text-border-type')?.value || 'outer',
+        borderColor: document.getElementById('text-border-color')?.value || '#ffffff',
+        borderWidth: parseInt(document.getElementById('text-border-width')?.value || 2),
+        hasShadow: document.getElementById('text-shadow-cb')?.checked || false,
+        shadowColor: document.getElementById('text-shadow-color')?.value || '#000000',
+        shadowBlur: parseInt(document.getElementById('text-shadow-blur')?.value || 5),
         rows: parseInt(document.getElementById('table-rows')?.value || 3),
         cols: parseInt(document.getElementById('table-cols')?.value || 3),
         param: parseInt(document.getElementById('shape-param')?.value || 5),
@@ -230,7 +237,6 @@ export function endShapeEdit(x, y) {
     State.isDraggingBody = false;
 
     const s = State.editingShape;
-    // 極小図形判定を x1===x2 かつ y1===y2（完全な1クリックのみ）に緩和し、決定しやすくしました
     if (!s.points && s.type !== 'edit-text' && s.x1 === s.x2 && s.y1 === s.y2) {
         State.editingShape = null;
         DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
@@ -251,7 +257,6 @@ function hitTestHandle(x, y) {
     return -1;
 }
 
-// 点と線分の距離を測る関数
 function pointToLineDistance(px, py, x1, y1, x2, y2) {
     const l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2;
     if (l2 === 0) return Math.hypot(px - x1, py - y1);
@@ -260,7 +265,6 @@ function pointToLineDistance(px, py, x1, y1, x2, y2) {
     return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
 }
 
-// ヒット判定を超高精度化（バウンディングボックスではなく線そのものを判定）
 function hitTestBody(x, y) {
     const s = State.editingShape;
     if (!s) return false;
@@ -626,10 +630,56 @@ export function renderShapeToContext(ctx, s, useAA) {
         let minY = Math.min(s.y1, s.y2);
         let h = Math.abs(s.y2 - s.y1);
         if (h < 10) h = 10;
+
+
+        // ★修正：s.font を使用するように変更
+        const fontFamily = s.font || 'sans-serif';
+        ctx.font = `${h}px ${fontFamily}`;
+
+
+        //ctx.font = `${h}px sans-serif`;
+        ctx.lineJoin = 'round';
+        ctx.miterLimit = 2;
+
+        if (s.hasShadow) {
+            ctx.shadowColor = s.shadowColor || '#000000';
+            ctx.shadowBlur = s.shadowBlur || 5;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        } else {
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+        }
+
+        if (s.hasBorder) {
+            ctx.strokeStyle = s.borderColor || '#ffffff';
+            if (s.borderType === 'outer') {
+                ctx.lineWidth = (s.borderWidth || 2) * 2;
+                ctx.strokeText(s.text || "テキスト", minX, minY);
+                
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                
+                ctx.fillStyle = s.color;
+                ctx.fillText(s.text || "テキスト", minX, minY);
+            } else {
+                ctx.fillStyle = s.color;
+                ctx.fillText(s.text || "テキスト", minX, minY);
+                
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                
+                ctx.lineWidth = s.borderWidth || 2;
+                ctx.strokeText(s.text || "テキスト", minX, minY);
+            }
+        } else {
+            ctx.fillStyle = s.color;
+            ctx.fillText(s.text || "テキスト", minX, minY);
+        }
         
-        ctx.font = `${h}px sans-serif`;
-        ctx.fillStyle = s.color;
-        ctx.fillText(s.text || "テキスト", minX, minY);
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+
     } else if (s.type === 'edit-table') {
         let rx = Math.min(s.x1, s.x2);
         let ry = Math.min(s.y1, s.y2);

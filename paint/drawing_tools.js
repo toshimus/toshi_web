@@ -248,27 +248,149 @@ export function executeFloodFill(startX, startY) {
     ctx.putImageData(activeImageData, 0, 0);
 }
 
-export function applyColorAdjustment(brightness, contrast) {
-    const ctx = getCurrentContext();
-    if (!ctx) return;
-    const imgData = ctx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
-    const data = imgData.data;
-    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+export function applyColorAdjustment(ctx, w, h, b_val, c_val, h_val, s_val, grayscale, invert, sepia, edge, anime, mosaic) {
+    let imgData = ctx.getImageData(0, 0, w, h);
+    let data = imgData.data;
+
+    // ★ 修正箇所: モザイク処理で透明ピクセルが広がり透明の穴が開くバグを修正
+    if (mosaic > 1) {
+        const mData = new Uint8ClampedArray(data);
+        for (let y = 0; y < h; y += mosaic) {
+            for (let x = 0; x < w; x += mosaic) {
+                let r = 0, g = 0, b = 0, a = 0;
+                
+                // ブロック内で最初に完全透明でないピクセルを代表色とする
+                for (let my = 0; my < mosaic && y + my < h; my++) {
+                    for (let mx = 0; mx < mosaic && x + mx < w; mx++) {
+                        const mi = ((y + my) * w + (x + mx)) * 4;
+                        if (mData[mi+3] > 0) {
+                            r = mData[mi]; g = mData[mi+1]; b = mData[mi+2]; a = mData[mi+3];
+                            break;
+                        }
+                    }
+                    if (a > 0) break;
+                }
+                
+                for (let my = 0; my < mosaic && y + my < h; my++) {
+                    for (let mx = 0; mx < mosaic && x + mx < w; mx++) {
+                        const mi = ((y + my) * w + (x + mx)) * 4;
+                        // 元のアルファ値を維持することで不要な透明化を防ぐ
+                        if (mData[mi+3] > 0) { 
+                            data[mi] = r; data[mi+1] = g; data[mi+2] = b; data[mi+3] = mData[mi+3];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (edge) {
+        const edgeData = new Uint8ClampedArray(data);
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const i = (y * w + x) * 4;
+                if (data[i+3] === 0) {
+                    data[i] = 255; data[i+1] = 255; data[i+2] = 255; data[i+3] = 0;
+                    continue;
+                }
+                const right = (x < w - 1) ? ((y * w + x + 1) * 4) : i;
+                const bottom = (y < h - 1) ? (((y + 1) * w + x) * 4) : i;
+
+                const diff = Math.abs(edgeData[i] - edgeData[right]) + Math.abs(edgeData[i] - edgeData[bottom]) +
+                             Math.abs(edgeData[i+1] - edgeData[right+1]) + Math.abs(edgeData[i+1] - edgeData[bottom+1]) +
+                             Math.abs(edgeData[i+2] - edgeData[right+2]) + Math.abs(edgeData[i+2] - edgeData[bottom+2]);
+
+                const v = diff > 40 ? 0 : 255; 
+                data[i] = v; data[i+1] = v; data[i+2] = v;
+            }
+        }
+    }
+
+    const factor = (259 * (c_val + 255)) / (255 * (259 - c_val));
 
     for (let i = 0; i < data.length; i += 4) {
         if (data[i+3] === 0) continue; 
         
-        let r = factor * (data[i] - 128) + 128;
-        let g = factor * (data[i+1] - 128) + 128;
-        let b = factor * (data[i+2] - 128) + 128;
-        
-        r += brightness;
-        g += brightness;
-        b += brightness;
+        let r = data[i], g = data[i+1], b = data[i+2];
+
+        if (invert && !edge) {
+            r = 255 - r; g = 255 - g; b = 255 - b;
+        }
+
+        if (h_val !== 0 || s_val !== 0) {
+            let [hh, ss, ll] = rgbToHsl(r, g, b);
+            hh = (hh + h_val / 360) % 1;
+            if (hh < 0) hh += 1;
+            ss = Math.max(0, Math.min(1, ss + s_val / 100));
+            let rgb = hslToRgb(hh, ss, ll);
+            r = rgb[0]; g = rgb[1]; b = rgb[2];
+        }
+
+        r = factor * (r - 128) + 128 + b_val;
+        g = factor * (g - 128) + 128 + b_val;
+        b = factor * (b - 128) + 128 + b_val;
+
+        if (grayscale) {
+            let avg = 0.299 * r + 0.587 * g + 0.114 * b;
+            r = g = b = avg;
+        }
+
+        if (sepia && !edge) {
+            let sr = (r * 0.393) + (g * 0.769) + (b * 0.189);
+            let sg = (r * 0.349) + (g * 0.686) + (b * 0.168);
+            let sb = (r * 0.272) + (g * 0.534) + (b * 0.131);
+            r = sr; g = sg; b = sb;
+        }
+
+        if (anime > 1) {
+            const step = 255 / (anime - 1);
+            r = Math.round(r / step) * step;
+            g = Math.round(g / step) * step;
+            b = Math.round(b / step) * step;
+        }
         
         data[i] = Math.max(0, Math.min(255, r));
         data[i+1] = Math.max(0, Math.min(255, g));
         data[i+2] = Math.max(0, Math.min(255, b));
     }
     ctx.putImageData(imgData, 0, 0);
+}
+
+function rgbToHsl(r, g, b) {
+    r /= 255, g /= 255, b /= 255;
+    let max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+        let d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return [h, s, l];
+}
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) { r = g = b = l; }
+    else {
+        let hue2rgb = function hue2rgb(p, q, t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        let p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }

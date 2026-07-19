@@ -88,6 +88,7 @@ export function createNewCanvas() {
 
     State.historyStack = [];
     State.redoStack = [];
+    State.currentProjectHandle = null; 
     State.layers.forEach(l => DOM.canvasWrapper.removeChild(l.canvas));
     State.layers = [];
     State.layerCounter = 0;
@@ -282,7 +283,21 @@ export function loadImageAsLayer(event) {
     reader.readAsDataURL(file);
 }
 
-export function exportImage(format) {
+// 保存先フォルダの選択
+export async function selectSaveFolder() {
+    if (window.showDirectoryPicker) {
+        try {
+            State.currentDirectoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            alert(`保存先フォルダを「${State.currentDirectoryHandle.name}」に設定しました。\n以降のエクスポートや保存はダイアログなしで直接出力されます。`);
+        } catch (err) {
+            console.error("フォルダ選択がキャンセルされました", err);
+        }
+    } else {
+        alert("お使いのブラウザはフォルダ選択機能に対応していません。");
+    }
+}
+
+export async function exportImage(format) {
     finalizeSelection();
     if (window.finalizeShape) window.finalizeShape(true);
 
@@ -300,40 +315,121 @@ export function exportImage(format) {
     State.layers.forEach(layer => {
         if (layer.visible) tCtx.drawImage(layer.canvas, 0, 0);
     });
-    
+
+    const ext = format === 'jpeg' ? 'jpg' : format;
     const mimeType = `image/${format}`;
-    const dataUrl = tempCanvas.toDataURL(mimeType);
-    
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `KITT_Export_${new Date().getTime()}.${format === 'jpeg' ? 'jpg' : format}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const defaultFileName = `KITT_Export_${new Date().getTime()}.${ext}`;
+
+    // フォルダが指定されている場合は直接保存
+    if (State.currentDirectoryHandle) {
+        try {
+            const fileHandle = await State.currentDirectoryHandle.getFileHandle(defaultFileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            const blob = await new Promise(res => tempCanvas.toBlob(res, mimeType));
+            await writable.write(blob);
+            await writable.close();
+            alert(`${defaultFileName} を指定フォルダに出力しました。`);
+            return;
+        } catch (err) {
+            console.error("フォルダへの保存に失敗しました", err);
+        }
+    }
+
+    if (window.showSaveFilePicker) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: defaultFileName,
+                types: [{ description: `${format.toUpperCase()} Image`, accept: { [mimeType]: [`.${ext}`] } }]
+            });
+            const writable = await handle.createWritable();
+            const blob = await new Promise(res => tempCanvas.toBlob(res, mimeType));
+            await writable.write(blob);
+            await writable.close();
+        } catch (err) {
+            console.error("エクスポートがキャンセルされました", err);
+        }
+    } else {
+        const dataUrl = tempCanvas.toDataURL(mimeType);
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = defaultFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
 }
 
-export function saveProject() {
+export async function saveProject() {
     finalizeSelection();
     if (window.finalizeShape) window.finalizeShape(true);
 
     const projectData = {
-        version: '6.0',
+        version: '7.0',
         width: State.CANVAS_WIDTH,
         height: State.CANVAS_HEIGHT,
         layers: getSnapshot()
     };
-    
     const jsonStr = JSON.stringify(projectData);
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `KITT_PixelProject_${new Date().getTime()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const defaultFileName = `KITT_PixelProject_${new Date().getTime()}.json`;
+
+    if (window.showSaveFilePicker) {
+        try {
+            if (!State.currentProjectHandle) {
+                if (State.currentDirectoryHandle) {
+                    State.currentProjectHandle = await State.currentDirectoryHandle.getFileHandle(defaultFileName, { create: true });
+                } else {
+                    State.currentProjectHandle = await window.showSaveFilePicker({
+                        suggestedName: defaultFileName,
+                        types: [{ description: 'KITT Project JSON', accept: {'application/json': ['.json']} }]
+                    });
+                }
+            }
+            const writable = await State.currentProjectHandle.createWritable();
+            await writable.write(jsonStr);
+            await writable.close();
+            // 上書き時は目障りにならないようコンソールのみ
+            console.log("プロジェクトを保存しました。");
+        } catch (err) {
+            console.error("保存がキャンセルされました", err);
+        }
+    } else {
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = defaultFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+}
+
+export async function saveProjectAs() {
+    State.currentProjectHandle = null; 
+    const tempDir = State.currentDirectoryHandle;
+    State.currentDirectoryHandle = null; 
+    await saveProject();
+    State.currentDirectoryHandle = tempDir; 
+}
+
+export async function loadProjectSystem() {
+    finalizeSelection();
+    if (window.showOpenFilePicker) {
+        try {
+            const [fileHandle] = await window.showOpenFilePicker({
+                types: [{ description: 'KITT Project JSON', accept: {'application/json': ['.json']} }]
+            });
+            State.currentProjectHandle = fileHandle; 
+            const file = await fileHandle.getFile();
+            const jsonString = await file.text();
+            processProjectData(jsonString);
+        } catch (err) {
+            console.error("読み込みがキャンセルされました", err);
+        }
+    } else {
+        document.getElementById('load-input').click();
+    }
 }
 
 export function loadProject(event) {
@@ -343,30 +439,32 @@ export function loadProject(event) {
 
     const reader = new FileReader();
     reader.onload = function(e) {
-        try {
-            const projectData = JSON.parse(e.target.result);
-            if (projectData.layers && Array.isArray(projectData.layers)) {
-                State.historyStack = [];
-                State.redoStack = [];
-                
-                const stateToRestore = {
-                    width: projectData.width || 800,
-                    height: projectData.height || 600,
-                    layers: projectData.layers
-                };
-                restoreState(stateToRestore);
-                
-                setTimeout(() => { saveState(); }, 500); 
-            } else {
-                alert("データ形式が正しくありません。");
-            }
-        } catch (err) {
-            alert("ファイルの読み込み中にエラーが発生しました。");
-            console.error(err);
-        }
+        processProjectData(e.target.result);
     };
     reader.readAsText(file);
     event.target.value = '';
+}
+
+function processProjectData(jsonString) {
+    try {
+        const projectData = JSON.parse(jsonString);
+        if (projectData.layers && Array.isArray(projectData.layers)) {
+            State.historyStack = [];
+            State.redoStack = [];
+            const stateToRestore = {
+                width: projectData.width || 800,
+                height: projectData.height || 600,
+                layers: projectData.layers
+            };
+            restoreState(stateToRestore);
+            setTimeout(() => { saveState(); }, 500); 
+        } else {
+            alert("データ形式が正しくありません。");
+        }
+    } catch (err) {
+        alert("ファイルの読み込み中にエラーが発生しました。");
+        console.error(err);
+    }
 }
 
 export function rotateCanvasOrSelection(angleDeg) {
@@ -378,7 +476,6 @@ export function rotateCanvasOrSelection(angleDeg) {
 
     if (State.selection.active) {
         if (!State.selection.isFloating) {
-            // ベクターレイヤーをピクセルに変換して保護する
             const currentLayer = State.layers.find(l => l.id === State.currentLayerId);
             if (currentLayer && currentLayer.type === 'vector') {
                 currentLayer.type = 'pixel';
@@ -436,7 +533,6 @@ export function rotateCanvasOrSelection(angleDeg) {
         const newH = Math.max(1, Math.round(oldW * sin + oldH * cos));
 
         State.layers.forEach(layer => {
-            // 全体を回転する前に、すべてのベクターレイヤーをラスタライズして消失を防ぐ
             if (layer.type === 'vector') {
                 layer.type = 'pixel';
                 layer.shape = null;

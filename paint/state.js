@@ -7,7 +7,6 @@ export const State = {
     currentZoom: 1,
     isAntiAlias: false,
     
-    // グリッド・スナップ用ステート
     isGridVisible: false,
     gridSize: 16,
     isSnapToGrid: false,
@@ -39,7 +38,6 @@ export const State = {
     historyStack: [],
     redoStack: [],
 
-    // ベクター図形変形・プロパティ用ステート
     editingShape: null,
     hoveredHandle: -1,
     isDraggingHandle: false,
@@ -48,8 +46,11 @@ export const State = {
     shapeDragOffsetY: 0,   
     isFinalizing: false,
     
-    isShapeFill: false,       // 塗りつぶしのON/OFF
-    isPolygonClosed: true     // パスを閉じるかどうかのON/OFF
+    isShapeFill: false,
+    isPolygonClosed: true,
+    
+    currentProjectHandle: null, 
+    currentDirectoryHandle: null // 新規追加：作業用フォルダの参照
 };
 
 export const CONSTANTS = {

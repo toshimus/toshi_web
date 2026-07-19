@@ -1,7 +1,7 @@
 import { State, CONSTANTS, DOM } from './state.js';
 import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill, applyColorAdjustment } from './drawing_tools.js';
 import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer, duplicateLayer, mergeVisibleLayers } from './layer_history.js';
-import { duplicateSelection, deleteSelection, finalizeSelection, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, loadProject, drawSelectionPreview, rotateCanvasOrSelection } from './canvas_io.js';
+import { duplicateSelection, deleteSelection, finalizeSelection, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder } from './canvas_io.js';
 import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape, drawShapePreview, applySnap } from './shape_editor.js';
 
 export function updateStatusBar() {
@@ -50,6 +50,12 @@ export function setTool(toolName) {
     
     State.isPanning = false;
     if (DOM.selectionPanel) DOM.selectionPanel.style.display = (toolName === 'select') ? 'flex' : 'none';
+    
+    // 文字プロパティパネルの表示切替
+    const textProps = document.getElementById('text-properties');
+    if (textProps) {
+        textProps.style.display = (toolName === 'edit-text') ? 'block' : 'none';
+    }
     
     if (!['pen', 'eraser', 'dot'].includes(State.currentTool)) {
         DOM.brushPreview.style.display = 'none';
@@ -235,7 +241,11 @@ function setupPreviewCanvasEvents() {
     window.addEventListener('mouseout', (e) => {
         DOM.brushPreview.style.display = 'none';
         State.snapIndicator = null;
-        drawShapePreview();
+        if (State.selection.active) {
+            import('./canvas_io.js').then(c => c.drawSelectionPreview());
+        } else {
+            drawShapePreview();
+        }
     });
 
     overlay.addEventListener('wheel', (e) => {
@@ -588,6 +598,7 @@ function stopDrawing(e) {
         if (State.isDraggingSelection) {
             State.isDraggingSelection = false;
             drawSelectionPreview();
+            saveState(); 
         } else if (State.isDrawing) {
             State.isDrawing = false;
             const rx = Math.min(State.startX, pos.x);
@@ -604,9 +615,7 @@ function stopDrawing(e) {
                 State.selection.isFloating = false;
                 drawSelectionPreview();
             } else {
-                State.selection.active = false;
-                DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
-                drawShapePreview();
+                finalizeSelection(); 
             }
         }
         return; 
@@ -618,9 +627,7 @@ function stopDrawing(e) {
     const ctx = getCurrentContext();
 
     if (State.currentTool === 'pen' || State.currentTool === 'eraser') {
-        if (State.isAntiAlias) {
-            ctx.closePath();
-        }
+        if (State.isAntiAlias) ctx.closePath();
         
         if (!State.hasMoved) {
             if (!State.isAntiAlias) {
@@ -631,9 +638,9 @@ function stopDrawing(e) {
                 ctx.fill();
             }
         }
-
         if (State.currentTool === 'eraser') ctx.globalCompositeOperation = 'source-over';
-    } else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(State.currentTool)) {
+    } 
+    else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(State.currentTool)) {
         setupContextStyle(ctx, false);
         
         if (State.currentTool === 'crop') {
@@ -677,7 +684,7 @@ function stopDrawing(e) {
                 }
             } else {
                 let rx = State.startX, ry = State.startY, rw = pos.x - State.startX, rh = pos.y - State.startY;
-                DOM.previewCtx.beginPath();
+                ctx.beginPath();
                 if (State.currentTool === 'rect-fill') {
                     ctx.fillRect(rx, ry, rw, rh);
                 } else {
@@ -709,9 +716,40 @@ function stopDrawing(e) {
                 if (isFill) ctx.fill(); else ctx.stroke();
             }
         }
+        DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+        drawShapePreview();
     }
     
-    saveState();
+    saveState(); 
+}
+
+function setupModalDrag() {
+    const modal = document.getElementById('color-adjust-modal');
+    const header = document.getElementById('color-adjust-header');
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    header.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        const rect = modal.getBoundingClientRect();
+        
+        modal.style.transform = 'none'; 
+        modal.style.left = rect.left + 'px';
+        modal.style.top = rect.top + 'px';
+        
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        modal.style.left = (e.clientX - offsetX) + 'px';
+        modal.style.top = (e.clientY - offsetY) + 'px';
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
 }
 
 function init() {
@@ -746,12 +784,26 @@ function init() {
             }
         }
     });
+
+    setupModalDrag();
 }
 
 export function updateShapeProperties() {
     if (State.editingShape) {
         if (State.editingShape.type === 'edit-text') {
-            State.editingShape.text = document.getElementById('shape-text-input').value;
+            State.editingShape.text = document.getElementById('shape-text-input')?.value || 'テキスト';
+            
+            // ★追加：フォント情報の取得
+            State.editingShape.font = document.getElementById('text-font-select')?.value || 'sans-serif';
+            State.editingShape.hasBorder = document.getElementById('text-border-cb')?.checked || false;
+            
+            State.editingShape.hasBorder = document.getElementById('text-border-cb')?.checked || false;
+            State.editingShape.borderType = document.getElementById('text-border-type')?.value || 'outer';
+            State.editingShape.borderColor = document.getElementById('text-border-color')?.value || '#ffffff';
+            State.editingShape.borderWidth = parseInt(document.getElementById('text-border-width')?.value || 2);
+            State.editingShape.hasShadow = document.getElementById('text-shadow-cb')?.checked || false;
+            State.editingShape.shadowColor = document.getElementById('text-shadow-color')?.value || '#000000';
+            State.editingShape.shadowBlur = parseInt(document.getElementById('text-shadow-blur')?.value || 5);
         }
         if (State.editingShape.type === 'edit-table') {
             State.editingShape.rows = parseInt(document.getElementById('table-rows').value) || 1;
@@ -802,7 +854,33 @@ window.onLayerSelected = (layerId) => {
         if (layer.shape.type === 'edit-text') {
             const ti = document.getElementById('shape-text-input');
             if (ti) ti.value = layer.shape.text || '';
+
+            // ★追加：フォントの反映
+            const tf = document.getElementById('text-font-select');
+            if (tf) tf.value = layer.shape.font || 'sans-serif';
+
+            const tbc = document.getElementById('text-border-cb');
+            if (tbc) tbc.checked = !!layer.shape.hasBorder;
+            const tbt = document.getElementById('text-border-type');
+            if (tbt) tbt.value = layer.shape.borderType || 'outer';
+            const tbcol = document.getElementById('text-border-color');
+            if (tbcol) tbcol.value = layer.shape.borderColor || '#ffffff';
+            const tbw = document.getElementById('text-border-width');
+            if (tbw) tbw.value = layer.shape.borderWidth || 2;
+            const tsc = document.getElementById('text-shadow-cb');
+            if (tsc) tsc.checked = !!layer.shape.hasShadow;
+            const tscol = document.getElementById('text-shadow-color');
+            if (tscol) tscol.value = layer.shape.shadowColor || '#000000';
+            const tsb = document.getElementById('text-shadow-blur');
+            if (tsb) tsb.value = layer.shape.shadowBlur || 5;
+            
+            const tp = document.getElementById('text-properties');
+            if (tp) tp.style.display = 'block';
+        } else {
+            const tp = document.getElementById('text-properties');
+            if (tp) tp.style.display = 'none';
         }
+
         if (layer.shape.type === 'edit-table') {
             const tr = document.getElementById('table-rows');
             const tc = document.getElementById('table-cols');
@@ -838,6 +916,128 @@ window.toggleSnapToObject = () => {
     document.getElementById('snap-obj-btn').classList.toggle('active', State.isSnapToObject);
 };
 
+let colorAdjustOriginalData = null;
+let colorAdjustTargetCtx = null;
+let colorAdjustTargetCanvas = null;
+
+window.openColorAdjust = () => {
+    const targetLayer = State.layers.find(l => l.id === State.currentLayerId);
+    if (!targetLayer) return;
+
+    if (targetLayer.type === 'vector') {
+        alert("ベクターレイヤーには色調補正を適用できません。レイヤーパネルの「R」でラスタライズしてください。");
+        return;
+    }
+
+    if (State.selection.active && !State.selection.isFloating) {
+        State.selection.x = Math.round(State.selection.x);
+        State.selection.y = Math.round(State.selection.y);
+        State.selection.w = Math.round(State.selection.w);
+        State.selection.h = Math.round(State.selection.h);
+
+        State.selection.canvas = document.createElement('canvas');
+        State.selection.canvas.width = State.selection.w;
+        State.selection.canvas.height = State.selection.h;
+        State.selection.canvas.getContext('2d').drawImage(targetLayer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
+        targetLayer.ctx.clearRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+        State.selection.isFloating = true;
+    }
+
+    if (State.selection.active && State.selection.isFloating && State.selection.canvas) {
+        colorAdjustTargetCanvas = State.selection.canvas;
+        colorAdjustTargetCtx = State.selection.canvas.getContext('2d');
+    } else {
+        colorAdjustTargetCanvas = targetLayer.canvas;
+        colorAdjustTargetCtx = targetLayer.ctx;
+    }
+
+    colorAdjustOriginalData = colorAdjustTargetCtx.getImageData(0, 0, colorAdjustTargetCanvas.width, colorAdjustTargetCanvas.height);
+
+    document.getElementById('adj-brightness').value = 0;
+    document.getElementById('adj-contrast').value = 0;
+    document.getElementById('adj-hue').value = 0;
+    document.getElementById('adj-saturation').value = 0;
+    document.getElementById('adj-grayscale').checked = false;
+    document.getElementById('adj-invert').checked = false;
+    document.getElementById('adj-sepia').checked = false;
+    document.getElementById('adj-edge').checked = false;
+    document.getElementById('adj-anime').value = 0;
+    document.getElementById('adj-mosaic').value = 1;
+    
+    document.getElementById('bright-val').innerText = '0';
+    document.getElementById('contrast-val').innerText = '0';
+    document.getElementById('hue-val').innerText = '0';
+    document.getElementById('saturation-val').innerText = '0';
+    document.getElementById('anime-val').innerText = 'OFF';
+    document.getElementById('mosaic-val').innerText = 'OFF';
+
+    document.getElementById('color-adjust-modal').style.display = 'block';
+};
+
+window.previewColorAdjust = () => {
+    if (!colorAdjustOriginalData) return;
+    
+    const b = parseInt(document.getElementById('adj-brightness').value);
+    const c = parseInt(document.getElementById('adj-contrast').value);
+    const h = parseInt(document.getElementById('adj-hue').value);
+    const s = parseInt(document.getElementById('adj-saturation').value);
+    const gray = document.getElementById('adj-grayscale').checked;
+    const inv = document.getElementById('adj-invert').checked;
+    const sepia = document.getElementById('adj-sepia').checked;
+    const edge = document.getElementById('adj-edge').checked;
+    const anime = parseInt(document.getElementById('adj-anime').value);
+    const mosaic = parseInt(document.getElementById('adj-mosaic').value);
+
+    document.getElementById('bright-val').innerText = b;
+    document.getElementById('contrast-val').innerText = c;
+    document.getElementById('hue-val').innerText = h;
+    document.getElementById('saturation-val').innerText = s;
+    document.getElementById('anime-val').innerText = anime > 0 ? anime + '階調' : 'OFF';
+    document.getElementById('mosaic-val').innerText = mosaic > 1 ? mosaic + 'px' : 'OFF';
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = colorAdjustTargetCanvas.width;
+    tempCanvas.height = colorAdjustTargetCanvas.height;
+    const tCtx = tempCanvas.getContext('2d');
+    tCtx.putImageData(colorAdjustOriginalData, 0, 0);
+
+    applyColorAdjustment(tCtx, tempCanvas.width, tempCanvas.height, b, c, h, s, gray, inv, sepia, edge, anime, mosaic);
+
+    colorAdjustTargetCtx.clearRect(0, 0, colorAdjustTargetCanvas.width, colorAdjustTargetCanvas.height);
+    colorAdjustTargetCtx.drawImage(tempCanvas, 0, 0);
+    
+    if (State.selection.active && State.selection.isFloating) {
+        import('./canvas_io.js').then(c => c.drawSelectionPreview());
+    }
+};
+
+window.executeColorAdjust = () => {
+    if (colorAdjustOriginalData && colorAdjustTargetCtx) {
+        if (State.selection.active && State.selection.isFloating) {
+             import('./canvas_io.js').then(c => c.drawSelectionPreview());
+        }
+    }
+    saveState();
+    window.closeColorAdjust();
+};
+
+window.cancelColorAdjust = () => {
+    if (colorAdjustOriginalData && colorAdjustTargetCtx) {
+        colorAdjustTargetCtx.putImageData(colorAdjustOriginalData, 0, 0);
+        if (State.selection.active && State.selection.isFloating) {
+            import('./canvas_io.js').then(c => c.drawSelectionPreview());
+        }
+    }
+    window.closeColorAdjust();
+};
+
+window.closeColorAdjust = () => {
+    document.getElementById('color-adjust-modal').style.display = 'none';
+    colorAdjustOriginalData = null;
+    colorAdjustTargetCtx = null;
+    colorAdjustTargetCanvas = null;
+};
+
 window.setTool = setTool;
 window.setAntiAlias = setAntiAlias;
 window.toggleGrid = toggleGrid;
@@ -850,7 +1050,9 @@ window.pasteFromClipboard = pasteFromClipboard;
 window.loadImageAsLayer = loadImageAsLayer;
 window.exportImage = exportImage;
 window.saveProject = saveProject;
+window.saveProjectAs = saveProjectAs;
 window.loadProject = loadProject;
+window.loadProjectSystem = loadProjectSystem;
 window.createNewCanvas = createNewCanvas;
 window.resizeCanvasPrompt = resizeCanvasPrompt;
 window.scaleImagePrompt = scaleImagePrompt;
@@ -863,22 +1065,8 @@ window.redo = redo;
 window.duplicateCurrentLayer = () => { if (State.currentLayerId) import('./layer_history.js').then(l => l.duplicateLayer(State.currentLayerId)); };
 window.mergeVisibleLayers = () => { import('./layer_history.js').then(l => l.mergeVisibleLayers()); };
 window.rotateCanvasOrSelection = (angle) => { import('./canvas_io.js').then(c => c.rotateCanvasOrSelection(angle)); };
+window.selectSaveFolder = selectSaveFolder;
 window.finalizeShape = finalizeShape; 
 window.updateShapeProperties = updateShapeProperties;
-
-window.openColorAdjust = () => {
-    document.getElementById('adj-brightness').value = 0;
-    document.getElementById('adj-contrast').value = 0;
-    document.getElementById('bright-val').innerText = '0';
-    document.getElementById('contrast-val').innerText = '0';
-    document.getElementById('color-adjust-modal').style.display = 'block';
-};
-window.executeColorAdjust = () => {
-    const b = parseInt(document.getElementById('adj-brightness').value);
-    const c = parseInt(document.getElementById('adj-contrast').value);
-    applyColorAdjustment(b, c);
-    saveState();
-    document.getElementById('color-adjust-modal').style.display = 'none';
-};
 
 window.onload = init;
