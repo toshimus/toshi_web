@@ -101,15 +101,25 @@ function getShapeSnapPoints(s) {
 }
 
 export function startShapeEdit(x, y) {
+    if (State.editingShape && State.editingShape.isDrawingFree) {
+        const pts = State.editingShape.points;
+        const firstPt = pts[0];
+        const dist = Math.hypot(firstPt.x - x, firstPt.y - y);
+        if (pts.length >= 2 && dist < 15 / State.currentZoom) {
+            State.editingShape.isDrawingFree = false;
+            State.editingShape.tempPoint = null;
+        } else {
+            pts.push({x, y});
+        }
+        drawShapePreview();
+        return;
+    }
+
     if (State.editingShape) {
         const handleIdx = hitTestHandle(x, y);
         if (handleIdx !== -1) {
             State.isDraggingHandle = true;
             State.hoveredHandle = handleIdx;
-            if (State.editingShape.isDrawingFree) {
-                // ドラッグ中は追従するプレビュー線を一時的に消す
-                State.editingShape.tempPoint = null;
-            }
             return;
         } else if (hitTestBody(x, y)) {
             State.isDraggingBody = true;
@@ -119,14 +129,7 @@ export function startShapeEdit(x, y) {
             State.shapeDragOffsetY = y - baseY;
             return;
         } else {
-            if (State.editingShape.isDrawingFree) {
-                // 何もヒットしなければ新しい頂点を追加
-                State.editingShape.points.push({x, y});
-                drawShapePreview();
-                return;
-            } else {
-                finalizeShape();
-            }
+            finalizeShape();
         }
     }
 
@@ -175,6 +178,12 @@ export function startShapeEdit(x, y) {
 export function moveShapeEdit(x, y) {
     if (!State.editingShape) return;
 
+    if (State.editingShape.isDrawingFree) {
+        State.editingShape.tempPoint = {x, y};
+        drawShapePreview();
+        return;
+    }
+
     if (State.isDraggingHandle) {
         updateHandlePosition(x, y);
     } else if (State.isDraggingBody) {
@@ -192,7 +201,7 @@ export function moveShapeEdit(x, y) {
         
         State.shapeDragOffsetX = x - (State.editingShape.points ? State.editingShape.points[0].x : State.editingShape.x1);
         State.shapeDragOffsetY = y - (State.editingShape.points ? State.editingShape.points[0].y : State.editingShape.y1);
-    } else if (!State.editingShape.isDrawingFree) {
+    } else {
         State.editingShape.x2 = x;
         State.editingShape.y2 = y;
     }
@@ -204,7 +213,6 @@ export function endShapeEdit(x, y) {
 
     if (State.editingShape.isDrawingFree) {
         if (State.isDraggingHandle) {
-            // 始点をクリック（ドラッグせず離した）場合、パスを閉じて描画完了
             if (State.hoveredHandle === 0 && !State.hasMoved && State.editingShape.points.length >= 3) {
                 State.editingShape.isDrawingFree = false;
                 State.editingShape.tempPoint = null;
@@ -222,7 +230,8 @@ export function endShapeEdit(x, y) {
     State.isDraggingBody = false;
 
     const s = State.editingShape;
-    if (!s.points && s.type !== 'edit-text' && Math.abs(s.x2 - s.x1) < 2 && Math.abs(s.y2 - s.y1) < 2) {
+    // 極小図形判定を x1===x2 かつ y1===y2（完全な1クリックのみ）に緩和し、決定しやすくしました
+    if (!s.points && s.type !== 'edit-text' && s.x1 === s.x2 && s.y1 === s.y2) {
         State.editingShape = null;
         DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     } else {
@@ -242,38 +251,90 @@ function hitTestHandle(x, y) {
     return -1;
 }
 
+// 点と線分の距離を測る関数
+function pointToLineDistance(px, py, x1, y1, x2, y2) {
+    const l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2;
+    if (l2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+}
+
+// ヒット判定を超高精度化（バウンディングボックスではなく線そのものを判定）
 function hitTestBody(x, y) {
     const s = State.editingShape;
     if (!s) return false;
 
-    let minX, maxX, minY, maxY;
+    const threshold = Math.max(4, 8 / State.currentZoom); 
 
-    if (s.points) {
-        minX = Math.min(...s.points.map(p => p.x));
-        maxX = Math.max(...s.points.map(p => p.x));
-        minY = Math.min(...s.points.map(p => p.y));
-        maxY = Math.max(...s.points.map(p => p.y));
-    } else {
-        minX = Math.min(s.x1, s.x2);
-        maxX = Math.max(s.x1, s.x2);
-        minY = Math.min(s.y1, s.y2);
-        maxY = Math.max(s.y1, s.y2);
+    if (s.type === 'edit-text') {
+        let minX = Math.min(s.x1, s.x2);
+        let minY = Math.min(s.y1, s.y2);
+        const ctx = DOM.previewCtx;
+        let h = Math.abs(s.y2 - s.y1);
+        if (h < 10) h = 10;
+        ctx.font = `${h}px sans-serif`;
+        const metrics = ctx.measureText(s.text || "テキスト");
+        return (x >= minX && x <= minX + metrics.width && y >= minY && y <= minY + h);
+    }
 
-        if (s.type === 'edit-text') {
-            const ctx = DOM.previewCtx;
-            let h = Math.abs(s.y2 - s.y1);
-            if (h < 10) h = 10;
-            ctx.font = `${h}px sans-serif`;
-            const metrics = ctx.measureText(s.text || "テキスト");
-            maxX = minX + metrics.width;
-            maxY = minY + h;
-        } else if (s.type === 'edit-line') {
-            minX -= 10; maxX += 10;
-            minY -= 10; maxY += 10;
+    if (s.type === 'edit-line') {
+        return pointToLineDistance(x, y, s.x1, s.y1, s.x2, s.y2) <= threshold;
+    }
+
+    if (s.type === 'edit-free-polygon') {
+        const pts = s.points;
+        if (!pts || pts.length === 0) return false;
+        
+        if (s.isFill) {
+            const minX = Math.min(...pts.map(p => p.x));
+            const maxX = Math.max(...pts.map(p => p.x));
+            const minY = Math.min(...pts.map(p => p.y));
+            const maxY = Math.max(...pts.map(p => p.y));
+            return (x >= minX && x <= maxX && y >= minY && y <= maxY);
+        } else {
+            for (let i = 0; i < pts.length - 1; i++) {
+                if (pointToLineDistance(x, y, pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y) <= threshold) return true;
+            }
+            if (s.isClosed && pts.length > 2) {
+                if (pointToLineDistance(x, y, pts[pts.length-1].x, pts[pts.length-1].y, pts[0].x, pts[0].y) <= threshold) return true;
+            }
+            return false;
         }
     }
 
-    return (x >= minX && x <= maxX && y >= minY && y <= maxY);
+    const minX = Math.min(s.x1, s.x2);
+    const maxX = Math.max(s.x1, s.x2);
+    const minY = Math.min(s.y1, s.y2);
+    const maxY = Math.max(s.y1, s.y2);
+
+    if (s.isFill) {
+        if (s.type.includes('ellipse')) {
+            const cx = (s.x1 + s.x2) / 2;
+            const cy = (s.y1 + s.y2) / 2;
+            const rx = Math.abs(s.x2 - s.x1) / 2;
+            const ry = Math.abs(s.y2 - s.y1) / 2;
+            if (rx === 0 || ry === 0) return false;
+            return ((x - cx)**2 / rx**2 + (y - cy)**2 / ry**2) <= 1;
+        }
+        return (x >= minX && x <= maxX && y >= minY && y <= maxY);
+    } else {
+        if (s.type.includes('ellipse')) {
+            const cx = (s.x1 + s.x2) / 2;
+            const cy = (s.y1 + s.y2) / 2;
+            const rx = Math.abs(s.x2 - s.x1) / 2;
+            const ry = Math.abs(s.y2 - s.y1) / 2;
+            if (rx === 0 || ry === 0) return false;
+            const val = ((x - cx)**2 / rx**2 + (y - cy)**2 / ry**2);
+            return val >= 0.8 && val <= 1.2;
+        } else {
+            const d1 = pointToLineDistance(x, y, minX, minY, maxX, minY);
+            const d2 = pointToLineDistance(x, y, maxX, minY, maxX, maxY);
+            const d3 = pointToLineDistance(x, y, maxX, maxY, minX, maxY);
+            const d4 = pointToLineDistance(x, y, minX, maxY, minX, minY);
+            return (d1 <= threshold || d2 <= threshold || d3 <= threshold || d4 <= threshold);
+        }
+    }
 }
 
 function getHandles(shape) {
@@ -329,19 +390,22 @@ export function drawShapePreview() {
         State.currentColor = oldColor;
         State.currentLineWidth = oldWidth;
 
-        // 作成中・編集中を問わず常にハンドル（■）を表示
-        const handles = getHandles(s);
-        const z = State.currentZoom;
-        const size = Math.max(1, 8 / z);
-        const offset = size / 2;
+        if (!s.isDrawingFree) {
+            const handles = getHandles(s);
+            const z = State.currentZoom;
+            const size = Math.max(3, Math.floor(10 / z) | 1); 
+            const offset = Math.floor(size / 2);
 
-        DOM.previewCtx.fillStyle = '#00ff00';
-        DOM.previewCtx.strokeStyle = '#000000';
-        DOM.previewCtx.lineWidth = Math.max(0.1, 1 / z);
-        handles.forEach((h) => {
-            DOM.previewCtx.fillRect(h.x - offset, h.y - offset, size, size);
-            DOM.previewCtx.strokeRect(h.x - offset, h.y - offset, size, size);
-        });
+            handles.forEach((h) => {
+                const cx = Math.round(h.x);
+                const cy = Math.round(h.y);
+                
+                DOM.previewCtx.fillStyle = '#000000';
+                DOM.previewCtx.fillRect(cx - offset - 1, cy - offset - 1, size + 2, size + 2);
+                DOM.previewCtx.fillStyle = '#00ff00';
+                DOM.previewCtx.fillRect(cx - offset, cy - offset, size, size);
+            });
+        }
     }
 
     if (State.snapIndicator) {
@@ -349,18 +413,13 @@ export function drawShapePreview() {
         const ctx = DOM.previewCtx;
         const {x, y} = State.snapIndicator;
         
-        ctx.beginPath();
-        ctx.strokeStyle = '#ff00ff';
-        ctx.lineWidth = Math.max(0.5, 1 / z);
-        const r = Math.max(3, 10 / z);
+        const cx = Math.round(x);
+        const cy = Math.round(y);
+        const r = Math.max(3, Math.floor(8 / z));
         
-        ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r);
-        ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI*2);
-        ctx.stroke();
+        ctx.fillStyle = '#ff00ff';
+        ctx.fillRect(cx - r, cy, r * 2 + 1, 1);
+        ctx.fillRect(cx, cy - r, 1, r * 2 + 1);
     }
 }
 

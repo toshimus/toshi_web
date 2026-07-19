@@ -39,6 +39,8 @@
                 <div class="dropdown-item" onclick="resizeCanvasPrompt()">キャンバスサイズ変更</div>
                 <div class="dropdown-item" onclick="scaleImagePrompt()">解像度拡縮</div>
                 <div class="dropdown-item" onclick="setTool('crop')">トリミング</div>
+                <div class="dropdown-item" onclick="rotateCanvasOrSelection(-45)">↶ 左に45°回転</div>
+                <div class="dropdown-item" onclick="rotateCanvasOrSelection(45)">↷ 右に45°回転</div>
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-item" onclick="openColorAdjust()">色調補正...</div>
             </div>
@@ -116,21 +118,32 @@
                 </button>
             </div>
 
+            <div class="tool-section" id="selection-panel" style="display: none; background-color: #3a2222; padding: 10px; border-radius: 4px; border: 1px solid #ff4444;">
+                <label style="color: #ffaaaa;">選択範囲オプション</label>
+                <div class="button-grid">
+                    <button onclick="duplicateSelection()">複製</button>
+                    <button onclick="deleteSelection()">削除</button>
+                    <button onclick="rotateCanvasOrSelection(-45)">↶ -45°</button>
+                    <button onclick="rotateCanvasOrSelection(45)">↷ +45°</button>
+                    <button onclick="finalizeSelection()" style="grid-column: span 2; background-color: #552222;">確定 (スタンプ)</button>
+                </div>
+            </div>
+
             <div class="tool-section" style="background-color: #2a1111; padding: 8px; border-radius: 4px; border: 1px solid #662222;">
                 <label style="color: #ffaaaa; margin-bottom: 5px; display: block;">ベクター (自動レイヤー化)</label>
                 
                 <div class="icon-grid" style="grid-template-columns: repeat(3, 1fr);">
-                    <button id="tool-edit-line" class="tool-btn" onclick="setTool('edit-line')" style="height: 24px;">直線</button>
-                    <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 24px;">四角</button>
-                    <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 24px;">円/楕円</button>
+                    <button id="tool-edit-line" class="tool-btn" onclick="setTool('edit-line')" style="height: 35px;">直線</button>
+                    <button id="tool-edit-rect" class="tool-btn" onclick="setTool('edit-rect')" style="height: 35px;">四角</button>
+                    <button id="tool-edit-ellipse" class="tool-btn" onclick="setTool('edit-ellipse')" style="height: 35px;">円/楕円</button>
                     
-                    <button id="tool-edit-polygon" class="tool-btn" onclick="setTool('edit-polygon')" style="height: 24px;">正多角</button>
-                    <button id="tool-edit-free-polygon" class="tool-btn" onclick="setTool('edit-free-polygon')" style="height: 24px; border-color:#00ffff;">多角形</button>
-                    <button id="tool-edit-round-rect" class="tool-btn" onclick="setTool('edit-round-rect')" style="height: 24px;">角丸</button>
+                    <button id="tool-edit-polygon" class="tool-btn" onclick="setTool('edit-polygon')" style="height: 35px;">正多角</button>
+                    <button id="tool-edit-free-polygon" class="tool-btn" onclick="setTool('edit-free-polygon')" style="height: 35px; border-color:#00ffff;">多角形</button>
+                    <button id="tool-edit-round-rect" class="tool-btn" onclick="setTool('edit-round-rect')" style="height: 35px;">角丸</button>
                     
-                    <button id="tool-edit-text" class="tool-btn" onclick="setTool('edit-text')" style="height: 24px;">文字</button>
-                    <button id="tool-edit-table" class="tool-btn" onclick="setTool('edit-table')" style="height: 24px;">表(Grid)</button>
-                    <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 24px;">✅ 確定</button>
+                    <button id="tool-edit-text" class="tool-btn" onclick="setTool('edit-text')" style="height: 35px;">文字</button>
+                    <button id="tool-edit-table" class="tool-btn" onclick="setTool('edit-table')" style="height: 35px;">表(Grid)</button>
+                    <button id="tool-finalize-shape" class="tool-btn" onclick="finalizeShape()" style="background-color: #ff3333; color: white; height: 35px;">✅ 確定</button>
                 </div>
 
                 <div style="margin-top: 5px; display: flex; gap: 10px; align-items: center; background: #1a1a1a; padding: 6px; border-radius: 4px; border: 1px solid #444;">
@@ -145,25 +158,42 @@
                 <div style="margin-top: 5px;">
                     <input type="text" id="shape-text-input" placeholder="文字入力..." oninput="updateShapeProperties()" style="width: 100%; box-sizing: border-box; background: #111; color: #fff; border: 1px solid #444; padding: 4px; margin-bottom: 4px;">
                     <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
-                        <label style="font-size:10px; color:#aaa;">行:<input type="number" id="table-rows" value="3" min="1" oninput="updateShapeProperties()" style="width:32px; background: #111; color: #fff; border: 1px solid #444;"></label>
-                        <label style="font-size:10px; color:#aaa;">列:<input type="number" id="table-cols" value="3" min="1" oninput="updateShapeProperties()" style="width:32px; background: #111; color: #fff; border: 1px solid #444;"></label>
-                        <label style="font-size:10px; color:#aaa;">角数/丸み:<input type="number" id="shape-param" value="5" min="0" oninput="updateShapeProperties()" style="width:32px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                        <label style="font-size:10px; color:#aaa;">行:<input type="number" id="table-rows" value="3" min="1" oninput="updateShapeProperties()" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                        <label style="font-size:10px; color:#aaa;">列:<input type="number" id="table-cols" value="3" min="1" oninput="updateShapeProperties()" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                        <label style="font-size:10px; color:#aaa;">角数/丸み:<input type="number" id="shape-param" value="5" min="0" oninput="updateShapeProperties()" style="width:40px; background: #111; color: #fff; border: 1px solid #444;"></label>
                     </div>
                 </div>
             </div>
 
             <div class="tool-section">
                 <label>線の太さ: <span id="line-width-display">1</span>px</label>
-                <input type="range" id="line-width" min="1" max="32" value="1" oninput="setLineWidth(this.value)">
+                <input type="range" id="line-width" min="1" max="50" value="1" oninput="setLineWidth(this.value)">
             </div>
 
             <div class="tool-section">
-                <label>FC パレット</label>
-                <div class="palette-grid" id="famicom-palette">
+                <label>ドット絵・グリッドサポート</label>
+                <div class="button-grid" style="grid-template-columns: 1fr 1fr;">
+                    <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット(AAオフ)</button>
+                    <button id="aa-on" onclick="setAntiAlias(true)">滑らか(AAオン)</button>
                 </div>
-                <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 0px;">
+                <div style="display:flex; gap:5px; margin-top:5px; align-items:center;">
+                    <button id="grid-toggle" onclick="toggleGrid()" style="flex:1;">表示切替</button>
+                    <label style="font-size:10px; color:#aaa; white-space:nowrap;">サイズ:<input type="number" id="grid-size" value="16" min="2" onchange="setGridSize(this.value)" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
+                </div>
+                <div class="button-grid" style="margin-top:5px;">
+                    <button id="snap-grid-btn" onclick="toggleSnapToGrid()">グリッド吸着</button>
+                    <button id="snap-obj-btn" onclick="toggleSnapToObject()">頂点/円周吸着</button>
+                </div>
             </div>
-            
+
+            <div class="tool-section">
+                <label>キャンバス操作</label>
+                <div class="button-grid">
+                    <button onclick="rotateCanvasOrSelection(-45)">↶ 全体 -45°</button>
+                    <button onclick="rotateCanvasOrSelection(45)">↷ 全体 +45°</button>
+                </div>
+            </div>
+
             <div class="tool-section">
                 <label>表示倍率 (Zoom)</label>
                 <div class="zoom-grid" id="zoom-controls">
@@ -177,21 +207,12 @@
             </div>
 
             <div class="tool-section">
-                <label>ドット絵・グリッドサポート</label>
-                <div class="button-grid" style="grid-template-columns: 1fr 1fr;">
-                    <button id="aa-off" class="active" onclick="setAntiAlias(false)">ドット(AAオフ)</button>
-                    <button id="aa-on" onclick="setAntiAlias(true)">滑らか(AAオン)</button>
+                <label>FC パレット</label>
+                <div class="palette-grid" id="famicom-palette">
                 </div>
-                <div style="display:flex; gap:5px; margin-top:5px; align-items:center;">
-                    <button id="grid-toggle" onclick="toggleGrid()" style="flex:1;">グリッド表示切替</button>
-                    <label style="font-size:10px; color:#aaa; white-space:nowrap;">サイズ:<input type="number" id="grid-size" value="16" min="2" onchange="setGridSize(this.value)" style="width:35px; background: #111; color: #fff; border: 1px solid #444;"></label>
-                </div>
-                <div class="button-grid" style="margin-top:5px;">
-                    <button id="snap-grid-btn" onclick="toggleSnapToGrid()">グリッド吸着</button>
-                    <button id="snap-obj-btn" onclick="toggleSnapToObject()">頂点/円周吸着</button>
-                </div>
+                <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" style="margin-top: 5px;">
             </div>
-
+            
             <div style="height: 10px; flex-shrink: 0;"></div>
         </div>
 

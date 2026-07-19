@@ -368,3 +368,112 @@ export function loadProject(event) {
     reader.readAsText(file);
     event.target.value = '';
 }
+
+export function rotateCanvasOrSelection(angleDeg) {
+    if (window.finalizeShape) window.finalizeShape(true);
+
+    const angleRad = angleDeg * Math.PI / 180;
+    const cos = Math.abs(Math.cos(angleRad));
+    const sin = Math.abs(Math.sin(angleRad));
+
+    if (State.selection.active) {
+        if (!State.selection.isFloating) {
+            // ベクターレイヤーをピクセルに変換して保護する
+            const currentLayer = State.layers.find(l => l.id === State.currentLayerId);
+            if (currentLayer && currentLayer.type === 'vector') {
+                currentLayer.type = 'pixel';
+                currentLayer.shape = null;
+                import('./layer_history.js').then(lh => lh.renderLayerPanel());
+            }
+
+            State.selection.canvas = document.createElement('canvas');
+            State.selection.canvas.width = State.selection.w;
+            State.selection.canvas.height = State.selection.h;
+            const sCtx = State.selection.canvas.getContext('2d');
+            sCtx.imageSmoothingEnabled = State.isAntiAlias;
+            
+            State.layers.forEach(layer => {
+                if (layer.visible) {
+                    sCtx.drawImage(layer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
+                    layer.ctx.clearRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+                }
+            });
+            State.selection.isFloating = true;
+        }
+
+        const oldW = State.selection.w;
+        const oldH = State.selection.h;
+        const newW = Math.max(1, Math.round(oldW * cos + oldH * sin));
+        const newH = Math.max(1, Math.round(oldW * sin + oldH * cos));
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = oldW;
+        tempCanvas.height = oldH;
+        tempCanvas.getContext('2d').drawImage(State.selection.canvas, 0, 0);
+
+        State.selection.canvas.width = newW;
+        State.selection.canvas.height = newH;
+        const sCtx = State.selection.canvas.getContext('2d');
+        sCtx.imageSmoothingEnabled = State.isAntiAlias;
+        
+        sCtx.save();
+        sCtx.translate(newW / 2, newH / 2);
+        sCtx.rotate(angleRad);
+        sCtx.translate(-oldW / 2, -oldH / 2);
+        sCtx.drawImage(tempCanvas, 0, 0);
+        sCtx.restore();
+
+        State.selection.x -= Math.round((newW - oldW) / 2);
+        State.selection.y -= Math.round((newH - oldH) / 2);
+        State.selection.w = newW;
+        State.selection.h = newH;
+
+        drawSelectionPreview();
+    } else {
+        const oldW = State.CANVAS_WIDTH;
+        const oldH = State.CANVAS_HEIGHT;
+        const newW = Math.max(1, Math.round(oldW * cos + oldH * sin));
+        const newH = Math.max(1, Math.round(oldW * sin + oldH * cos));
+
+        State.layers.forEach(layer => {
+            // 全体を回転する前に、すべてのベクターレイヤーをラスタライズして消失を防ぐ
+            if (layer.type === 'vector') {
+                layer.type = 'pixel';
+                layer.shape = null;
+            }
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = oldW;
+            tempCanvas.height = oldH;
+            tempCanvas.getContext('2d').drawImage(layer.canvas, 0, 0);
+            
+            layer.canvas.width = newW;
+            layer.canvas.height = newH;
+            layer.canvas.style.imageRendering = State.isAntiAlias ? 'auto' : 'pixelated';
+            layer.ctx.imageSmoothingEnabled = State.isAntiAlias;
+            
+            layer.ctx.save();
+            layer.ctx.clearRect(0, 0, newW, newH);
+            layer.ctx.translate(newW / 2, newH / 2);
+            layer.ctx.rotate(angleRad);
+            layer.ctx.translate(-oldW / 2, -oldH / 2);
+            layer.ctx.drawImage(tempCanvas, 0, 0);
+            layer.ctx.restore();
+        });
+
+        State.CANVAS_WIDTH = newW;
+        State.CANVAS_HEIGHT = newH;
+        
+        DOM.previewCanvas.width = newW;
+        DOM.previewCanvas.height = newH;
+        DOM.previewCanvas.style.imageRendering = State.isAntiAlias ? 'auto' : 'pixelated';
+        DOM.previewCtx.imageSmoothingEnabled = State.isAntiAlias;
+        
+        import('./app.js').then(app => {
+            app.updateStatusBar();
+            app.setZoom(State.currentZoom);
+        });
+        import('./layer_history.js').then(lh => lh.renderLayerPanel());
+    }
+    saveState();
+}

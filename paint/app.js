@@ -1,10 +1,8 @@
 import { State, CONSTANTS, DOM } from './state.js';
 import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill, applyColorAdjustment } from './drawing_tools.js';
-import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer } from './layer_history.js';
-import { duplicateSelection, deleteSelection, finalizeSelection, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, loadProject, drawSelectionPreview } from './canvas_io.js';
+import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer, duplicateLayer, mergeVisibleLayers } from './layer_history.js';
+import { duplicateSelection, deleteSelection, finalizeSelection, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, loadProject, drawSelectionPreview, rotateCanvasOrSelection } from './canvas_io.js';
 import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape, drawShapePreview, applySnap } from './shape_editor.js';
-// ...既存のインポートの下に以下を追加
-import { duplicateLayer, mergeVisibleLayers } from './layer_history.js';
 
 export function updateStatusBar() {
     const sizeDisplay = document.getElementById('status-size');
@@ -264,7 +262,6 @@ function setupPreviewCanvasEvents() {
         } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) {
             draw(e);
         } else {
-            // ホバー時のスナップおよび多角形のプレビュー線更新
             if (State.currentTool.startsWith('edit-')) {
                 let snappedPos = applySnap(pos.x, pos.y);
                 if (State.editingShape && State.editingShape.isDrawingFree) {
@@ -373,6 +370,11 @@ function startDrawing(e) {
     const layer = State.layers.find(l => l.id === State.currentLayerId);
     if (!layer || !layer.visible) {
         alert("現在選択されているレイヤーは非表示か存在しません。");
+        return;
+    }
+
+    if (!State.currentTool.startsWith('edit-') && State.currentTool !== 'select' && layer.type === 'vector') {
+        alert("ベクターレイヤーには直接ペン等で描画できません。レイヤーパネルの「R」でラスタライズするか、新しいレイヤーを追加してください。");
         return;
     }
 
@@ -577,6 +579,7 @@ function stopDrawing(e) {
             endShapeEdit(pos.x, pos.y);
             State.isDrawing = false;
         }
+        State.snapIndicator = null;
         drawShapePreview();
         return;
     }
@@ -674,7 +677,7 @@ function stopDrawing(e) {
                 }
             } else {
                 let rx = State.startX, ry = State.startY, rw = pos.x - State.startX, rh = pos.y - State.startY;
-                ctx.beginPath();
+                DOM.previewCtx.beginPath();
                 if (State.currentTool === 'rect-fill') {
                     ctx.fillRect(rx, ry, rw, rh);
                 } else {
@@ -772,6 +775,7 @@ export function updateShapeProperties() {
 }
 
 window.onLayerSelected = (layerId) => {
+    if (State.isFinalizing) return;
     const layer = State.layers.find(l => l.id === layerId);
     if (layer && layer.type === 'vector' && layer.shape) {
         setTool(layer.shape.type);
@@ -834,15 +838,6 @@ window.toggleSnapToObject = () => {
     document.getElementById('snap-obj-btn').classList.toggle('active', State.isSnapToObject);
 };
 
-
-// ...ウィンドウ関数への登録
-window.duplicateCurrentLayer = () => {
-    if (State.currentLayerId) duplicateLayer(State.currentLayerId);
-};
-
-window.mergeVisibleLayers = mergeVisibleLayers;
-
-
 window.setTool = setTool;
 window.setAntiAlias = setAntiAlias;
 window.toggleGrid = toggleGrid;
@@ -865,6 +860,9 @@ window.finalizeSelection = finalizeSelection;
 window.addLayer = addLayer;
 window.undo = undo;
 window.redo = redo;
+window.duplicateCurrentLayer = () => { if (State.currentLayerId) import('./layer_history.js').then(l => l.duplicateLayer(State.currentLayerId)); };
+window.mergeVisibleLayers = () => { import('./layer_history.js').then(l => l.mergeVisibleLayers()); };
+window.rotateCanvasOrSelection = (angle) => { import('./canvas_io.js').then(c => c.rotateCanvasOrSelection(angle)); };
 window.finalizeShape = finalizeShape; 
 window.updateShapeProperties = updateShapeProperties;
 
