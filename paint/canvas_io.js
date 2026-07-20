@@ -3,32 +3,60 @@ import { addLayer, saveState, renderLayerPanel, restoreState, getSnapshot } from
 import { setZoom, updateStatusBar } from './app.js';
 import { drawShapePreview, finalizeShape } from './shape_editor.js';
 
-export function applySelectionMask(ctx, offsetX, offsetY) {
-    ctx.save();
-    ctx.fillStyle = '#FFFFFF';
-    ctx.strokeStyle = '#FFFFFF';
-    
-    if (State.selection.type === 'rect') {
-        ctx.fillRect(offsetX, offsetY, State.selection.w, State.selection.h);
-    } else if (State.selection.type === 'ellipse') {
-        ctx.beginPath();
-        ctx.ellipse(offsetX + State.selection.w/2, offsetY + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
-        ctx.fill();
-    } else if (State.selection.type === 'lasso') {
-        ctx.beginPath();
-        ctx.moveTo(State.selection.path[0].x - State.selection.x + offsetX, State.selection.path[0].y - State.selection.y + offsetY);
-        for(let i=1; i<State.selection.path.length; i++) {
-            ctx.lineTo(State.selection.path[i].x - State.selection.x + offsetX, State.selection.path[i].y - State.selection.y + offsetY);
-        }
-        ctx.fill();
-    } else if (State.selection.type === 'wand' || State.selection.type === 'mask') {
-        ctx.drawImage(State.selection.maskCanvas, offsetX, offsetY);
+export function updateSelectionMask() {
+    if (!State.selection.active) {
+        State.selectionMask = null;
+        return;
     }
     
-    ctx.restore();
+    if (State.selection.type !== 'mask' && State.selection.type !== 'wand') {
+        const mCanvas = document.createElement('canvas');
+        mCanvas.width = Math.max(1, State.selection.w);
+        mCanvas.height = Math.max(1, State.selection.h);
+        const mCtx = mCanvas.getContext('2d');
+        mCtx.fillStyle = '#FFFFFF';
+        
+        if (State.selection.type === 'rect') {
+            mCtx.fillRect(0, 0, State.selection.w, State.selection.h);
+        } else if (State.selection.type === 'ellipse') {
+            mCtx.beginPath();
+            mCtx.ellipse(State.selection.w/2, State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
+            mCtx.fill();
+        } else if (State.selection.type === 'lasso') {
+            if (State.selection.path && State.selection.path.length > 0) {
+                mCtx.beginPath();
+                mCtx.moveTo(State.selection.path[0].x - State.selection.x, State.selection.path[0].y - State.selection.y);
+                for(let i=1; i<State.selection.path.length; i++) {
+                    mCtx.lineTo(State.selection.path[i].x - State.selection.x, State.selection.path[i].y - State.selection.y);
+                }
+                mCtx.fill();
+            }
+        }
+        State.selection.maskCanvas = mCanvas;
+    }
+
+    const fullCanvas = document.createElement('canvas');
+    fullCanvas.width = State.CANVAS_WIDTH;
+    fullCanvas.height = State.CANVAS_HEIGHT;
+    const fCtx = fullCanvas.getContext('2d');
+    
+    fCtx.fillStyle = '#000000';
+    fCtx.fillRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    if (State.selection.maskCanvas) {
+        fCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
+    }
+    
+    const imgData = fCtx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+    const data32 = new Uint32Array(imgData.data.buffer);
+    State.selectionMask = new Uint8Array(State.CANVAS_WIDTH * State.CANVAS_HEIGHT);
+    for (let i = 0; i < data32.length; i++) {
+        State.selectionMask[i] = (data32[i] & 0x00FFFFFF) !== 0 ? 1 : 0;
+    }
 }
 
 export function floatSelection(layer) {
+    if (!State.selection.maskCanvas) updateSelectionMask();
+    
     State.selection.canvas = document.createElement('canvas');
     State.selection.canvas.width = Math.max(1, State.selection.w);
     State.selection.canvas.height = Math.max(1, State.selection.h);
@@ -37,16 +65,29 @@ export function floatSelection(layer) {
     sCtx.drawImage(layer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
 
     sCtx.globalCompositeOperation = 'destination-in';
-    applySelectionMask(sCtx, 0, 0);
-
+    sCtx.drawImage(State.selection.maskCanvas, 0, 0);
     sCtx.globalCompositeOperation = 'source-over';
 
     layer.ctx.save();
     layer.ctx.globalCompositeOperation = 'destination-out';
-    applySelectionMask(layer.ctx, State.selection.x, State.selection.y);
+    layer.ctx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
     layer.ctx.restore();
 
     State.selection.isFloating = true;
+    
+    State.selection.originalW = State.selection.w;
+    State.selection.originalH = State.selection.h;
+    State.selection.accumulatedAngle = 0;
+    
+    State.selection.originalCanvas = document.createElement('canvas');
+    State.selection.originalCanvas.width = State.selection.w;
+    State.selection.originalCanvas.height = State.selection.h;
+    State.selection.originalCanvas.getContext('2d').drawImage(State.selection.canvas, 0, 0);
+
+    State.selection.originalMaskCanvas = document.createElement('canvas');
+    State.selection.originalMaskCanvas.width = State.selection.w;
+    State.selection.originalMaskCanvas.height = State.selection.h;
+    State.selection.originalMaskCanvas.getContext('2d').drawImage(State.selection.maskCanvas, 0, 0);
 }
 
 export function drawSelectionPreview() {
@@ -57,27 +98,12 @@ export function drawSelectionPreview() {
         DOM.previewCtx.imageSmoothingEnabled = State.isAntiAlias;
         DOM.previewCtx.drawImage(State.selection.canvas, State.selection.x, State.selection.y);
     }
-    if (State.selection.active) {
+    if (State.selection.active && State.selection.maskCanvas) {
         DOM.previewCtx.beginPath();
         DOM.previewCtx.setLineDash([5, 5]);
         DOM.previewCtx.strokeStyle = '#00ffff';
         DOM.previewCtx.lineWidth = 1;
-
-        if (State.selection.type === 'ellipse') {
-            DOM.previewCtx.ellipse(State.selection.x + State.selection.w/2, State.selection.y + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
-            DOM.previewCtx.stroke();
-        } else if (State.selection.type === 'lasso') {
-            DOM.previewCtx.moveTo(State.selection.path[0].x, State.selection.path[0].y);
-            for (let i = 1; i < State.selection.path.length; i++) {
-                DOM.previewCtx.lineTo(State.selection.path[i].x, State.selection.path[i].y);
-            }
-            DOM.previewCtx.closePath();
-            DOM.previewCtx.stroke();
-        } else if (State.selection.type === 'mask') {
-            DOM.previewCtx.strokeRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
-        } else {
-            DOM.previewCtx.strokeRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
-        }
+        DOM.previewCtx.strokeRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
         DOM.previewCtx.setLineDash([]);
     }
 }
@@ -105,6 +131,7 @@ export function duplicateSelection() {
         State.selection.x = Math.round(State.selection.x);
         State.selection.y = Math.round(State.selection.y);
     }
+    updateSelectionMask();
     drawSelectionPreview();
 }
 
@@ -113,14 +140,16 @@ export function deleteSelection() {
     if (!State.selection.isFloating) {
         const layer = State.layers.find(l => l.id === State.currentLayerId);
         if (layer) {
+            if (!State.selection.maskCanvas) updateSelectionMask();
             layer.ctx.save();
             layer.ctx.globalCompositeOperation = 'destination-out';
-            applySelectionMask(layer.ctx, State.selection.x, State.selection.y);
+            layer.ctx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
             layer.ctx.restore();
         }
     }
     State.selection.active = false;
     State.selection.isFloating = false;
+    updateSelectionMask();
     DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     drawShapePreview();
     saveState();
@@ -137,6 +166,7 @@ export function finalizeSelection() {
     }
     State.selection.active = false;
     State.selection.isFloating = false;
+    updateSelectionMask();
     DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     drawShapePreview();
     saveState();
@@ -147,6 +177,11 @@ export function invertSelection() {
     
     if (State.selection.isFloating) {
         finalizeSelection();
+        State.selection.active = true; 
+    }
+
+    if (!State.selection.maskCanvas) {
+        updateSelectionMask();
     }
 
     const maskCanvas = document.createElement('canvas');
@@ -158,24 +193,7 @@ export function invertSelection() {
     mCtx.fillRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     
     mCtx.globalCompositeOperation = 'destination-out';
-    mCtx.fillStyle = '#FFFFFF';
-    
-    if (State.selection.type === 'rect') {
-        mCtx.fillRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
-    } else if (State.selection.type === 'ellipse') {
-        mCtx.beginPath();
-        mCtx.ellipse(State.selection.x + State.selection.w/2, State.selection.y + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
-        mCtx.fill();
-    } else if (State.selection.type === 'lasso') {
-        mCtx.beginPath();
-        mCtx.moveTo(State.selection.path[0].x, State.selection.path[0].y);
-        for(let i=1; i<State.selection.path.length; i++) {
-            mCtx.lineTo(State.selection.path[i].x, State.selection.path[i].y);
-        }
-        mCtx.fill();
-    } else if (State.selection.type === 'wand' || State.selection.type === 'mask') {
-        mCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
-    }
+    mCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
 
     State.selection.x = 0;
     State.selection.y = 0;
@@ -184,6 +202,7 @@ export function invertSelection() {
     State.selection.type = 'mask';
     State.selection.maskCanvas = maskCanvas;
     
+    updateSelectionMask();
     drawSelectionPreview();
 }
 
@@ -583,10 +602,6 @@ function processProjectData(jsonString) {
 export function rotateCanvasOrSelection(angleDeg) {
     if (window.finalizeShape) window.finalizeShape(true);
 
-    const angleRad = angleDeg * Math.PI / 180;
-    const cos = Math.abs(Math.cos(angleRad));
-    const sin = Math.abs(Math.sin(angleRad));
-
     if (State.selection.active) {
         if (!State.selection.isFloating) {
             const currentLayer = State.layers.find(l => l.id === State.currentLayerId);
@@ -598,36 +613,55 @@ export function rotateCanvasOrSelection(angleDeg) {
             floatSelection(currentLayer);
         }
 
-        const oldW = State.selection.w;
-        const oldH = State.selection.h;
-        const newW = Math.max(1, Math.round(oldW * cos + oldH * sin));
-        const newH = Math.max(1, Math.round(oldW * sin + oldH * cos));
+        const cx = State.selection.x + State.selection.w / 2;
+        const cy = State.selection.y + State.selection.h / 2;
+        
+        State.selection.accumulatedAngle = (State.selection.accumulatedAngle + angleDeg) % 360;
+        if (State.selection.accumulatedAngle < 0) State.selection.accumulatedAngle += 360;
 
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = oldW;
-        tempCanvas.height = oldH;
-        tempCanvas.getContext('2d').drawImage(State.selection.canvas, 0, 0);
-
+        const totalAngleRad = State.selection.accumulatedAngle * Math.PI / 180;
+        const cos = Math.abs(Math.cos(totalAngleRad));
+        const sin = Math.abs(Math.sin(totalAngleRad));
+        
+        const baseW = State.selection.originalW;
+        const baseH = State.selection.originalH;
+        
+        const newW = Math.max(1, Math.round(baseW * cos + baseH * sin));
+        const newH = Math.max(1, Math.round(baseW * sin + baseH * cos));
+        
         State.selection.canvas.width = newW;
         State.selection.canvas.height = newH;
         const sCtx = State.selection.canvas.getContext('2d');
         sCtx.imageSmoothingEnabled = State.isAntiAlias;
-        
-        sCtx.save();
         sCtx.translate(newW / 2, newH / 2);
-        sCtx.rotate(angleRad);
-        sCtx.translate(-oldW / 2, -oldH / 2);
-        sCtx.drawImage(tempCanvas, 0, 0);
-        sCtx.restore();
+        sCtx.rotate(totalAngleRad);
+        sCtx.translate(-baseW / 2, -baseH / 2);
+        sCtx.drawImage(State.selection.originalCanvas, 0, 0);
 
-        State.selection.x -= Math.round((newW - oldW) / 2);
-        State.selection.y -= Math.round((newH - oldH) / 2);
+        State.selection.maskCanvas = document.createElement('canvas');
+        State.selection.maskCanvas.width = newW;
+        State.selection.maskCanvas.height = newH;
+        const mCtx = State.selection.maskCanvas.getContext('2d');
+        mCtx.imageSmoothingEnabled = State.isAntiAlias; 
+        mCtx.translate(newW / 2, newH / 2);
+        mCtx.rotate(totalAngleRad);
+        mCtx.translate(-baseW / 2, -baseH / 2);
+        mCtx.drawImage(State.selection.originalMaskCanvas, 0, 0);
+        
+        State.selection.type = 'mask';
+        
+        State.selection.x = cx - newW / 2;
+        State.selection.y = cy - newH / 2;
         State.selection.w = newW;
         State.selection.h = newH;
-        State.selection.type = 'rect';
-
+        
+        updateSelectionMask();
         drawSelectionPreview();
     } else {
+        const angleRad = angleDeg * Math.PI / 180;
+        const cos = Math.abs(Math.cos(angleRad));
+        const sin = Math.abs(Math.sin(angleRad));
+        
         const oldW = State.CANVAS_WIDTH;
         const oldH = State.CANVAS_HEIGHT;
         const newW = Math.max(1, Math.round(oldW * cos + oldH * sin));

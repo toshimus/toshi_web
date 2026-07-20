@@ -30,8 +30,16 @@ export const State = {
         isFloating: false,
         type: 'rect',
         path: null,
-        maskCanvas: null
+        maskCanvas: null,
+        originalCanvas: null,
+        originalMaskCanvas: null,
+        originalW: 0,
+        originalH: 0,
+        accumulatedAngle: 0
     },
+    selectionMask: null,
+    layerSnapshotBeforeDraw: null,
+    
     dragOffsetX: 0,
     dragOffsetY: 0,
     isDraggingSelection: false,

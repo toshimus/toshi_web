@@ -1,7 +1,7 @@
 import { State, CONSTANTS, DOM } from './state.js';
 import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill, executeWandSelection, applyColorAdjustment } from './drawing_tools.js';
 import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer, duplicateLayer, mergeVisibleLayers } from './layer_history.js';
-import { duplicateSelection, deleteSelection, finalizeSelection, floatSelection, invertSelection, deselect, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder } from './canvas_io.js';
+import { duplicateSelection, deleteSelection, finalizeSelection, floatSelection, invertSelection, deselect, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder, updateSelectionMask } from './canvas_io.js';
 import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape, drawShapePreview, applySnap } from './shape_editor.js';
 
 export function updateStatusBar() {
@@ -32,7 +32,16 @@ function updateBrushPreview(clientX, clientY) {
 
 export function setTool(toolName) {
     if (State.currentTool.startsWith('select') && !toolName.startsWith('select')) {
-        finalizeSelection();
+        if (State.selection.isFloating) {
+            const layer = State.layers.find(l => l.id === State.currentLayerId);
+            if (layer && State.selection.canvas) {
+                layer.ctx.imageSmoothingEnabled = State.isAntiAlias;
+                layer.ctx.drawImage(State.selection.canvas, State.selection.x, State.selection.y);
+            }
+            State.selection.isFloating = false;
+            updateSelectionMask();
+            saveState();
+        }
     }
     
     if (State.currentTool.startsWith('edit-') && !toolName.startsWith('edit-')) {
@@ -138,6 +147,9 @@ export function setZoom(level, cx, cy) {
 
     updateGrid();
     drawShapePreview(); 
+    if (State.selection.active) {
+        drawSelectionPreview();
+    }
 
     const newOffsetX = offsetX * (State.currentZoom / oldZoom);
     const newOffsetY = offsetY * (State.currentZoom / oldZoom);
@@ -387,6 +399,12 @@ function startDrawing(e) {
         return;
     }
 
+    if (!State.currentTool.startsWith('select') && !State.currentTool.startsWith('edit-') && State.currentTool !== 'pan' && State.currentTool !== 'crop') {
+        if (State.selection.active) {
+            State.layerSnapshotBeforeDraw = layer.ctx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+        }
+    }
+
     let pos = getMousePos(e);
     
     if (State.currentTool.startsWith('edit-')) {
@@ -426,6 +444,7 @@ function startDrawing(e) {
                     State.selection.maskCanvas = wandRes.maskCanvas;
                     State.selection.active = true;
                     State.selection.isFloating = false;
+                    updateSelectionMask();
                     drawSelectionPreview();
                 }
             } else if (State.currentTool === 'select-lasso') {
@@ -461,6 +480,23 @@ function startDrawing(e) {
     if (State.currentTool === 'bucket') {
         State.isDrawing = false;
         executeFloodFill(Math.floor(State.startX), Math.floor(State.startY));
+        
+        if (State.selection.active && State.selectionMask && State.layerSnapshotBeforeDraw) {
+            const currentData = layer.ctx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+            const oldData = State.layerSnapshotBeforeDraw;
+            const mask = State.selectionMask;
+            for (let i = 0; i < mask.length; i++) {
+                if (mask[i] === 0) {
+                    currentData.data[i*4] = oldData.data[i*4];
+                    currentData.data[i*4+1] = oldData.data[i*4+1];
+                    currentData.data[i*4+2] = oldData.data[i*4+2];
+                    currentData.data[i*4+3] = oldData.data[i*4+3];
+                }
+            }
+            layer.ctx.putImageData(currentData, 0, 0);
+        }
+        State.layerSnapshotBeforeDraw = null;
+        
         saveState();
         return;
     }
@@ -608,6 +644,27 @@ function draw(e) {
                 if (isFill) DOM.previewCtx.fill(); else DOM.previewCtx.stroke();
             }
         }
+
+        if (State.selection.active && State.selectionMask && State.currentTool !== 'crop') {
+            DOM.previewCtx.save();
+            DOM.previewCtx.globalCompositeOperation = 'destination-in';
+            const mC = document.createElement('canvas');
+            mC.width = State.CANVAS_WIDTH;
+            mC.height = State.CANVAS_HEIGHT;
+            const mCtx = mC.getContext('2d');
+            const imgD = mCtx.createImageData(State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+            for(let i=0; i<State.selectionMask.length; i++) {
+                if(State.selectionMask[i]===1) {
+                    imgD.data[i*4] = 255;
+                    imgD.data[i*4+1] = 255;
+                    imgD.data[i*4+2] = 255;
+                    imgD.data[i*4+3] = 255;
+                }
+            }
+            mCtx.putImageData(imgD, 0, 0);
+            DOM.previewCtx.drawImage(mC, 0, 0);
+            DOM.previewCtx.restore();
+        }
     }
 }
 
@@ -628,6 +685,7 @@ function stopDrawing(e) {
     if (State.currentTool.startsWith('select')) {
         if (State.isDraggingSelection) {
             State.isDraggingSelection = false;
+            updateSelectionMask();
             drawSelectionPreview();
             saveState(); 
         } else if (State.isDrawing) {
@@ -648,6 +706,7 @@ function stopDrawing(e) {
                     State.selection.type = 'lasso';
                     State.selection.active = true;
                     State.selection.isFloating = false;
+                    updateSelectionMask();
                     drawSelectionPreview();
                 } else {
                     finalizeSelection();
@@ -666,6 +725,7 @@ function stopDrawing(e) {
                     State.selection.type = State.currentTool === 'select-ellipse' ? 'ellipse' : 'rect';
                     State.selection.active = true;
                     State.selection.isFloating = false;
+                    updateSelectionMask();
                     drawSelectionPreview();
                 } else {
                     finalizeSelection(); 
@@ -772,6 +832,27 @@ function stopDrawing(e) {
         }
         DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
         drawShapePreview();
+    }
+    
+    if (!State.currentTool.startsWith('select') && !State.currentTool.startsWith('edit-') && State.currentTool !== 'pan' && State.currentTool !== 'crop') {
+        if (State.selection.active && State.selectionMask && State.layerSnapshotBeforeDraw) {
+            const layer = State.layers.find(l => l.id === State.currentLayerId);
+            if (layer) {
+                const currentData = layer.ctx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+                const oldData = State.layerSnapshotBeforeDraw;
+                const mask = State.selectionMask;
+                for (let i = 0; i < mask.length; i++) {
+                    if (mask[i] === 0) {
+                        currentData.data[i*4] = oldData.data[i*4];
+                        currentData.data[i*4+1] = oldData.data[i*4+1];
+                        currentData.data[i*4+2] = oldData.data[i*4+2];
+                        currentData.data[i*4+3] = oldData.data[i*4+3];
+                    }
+                }
+                layer.ctx.putImageData(currentData, 0, 0);
+            }
+        }
+        State.layerSnapshotBeforeDraw = null;
     }
     
     saveState(); 

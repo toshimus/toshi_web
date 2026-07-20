@@ -1,6 +1,13 @@
 import { State, DOM } from './state.js';
 import { getCurrentContext } from './layer_history.js';
 
+function isSelected(x, y) {
+    if (!State.selection.active) return true;
+    if (!State.selectionMask) return true;
+    if (x < 0 || x >= State.CANVAS_WIDTH || y < 0 || y >= State.CANVAS_HEIGHT) return false;
+    return State.selectionMask[y * State.CANVAS_WIDTH + x] === 1;
+}
+
 export function drawBresenhamLine(ctx, x0, y0, x1, y1, isEraser) {
     x0 = Math.floor(x0); y0 = Math.floor(y0);
     x1 = Math.floor(x1); y1 = Math.floor(y1);
@@ -22,7 +29,9 @@ export function drawBresenhamLine(ctx, x0, y0, x1, y1, isEraser) {
     let drawSize = State.currentLineWidth;
 
     while (true) {
-        ctx.fillRect(x0 - offset, y0 - offset, drawSize, drawSize);
+        if (isSelected(x0, y0)) {
+            ctx.fillRect(x0 - offset, y0 - offset, drawSize, drawSize);
+        }
         if (x0 === x1 && y0 === y1) break;
         let e2 = 2 * err;
         if (e2 > -dy) { err -= dy; x0 += sx; }
@@ -68,8 +77,13 @@ export function drawBresenhamCircle(ctx, xc, yc, r, fill, isEraser) {
             else { p += 4 * x + 6; }
         }
         for (let yy in lines) {
+            let y_val = parseInt(yy);
             let [minX, maxX] = lines[yy];
-            ctx.fillRect(minX - offset, parseInt(yy) - offset, maxX - minX + drawSize, drawSize);
+            for (let px = minX; px <= maxX; px++) {
+                if (isSelected(px, y_val)) {
+                    ctx.fillRect(px - offset, y_val - offset, drawSize, drawSize);
+                }
+            }
         }
     } else {
         const getCirclePoints = (cx, cy, r) => {
@@ -94,7 +108,9 @@ export function drawBresenhamCircle(ctx, xc, yc, r, fill, isEraser) {
 
         const points = getCirclePoints(xc, yc, r);
         points.forEach(pt => {
-            ctx.fillRect(pt[0] - offset, pt[1] - offset, drawSize, drawSize);
+            if (isSelected(pt[0], pt[1])) {
+                ctx.fillRect(pt[0] - offset, pt[1] - offset, drawSize, drawSize);
+            }
         });
     }
 }
@@ -157,15 +173,20 @@ export function drawBresenhamEllipse(ctx, xc, yc, rx, ry, fill, isEraser) {
         }
 
         for (let yy in lines) {
+            let y_val = parseInt(yy);
             let [minX, maxX] = lines[yy];
-            ctx.fillRect(minX - offset, parseInt(yy) - offset, maxX - minX + drawSize, drawSize);
+            for (let px = minX; px <= maxX; px++) {
+                if (isSelected(px, y_val)) {
+                    ctx.fillRect(px - offset, y_val - offset, drawSize, drawSize);
+                }
+            }
         }
     } else {
         const plot = (px, py) => {
-            ctx.fillRect(xc + px - offset, yc + py - offset, drawSize, drawSize);
-            ctx.fillRect(xc - px - offset, yc + py - offset, drawSize, drawSize);
-            ctx.fillRect(xc + px - offset, yc - py - offset, drawSize, drawSize);
-            ctx.fillRect(xc - px - offset, yc - py - offset, drawSize, drawSize);
+            if (isSelected(xc + px, yc + py)) ctx.fillRect(xc + px - offset, yc + py - offset, drawSize, drawSize);
+            if (isSelected(xc - px, yc + py)) ctx.fillRect(xc - px - offset, yc + py - offset, drawSize, drawSize);
+            if (isSelected(xc + px, yc - py)) ctx.fillRect(xc + px - offset, yc - py - offset, drawSize, drawSize);
+            if (isSelected(xc - px, yc - py)) ctx.fillRect(xc - px - offset, yc - py - offset, drawSize, drawSize);
         };
 
         while (a2 * y > b2 * x) {
@@ -211,6 +232,8 @@ export function executeFloodFill(startX, startY) {
 
     if (startX < 0 || startY < 0 || startX >= State.CANVAS_WIDTH || startY >= State.CANVAS_HEIGHT) return;
 
+    if (!isSelected(startX, startY)) return;
+
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = State.CANVAS_WIDTH;
     tempCanvas.height = State.CANVAS_HEIGHT;
@@ -245,6 +268,7 @@ export function executeFloodFill(startX, startY) {
     const tolerance = State.fillTolerance * 4; 
 
     function matchStartColor(idx) {
+        if (State.selection.active && State.selectionMask && State.selectionMask[idx] === 0) return false;
         const r = compData8[idx * 4];
         const g = compData8[idx * 4 + 1];
         const b = compData8[idx * 4 + 2];

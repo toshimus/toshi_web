@@ -25,12 +25,12 @@
         </div>
         <div class="menu-item">編集
             <div class="dropdown-content">
-                <div class="dropdown-item" onclick="undo()">元に戻す (Undo)</div>
-                <div class="dropdown-item" onclick="redo()">やり直す (Redo)</div>
-                <div class="dropdown-divider"></div>
                 <div class="dropdown-item" onclick="copyToClipboard()">コピー</div>
                 <div class="dropdown-item" onclick="pasteFromClipboard()">貼り付け</div>
-                <div class="dropdown-divider"></div>
+            </div>
+        </div>
+        <div class="menu-item">選択範囲
+            <div class="dropdown-content">
                 <div class="dropdown-item" onclick="duplicateSelection()">選択範囲の複製</div>
                 <div class="dropdown-item" onclick="deleteSelection()">選択範囲の削除</div>
                 <div class="dropdown-item" onclick="invertSelection()">選択範囲の反転</div>
@@ -55,6 +55,8 @@
                 <div class="dropdown-item" onclick="mergeVisibleLayers()">表示レイヤーの結合</div>
             </div>
         </div>
+        <div class="menu-item" onclick="undo()">↩ undo</div>
+        <div class="menu-item" onclick="redo()">↪ redo</div>
     </div>
 
     <!-- 古いブラウザ向けのフォールバック用インプット -->
