@@ -1,7 +1,7 @@
 import { State, CONSTANTS, DOM } from './state.js';
 import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill, executeWandSelection, applyColorAdjustment } from './drawing_tools.js';
 import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer, duplicateLayer, mergeVisibleLayers } from './layer_history.js';
-import { duplicateSelection, deleteSelection, finalizeSelection, floatSelection, invertSelection, deselect, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, cutToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder, updateSelectionMask } from './canvas_io.js';
+import { duplicateSelection, deleteSelection, finalizeSelection, floatSelection, invertSelection, deselect, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, cutToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder, updateSelectionMask, clearCanvasContent } from './canvas_io.js';
 import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape, drawShapePreview, applySnap } from './shape_editor.js';
 
 export function updateStatusBar() {
@@ -238,6 +238,29 @@ function getMousePos(e) {
     };
 }
 
+function pickColor(x, y) {
+    if (x < 0 || x >= State.CANVAS_WIDTH || y < 0 || y >= State.CANVAS_HEIGHT) return;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 1;
+    tempCanvas.height = 1;
+    const tCtx = tempCanvas.getContext('2d');
+    
+    tCtx.fillStyle = '#ffffff';
+    tCtx.fillRect(0, 0, 1, 1);
+    
+    State.layers.forEach(layer => {
+        if (layer.visible) {
+            tCtx.drawImage(layer.canvas, Math.floor(x), Math.floor(y), 1, 1, 0, 0, 1, 1);
+        }
+    });
+    
+    const data = tCtx.getImageData(0, 0, 1, 1).data;
+    const r = data[0].toString(16).padStart(2, '0');
+    const g = data[1].toString(16).padStart(2, '0');
+    const b = data[2].toString(16).padStart(2, '0');
+    setColor(`#${r}${g}${b}`);
+}
+
 function setupPreviewCanvasEvents() {
     const overlay = document.createElement('div');
     overlay.style.position = 'absolute';
@@ -388,6 +411,14 @@ function setupContextStyle(ctx, isEraser = false) {
 }
 
 function startDrawing(e) {
+    let pos = getMousePos(e);
+
+    if (State.currentTool === 'eyedropper') {
+        State.isDrawing = true;
+        pickColor(pos.x, pos.y);
+        return;
+    }
+
     if (!State.currentLayerId) return;
     const layer = State.layers.find(l => l.id === State.currentLayerId);
     if (!layer || !layer.visible) {
@@ -405,8 +436,6 @@ function startDrawing(e) {
             State.layerSnapshotBeforeDraw = layer.ctx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
         }
     }
-
-    let pos = getMousePos(e);
     
     if (State.currentTool.startsWith('edit-')) {
         pos = applySnap(pos.x, pos.y); 
@@ -516,6 +545,11 @@ function startDrawing(e) {
 function draw(e) {
     let pos = getMousePos(e);
     State.hasMoved = true;
+
+    if (State.currentTool === 'eyedropper') {
+        if (State.isDrawing) pickColor(pos.x, pos.y);
+        return;
+    }
 
     if (State.currentTool.startsWith('edit-')) {
         pos = applySnap(pos.x, pos.y); 
@@ -695,6 +729,11 @@ function draw(e) {
 function stopDrawing(e) {
     let pos = getMousePos(e);
 
+    if (State.currentTool === 'eyedropper') {
+        State.isDrawing = false;
+        return;
+    }
+
     if (State.currentTool.startsWith('edit-')) {
         if (State.isDrawing) {
             pos = applySnap(pos.x, pos.y); 
@@ -854,6 +893,8 @@ function stopDrawing(e) {
                 if (isFill) ctx.fill(); else ctx.stroke();
             }
         }
+        DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+        drawShapePreview();
     }
     
     if (!State.currentTool.startsWith('select') && !State.currentTool.startsWith('edit-') && State.currentTool !== 'pan' && State.currentTool !== 'crop') {
@@ -966,9 +1007,7 @@ function init() {
                 finalizeShape();
             }
         } else if (e.key === 'Delete' || e.key === 'Backspace') {
-            if (State.selection.active) {
-                deleteSelection();
-            }
+            clearCanvasContent();
         } else if (e.ctrlKey || e.metaKey) {
             const key = e.key.toLowerCase();
             if (key === 'z' && !e.shiftKey) {
@@ -1253,6 +1292,7 @@ window.deleteSelection = deleteSelection;
 window.invertSelection = invertSelection;
 window.deselect = deselect;
 window.finalizeSelection = finalizeSelection;
+window.clearCanvasContent = clearCanvasContent;
 window.addLayer = addLayer;
 window.undo = undo;
 window.redo = redo;

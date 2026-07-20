@@ -28,12 +28,14 @@
                 <div class="dropdown-item" onclick="copyToClipboard()">コピー (Ctrl+C)</div>
                 <div class="dropdown-item" onclick="cutToClipboard()">切り取り (Ctrl+X)</div>
                 <div class="dropdown-item" onclick="pasteFromClipboard()">貼り付け (Ctrl+V)</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" onclick="clearCanvasContent()">削除 (Del)</div>
             </div>
         </div>
         <div class="menu-item">選択範囲
             <div class="dropdown-content">
                 <div class="dropdown-item" onclick="duplicateSelection()">選択範囲の複製</div>
-                <div class="dropdown-item" onclick="deleteSelection()">選択範囲の削除 (Del)</div>
+                <div class="dropdown-item" onclick="deleteSelection()">選択範囲の削除</div>
                 <div class="dropdown-item" onclick="invertSelection()">選択範囲の反転</div>
                 <div class="dropdown-item" onclick="deselect()">選択範囲の解除</div>
                 <div class="dropdown-item" onclick="finalizeSelection()">選択範囲の確定</div>
@@ -81,6 +83,10 @@
                     <button id="tool-eraser" class="tool-btn" onclick="setTool('eraser')">
                         <svg viewBox="0 0 24 24"><path d="M16.24 3.56l4.2 4.2c.78.78.78 2.05 0 2.83l-9.9 9.91c-.38.38-.88.59-1.41.59H3v-6.09c0-.53.21-1.04.59-1.41l9.82-9.83c.78-.78 2.05-.78 2.83 0zM5 19h3.09l7.5-7.5-3.09-3.09-7.5 7.5V19z"/></svg>
                         消しゴム
+                    </button>
+                    <button id="tool-eyedropper" class="tool-btn" onclick="setTool('eyedropper')">
+                        <svg viewBox="0 0 24 24"><path d="M20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-3.12 3.12-1.93-1.91-1.41 1.41 1.42 1.42L3 16.25V21h4.75l8.92-8.92 1.42 1.42 1.41-1.41-1.92-1.92 3.12-3.12c.4-.4.4-1.03.01-1.42zM6.92 19L5 17.08l8.06-8.06 1.92 1.92L6.92 19z"/></svg>
+                        スポイト
                     </button>
                     <button id="tool-bucket" class="tool-btn" onclick="setTool('bucket')">
                         <svg viewBox="0 0 24 24"><path d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15c-.59.59-.59 1.54 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l7.49-7.49c.59-.58.59-1.53 0-2.13zM8.45 15.46l-5.5-5.5 3.54-3.54 5.5 5.5-3.54 3.54zM13 22v-3h3v3h-3zm5 0v-3h3v3h-3z"/></svg>
@@ -142,7 +148,7 @@
                 <label style="color: #ffaaaa;">選択範囲オプション</label>
                 <div class="button-grid">
                     <button onclick="duplicateSelection()">複製</button>
-                    <button onclick="deleteSelection()">削除</button>
+                    <button onclick="clearCanvasContent()">削除</button>
                     <button onclick="rotateCanvasOrSelection(-45)">↶ -45°</button>
                     <button onclick="rotateCanvasOrSelection(45)">↷ +45°</button>
                     <button onclick="finalizeSelection()" style="grid-column: span 2; background-color: #552222;">確定 (スタンプ)</button>

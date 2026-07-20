@@ -131,124 +131,61 @@ export function drawSelectionPreview(clearAndShape = true) {
     
     if (State.selection.active && State.selection.maskCanvas) {
         const ctx = DOM.previewCtx;
-        ctx.imageSmoothingEnabled = false;
+        ctx.save();
+        const z = State.currentZoom || 1;
 
-        let x1 = Math.round(State.selection.x);
-        let y1 = Math.round(State.selection.y);
-        let x2 = Math.round(State.selection.x + State.selection.w);
-        let y2 = Math.round(State.selection.y + State.selection.h);
-
-        const drawRetroDotLine = (px1, py1, px2, py2) => {
-            let dx = Math.abs(px2 - px1);
-            let dy = Math.abs(py2 - py1);
-            let sx = px1 < px2 ? 1 : -1;
-            let sy = py1 < py2 ? 1 : -1;
-            let err = dx - dy;
-            let cx = px1, cy = py1;
-            let totalDist = 0;
-
-            while (true) {
-                if ((Math.floor(totalDist / 2) % 2) === 0) {
-                    ctx.fillStyle = '#000000';
-                } else {
-                    ctx.fillStyle = '#ffffff';
-                }
-                ctx.fillRect(cx, cy, 1, 1);
-
-                if (cx === px2 && cy === py2) break;
-                let e2 = 2 * err;
-                if (e2 > -dy) { err -= dy; cx += sx; }
-                if (e2 < dx) { err += dx; cy += sy; }
-                totalDist++;
-            }
-        };
-
-        if (State.selection.type === 'ellipse') {
-            let rx = Math.round(State.selection.w / 2);
-            let ry = Math.round(State.selection.h / 2);
-            let cx = x1 + rx;
-            let cy = y1 + ry;
+        if ((State.selection.type === 'wand' || State.selection.type === 'mask') && State.selection.maskCanvas) {
+            const edgeCanvas = document.createElement('canvas');
+            edgeCanvas.width = State.CANVAS_WIDTH;
+            edgeCanvas.height = State.CANVAS_HEIGHT;
+            const eCtx = edgeCanvas.getContext('2d');
             
-            let x = 0;
-            let y = ry;
-            let a2 = rx * rx;
-            let b2 = ry * ry;
-            let d = Math.round(b2 - a2 * ry + 0.25 * a2);
-            let distCount = 0;
-
-            const plotRetroPixel = (px, py) => {
-                if ((Math.floor(distCount / 2) % 2) === 0) {
-                    ctx.fillStyle = '#000000';
-                } else {
-                    ctx.fillStyle = '#ffffff';
-                }
-                ctx.fillRect(px, py, 1, 1);
-                distCount++;
-            };
-
-            const drawEllipsePoints = (px, py) => {
-                plotRetroPixel(cx + px, cy + py);
-                plotRetroPixel(cx - px, cy + py);
-                plotRetroPixel(cx + px, cy - py);
-                plotRetroPixel(cx - px, cy - py);
-            };
-
-            while (a2 * y > b2 * x) {
-                drawEllipsePoints(x, y);
-                if (d < 0) { d += b2 * (2 * x + 3); }
-                else { d += b2 * (2 * x + 3) + a2 * (-2 * y + 2); y--; }
-                x++;
-            }
-            let d2 = Math.round(b2 * (x + 0.5)**2 + a2 * (y - 1)**2 - a2 * b2);
-            while (y >= 0) {
-                drawEllipsePoints(x, y);
-                if (d2 > 0) { d2 += a2 * (-2 * y + 3); }
-                else { d2 += b2 * (2 * x + 2) + a2 * (-2 * y + 3); x++; }
-                y--;
-            }
-        } else if (State.selection.type === 'lasso' || State.selection.type === 'wand' || State.selection.type === 'mask') {
-            const mCanvas = State.selection.maskCanvas;
-            const mCtx = mCanvas.getContext('2d', { willReadFrequently: true });
-            const mImgData = mCtx.getImageData(0, 0, mCanvas.width, mCanvas.height);
-            const mData = mImgData.data;
-            const mw = mCanvas.width;
-            const mh = mCanvas.height;
-
-            let distCount = 0;
-            for (let my = 0; my < mh; my++) {
-                for (let mx = 0; mx < mw; mx++) {
-                    const idx = (my * mw + mx) * 4;
-                    if (mData[idx + 3] > 0) {
-                        let isEdge = false;
-                        if (mx === 0 || mx === mw - 1 || my === 0 || my === mh - 1) {
-                            isEdge = true;
-                        } else {
-                            if (mData[((my - 1) * mw + mx) * 4 + 3] === 0 ||
-                                mData[((my + 1) * mw + mx) * 4 + 3] === 0 ||
-                                mData[(my * mw + (mx - 1)) * 4 + 3] === 0 ||
-                                mData[(my * mw + (mx + 1)) * 4 + 3] === 0) {
-                                isEdge = true;
-                            }
-                        }
-
-                        if (isEdge) {
-                            if ((Math.floor(distCount / 2) % 2) === 0) {
-                                ctx.fillStyle = '#000000';
-                            } else {
-                                ctx.fillStyle = '#ffffff';
-                            }
-                            ctx.fillRect(State.selection.x + mx, State.selection.y + my, 1, 1);
-                            distCount++;
-                        }
-                    }
-                }
-            }
+            eCtx.drawImage(State.selection.maskCanvas, State.selection.x - 1/z, State.selection.y);
+            eCtx.drawImage(State.selection.maskCanvas, State.selection.x + 1/z, State.selection.y);
+            eCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y - 1/z);
+            eCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y + 1/z);
+            
+            eCtx.globalCompositeOperation = 'destination-out';
+            eCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
+            
+            eCtx.globalCompositeOperation = 'source-in';
+            const patCanvas = document.createElement('canvas');
+            patCanvas.width = 4; patCanvas.height = 4;
+            const pCtx = patCanvas.getContext('2d');
+            pCtx.fillStyle = '#000000'; pCtx.fillRect(0,0,4,4);
+            pCtx.fillStyle = '#ffffff'; pCtx.fillRect(0,0,2,2); pCtx.fillRect(2,2,2,2);
+            eCtx.fillStyle = eCtx.createPattern(patCanvas, 'repeat');
+            eCtx.fillRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+            
+            ctx.drawImage(edgeCanvas, 0, 0);
         } else {
-            drawRetroDotLine(x1, y1, x2, y1); 
-            drawRetroDotLine(x2, y1, x2, y2); 
-            drawRetroDotLine(x2, y2, x1, y2); 
-            drawRetroDotLine(x1, y2, x1, y1); 
+            ctx.beginPath();
+            ctx.lineWidth = 1 / z;
+            
+            if (State.selection.type === 'ellipse') {
+                ctx.ellipse(State.selection.x + State.selection.w/2, State.selection.y + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
+            } else if (State.selection.type === 'lasso') {
+                if (State.selection.path && State.selection.path.length > 0) {
+                    ctx.moveTo(State.selection.path[0].x, State.selection.path[0].y);
+                    for (let i = 1; i < State.selection.path.length; i++) {
+                        ctx.lineTo(State.selection.path[i].x, State.selection.path[i].y);
+                    }
+                    ctx.closePath();
+                }
+            } else {
+                ctx.rect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+            }
+            
+            ctx.setLineDash([2 / z, 2 / z]);
+            ctx.lineDashOffset = 0;
+            ctx.strokeStyle = '#000000';
+            ctx.stroke();
+            ctx.lineDashOffset = 2 / z;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
         }
+        
+        ctx.restore();
     }
 }
 
@@ -297,6 +234,25 @@ export function deleteSelection() {
     DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     drawShapePreview();
     saveState();
+}
+
+export function clearCanvasContent() {
+    if (State.selection.active) {
+        deleteSelection();
+    } else {
+        const layer = State.layers.find(l => l.id === State.currentLayerId);
+        if (layer) {
+            if (layer.type === 'vector') {
+                layer.shape = null;
+                layer.type = 'pixel';
+                import('./layer_history.js').then(lh => lh.renderLayerPanel());
+            }
+            layer.ctx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+            saveState();
+            DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+            import('./shape_editor.js').then(se => se.drawShapePreview());
+        }
+    }
 }
 
 export function finalizeSelection() {
