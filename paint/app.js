@@ -1,7 +1,7 @@
 import { State, CONSTANTS, DOM } from './state.js';
 import { drawBresenhamLine, drawBresenhamCircle, drawBresenhamEllipse, executeFloodFill, executeWandSelection, applyColorAdjustment } from './drawing_tools.js';
 import { addLayer, saveState, restoreState, undo, redo, getCurrentContext, selectLayer, toggleLayerVisibility, deleteLayer, duplicateLayer, mergeVisibleLayers } from './layer_history.js';
-import { duplicateSelection, deleteSelection, finalizeSelection, floatSelection, invertSelection, deselect, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder, updateSelectionMask } from './canvas_io.js';
+import { duplicateSelection, deleteSelection, finalizeSelection, floatSelection, invertSelection, deselect, createNewCanvas, resizeCanvasPrompt, scaleImagePrompt, copyToClipboard, cutToClipboard, pasteFromClipboard, loadImageAsLayer, exportImage, saveProject, saveProjectAs, loadProject, loadProjectSystem, drawSelectionPreview, rotateCanvasOrSelection, selectSaveFolder, updateSelectionMask } from './canvas_io.js';
 import { startShapeEdit, moveShapeEdit, endShapeEdit, finalizeShape, drawShapePreview, applySnap } from './shape_editor.js';
 
 export function updateStatusBar() {
@@ -148,7 +148,7 @@ export function setZoom(level, cx, cy) {
     updateGrid();
     drawShapePreview(); 
     if (State.selection.active) {
-        drawSelectionPreview();
+        drawSelectionPreview(false);
     }
 
     const newOffsetX = offsetX * (State.currentZoom / oldZoom);
@@ -255,6 +255,7 @@ function setupPreviewCanvasEvents() {
         if (State.selection.active) {
             drawSelectionPreview();
         } else {
+            DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
             drawShapePreview();
         }
     });
@@ -534,14 +535,35 @@ function draw(e) {
         } else if (State.isDrawing) {
             if (State.currentTool === 'select-lasso') {
                 State.selection.path.push({x: pos.x, y: pos.y});
-                drawSelectionPreview();
+                DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+                drawShapePreview(); 
+                DOM.previewCtx.beginPath();
+                
+                const z = State.currentZoom || 1;
+                DOM.previewCtx.lineWidth = 1 / z;
+                
+                DOM.previewCtx.moveTo(State.selection.path[0].x, State.selection.path[0].y);
+                for (let i = 1; i < State.selection.path.length; i++) {
+                    DOM.previewCtx.lineTo(State.selection.path[i].x, State.selection.path[i].y);
+                }
+                
+                DOM.previewCtx.setLineDash([2 / z, 2 / z]);
+                DOM.previewCtx.lineDashOffset = 0;
+                DOM.previewCtx.strokeStyle = '#000000';
+                DOM.previewCtx.stroke();
+                DOM.previewCtx.lineDashOffset = 2 / z;
+                DOM.previewCtx.strokeStyle = '#ffffff';
+                DOM.previewCtx.stroke();
+                
+                DOM.previewCtx.setLineDash([]);
+                DOM.previewCtx.lineDashOffset = 0;
             } else {
                 DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
                 drawShapePreview(); 
                 DOM.previewCtx.beginPath();
-                DOM.previewCtx.setLineDash([5, 5]);
-                DOM.previewCtx.strokeStyle = '#00ffff'; 
-                DOM.previewCtx.lineWidth = 1;
+                
+                const z = State.currentZoom || 1;
+                DOM.previewCtx.lineWidth = 1 / z;
                 
                 if (State.currentTool === 'select-ellipse') {
                     let rx = Math.abs(pos.x - State.startX) / 2;
@@ -549,13 +571,22 @@ function draw(e) {
                     let cx = Math.min(State.startX, pos.x) + rx;
                     let cy = Math.min(State.startY, pos.y) + ry;
                     DOM.previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
-                    DOM.previewCtx.stroke();
                 } else {
                     const w = pos.x - State.startX;
                     const h = pos.y - State.startY;
-                    DOM.previewCtx.strokeRect(State.startX, State.startY, w, h);
+                    DOM.previewCtx.rect(State.startX, State.startY, w, h);
                 }
+                
+                DOM.previewCtx.setLineDash([2 / z, 2 / z]);
+                DOM.previewCtx.lineDashOffset = 0;
+                DOM.previewCtx.strokeStyle = '#000000';
+                DOM.previewCtx.stroke();
+                DOM.previewCtx.lineDashOffset = 2 / z;
+                DOM.previewCtx.strokeStyle = '#ffffff';
+                DOM.previewCtx.stroke();
+                
                 DOM.previewCtx.setLineDash([]);
+                DOM.previewCtx.lineDashOffset = 0;
             }
         }
         return;
@@ -576,17 +607,31 @@ function draw(e) {
     } else if (['line', 'rect', 'rect-fill', 'circle', 'circle-fill', 'ellipse', 'ellipse-fill', 'crop'].includes(State.currentTool)) {
         DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
         drawShapePreview(); 
+        
+        if (State.selection.active) {
+            drawSelectionPreview(false);
+        }
+        
         setupContextStyle(DOM.previewCtx, false); 
         
         if (State.currentTool === 'crop') {
             DOM.previewCtx.beginPath();
-            DOM.previewCtx.setLineDash([5, 5]);
-            DOM.previewCtx.strokeStyle = '#ff0000';
-            DOM.previewCtx.lineWidth = 1;
+            const z = State.currentZoom || 1;
+            DOM.previewCtx.lineWidth = 1 / z;
             const width = pos.x - State.startX;
             const height = pos.y - State.startY;
-            DOM.previewCtx.strokeRect(State.startX, State.startY, width, height);
+            DOM.previewCtx.rect(State.startX, State.startY, width, height);
+            
+            DOM.previewCtx.setLineDash([2 / z, 2 / z]);
+            DOM.previewCtx.lineDashOffset = 0;
+            DOM.previewCtx.strokeStyle = '#000000';
+            DOM.previewCtx.stroke();
+            DOM.previewCtx.lineDashOffset = 2 / z;
+            DOM.previewCtx.strokeStyle = '#ffffff';
+            DOM.previewCtx.stroke();
+
             DOM.previewCtx.setLineDash([]); 
+            DOM.previewCtx.lineDashOffset = 0;
         } else if (State.currentTool === 'line') {
             if (!State.isAntiAlias) {
                 drawBresenhamLine(DOM.previewCtx, State.startX, State.startY, pos.x, pos.y, false);
@@ -625,9 +670,9 @@ function draw(e) {
             if (!State.isAntiAlias) {
                 drawBresenhamCircle(DOM.previewCtx, State.startX, State.startY, radius, isFill, false);
             } else {
-                DOM.previewCtx.beginPath();
-                DOM.previewCtx.arc(State.startX, State.startY, radius, 0, Math.PI * 2);
-                if (isFill) DOM.previewCtx.fill(); else DOM.previewCtx.stroke();
+                ctx.beginPath();
+                ctx.arc(State.startX, State.startY, radius, 0, Math.PI * 2);
+                if (isFill) ctx.fill(); else ctx.stroke();
             }
         } else if (State.currentTool === 'ellipse' || State.currentTool === 'ellipse-fill') {
             let rx = Math.abs(pos.x - State.startX) / 2;
@@ -639,31 +684,10 @@ function draw(e) {
             if (!State.isAntiAlias) {
                 drawBresenhamEllipse(DOM.previewCtx, cx, cy, rx, ry, isFill, false);
             } else {
-                DOM.previewCtx.beginPath();
-                DOM.previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
-                if (isFill) DOM.previewCtx.fill(); else DOM.previewCtx.stroke();
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
+                if (isFill) ctx.fill(); else ctx.stroke();
             }
-        }
-
-        if (State.selection.active && State.selectionMask && State.currentTool !== 'crop') {
-            DOM.previewCtx.save();
-            DOM.previewCtx.globalCompositeOperation = 'destination-in';
-            const mC = document.createElement('canvas');
-            mC.width = State.CANVAS_WIDTH;
-            mC.height = State.CANVAS_HEIGHT;
-            const mCtx = mC.getContext('2d');
-            const imgD = mCtx.createImageData(State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
-            for(let i=0; i<State.selectionMask.length; i++) {
-                if(State.selectionMask[i]===1) {
-                    imgD.data[i*4] = 255;
-                    imgD.data[i*4+1] = 255;
-                    imgD.data[i*4+2] = 255;
-                    imgD.data[i*4+3] = 255;
-                }
-            }
-            mCtx.putImageData(imgD, 0, 0);
-            DOM.previewCtx.drawImage(mC, 0, 0);
-            DOM.previewCtx.restore();
         }
     }
 }
@@ -830,8 +854,6 @@ function stopDrawing(e) {
                 if (isFill) ctx.fill(); else ctx.stroke();
             }
         }
-        DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
-        drawShapePreview();
     }
     
     if (!State.currentTool.startsWith('select') && !State.currentTool.startsWith('edit-') && State.currentTool !== 'pan' && State.currentTool !== 'crop') {
@@ -933,6 +955,8 @@ function init() {
     updateStatusBar();
 
     window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
         if (e.key === 'Enter') {
             if (State.editingShape && State.editingShape.isDrawingFree) {
                 State.editingShape.isDrawingFree = false;
@@ -940,6 +964,28 @@ function init() {
                 drawShapePreview();
             } else if (State.editingShape) {
                 finalizeShape();
+            }
+        } else if (e.key === 'Delete' || e.key === 'Backspace') {
+            if (State.selection.active) {
+                deleteSelection();
+            }
+        } else if (e.ctrlKey || e.metaKey) {
+            const key = e.key.toLowerCase();
+            if (key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
+                e.preventDefault();
+                redo();
+            } else if (key === 'c') {
+                e.preventDefault();
+                copyToClipboard();
+            } else if (key === 'x') {
+                e.preventDefault();
+                cutToClipboard();
+            } else if (key === 'v') {
+                e.preventDefault();
+                pasteFromClipboard();
             }
         }
     });
@@ -1191,6 +1237,7 @@ window.setPaletteColor = setPaletteColor;
 window.setLineWidth = setLineWidth;
 window.setZoom = setZoom;
 window.copyToClipboard = copyToClipboard;
+window.cutToClipboard = cutToClipboard;
 window.pasteFromClipboard = pasteFromClipboard;
 window.loadImageAsLayer = loadImageAsLayer;
 window.exportImage = exportImage;

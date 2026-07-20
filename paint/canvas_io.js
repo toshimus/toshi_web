@@ -6,6 +6,9 @@ import { drawShapePreview, finalizeShape } from './shape_editor.js';
 export function updateSelectionMask() {
     if (!State.selection.active) {
         State.selectionMask = null;
+        if (State.selection.type !== 'mask' && State.selection.type !== 'wand') {
+            State.selection.maskCanvas = null;
+        }
         return;
     }
     
@@ -54,6 +57,31 @@ export function updateSelectionMask() {
     }
 }
 
+export function applySelectionMask(ctx, offsetX, offsetY) {
+    ctx.save();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#FFFFFF';
+    
+    if (State.selection.type === 'rect') {
+        ctx.fillRect(offsetX, offsetY, State.selection.w, State.selection.h);
+    } else if (State.selection.type === 'ellipse') {
+        ctx.beginPath();
+        ctx.ellipse(offsetX + State.selection.w/2, offsetY + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
+        ctx.fill();
+    } else if (State.selection.type === 'lasso') {
+        ctx.beginPath();
+        ctx.moveTo(State.selection.path[0].x - State.selection.x + offsetX, State.selection.path[0].y - State.selection.y + offsetY);
+        for(let i=1; i<State.selection.path.length; i++) {
+            ctx.lineTo(State.selection.path[i].x - State.selection.x + offsetX, State.selection.path[i].y - State.selection.y + offsetY);
+        }
+        ctx.fill();
+    } else if (State.selection.type === 'wand' || State.selection.type === 'mask') {
+        ctx.drawImage(State.selection.maskCanvas, offsetX, offsetY);
+    }
+    
+    ctx.restore();
+}
+
 export function floatSelection(layer) {
     if (!State.selection.maskCanvas) updateSelectionMask();
     
@@ -90,21 +118,137 @@ export function floatSelection(layer) {
     State.selection.originalMaskCanvas.getContext('2d').drawImage(State.selection.maskCanvas, 0, 0);
 }
 
-export function drawSelectionPreview() {
-    DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
-    drawShapePreview();
+export function drawSelectionPreview(clearAndShape = true) {
+    if (clearAndShape) {
+        DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+        drawShapePreview();
+    }
 
     if (State.selection.isFloating && State.selection.canvas) {
         DOM.previewCtx.imageSmoothingEnabled = State.isAntiAlias;
         DOM.previewCtx.drawImage(State.selection.canvas, State.selection.x, State.selection.y);
     }
+    
     if (State.selection.active && State.selection.maskCanvas) {
-        DOM.previewCtx.beginPath();
-        DOM.previewCtx.setLineDash([5, 5]);
-        DOM.previewCtx.strokeStyle = '#00ffff';
-        DOM.previewCtx.lineWidth = 1;
-        DOM.previewCtx.strokeRect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
-        DOM.previewCtx.setLineDash([]);
+        const ctx = DOM.previewCtx;
+        ctx.imageSmoothingEnabled = false;
+
+        let x1 = Math.round(State.selection.x);
+        let y1 = Math.round(State.selection.y);
+        let x2 = Math.round(State.selection.x + State.selection.w);
+        let y2 = Math.round(State.selection.y + State.selection.h);
+
+        const drawRetroDotLine = (px1, py1, px2, py2) => {
+            let dx = Math.abs(px2 - px1);
+            let dy = Math.abs(py2 - py1);
+            let sx = px1 < px2 ? 1 : -1;
+            let sy = py1 < py2 ? 1 : -1;
+            let err = dx - dy;
+            let cx = px1, cy = py1;
+            let totalDist = 0;
+
+            while (true) {
+                if ((Math.floor(totalDist / 2) % 2) === 0) {
+                    ctx.fillStyle = '#000000';
+                } else {
+                    ctx.fillStyle = '#ffffff';
+                }
+                ctx.fillRect(cx, cy, 1, 1);
+
+                if (cx === px2 && cy === py2) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; cx += sx; }
+                if (e2 < dx) { err += dx; cy += sy; }
+                totalDist++;
+            }
+        };
+
+        if (State.selection.type === 'ellipse') {
+            let rx = Math.round(State.selection.w / 2);
+            let ry = Math.round(State.selection.h / 2);
+            let cx = x1 + rx;
+            let cy = y1 + ry;
+            
+            let x = 0;
+            let y = ry;
+            let a2 = rx * rx;
+            let b2 = ry * ry;
+            let d = Math.round(b2 - a2 * ry + 0.25 * a2);
+            let distCount = 0;
+
+            const plotRetroPixel = (px, py) => {
+                if ((Math.floor(distCount / 2) % 2) === 0) {
+                    ctx.fillStyle = '#000000';
+                } else {
+                    ctx.fillStyle = '#ffffff';
+                }
+                ctx.fillRect(px, py, 1, 1);
+                distCount++;
+            };
+
+            const drawEllipsePoints = (px, py) => {
+                plotRetroPixel(cx + px, cy + py);
+                plotRetroPixel(cx - px, cy + py);
+                plotRetroPixel(cx + px, cy - py);
+                plotRetroPixel(cx - px, cy - py);
+            };
+
+            while (a2 * y > b2 * x) {
+                drawEllipsePoints(x, y);
+                if (d < 0) { d += b2 * (2 * x + 3); }
+                else { d += b2 * (2 * x + 3) + a2 * (-2 * y + 2); y--; }
+                x++;
+            }
+            let d2 = Math.round(b2 * (x + 0.5)**2 + a2 * (y - 1)**2 - a2 * b2);
+            while (y >= 0) {
+                drawEllipsePoints(x, y);
+                if (d2 > 0) { d2 += a2 * (-2 * y + 3); }
+                else { d2 += b2 * (2 * x + 2) + a2 * (-2 * y + 3); x++; }
+                y--;
+            }
+        } else if (State.selection.type === 'lasso' || State.selection.type === 'wand' || State.selection.type === 'mask') {
+            const mCanvas = State.selection.maskCanvas;
+            const mCtx = mCanvas.getContext('2d', { willReadFrequently: true });
+            const mImgData = mCtx.getImageData(0, 0, mCanvas.width, mCanvas.height);
+            const mData = mImgData.data;
+            const mw = mCanvas.width;
+            const mh = mCanvas.height;
+
+            let distCount = 0;
+            for (let my = 0; my < mh; my++) {
+                for (let mx = 0; mx < mw; mx++) {
+                    const idx = (my * mw + mx) * 4;
+                    if (mData[idx + 3] > 0) {
+                        let isEdge = false;
+                        if (mx === 0 || mx === mw - 1 || my === 0 || my === mh - 1) {
+                            isEdge = true;
+                        } else {
+                            if (mData[((my - 1) * mw + mx) * 4 + 3] === 0 ||
+                                mData[((my + 1) * mw + mx) * 4 + 3] === 0 ||
+                                mData[(my * mw + (mx - 1)) * 4 + 3] === 0 ||
+                                mData[(my * mw + (mx + 1)) * 4 + 3] === 0) {
+                                isEdge = true;
+                            }
+                        }
+
+                        if (isEdge) {
+                            if ((Math.floor(distCount / 2) % 2) === 0) {
+                                ctx.fillStyle = '#000000';
+                            } else {
+                                ctx.fillStyle = '#ffffff';
+                            }
+                            ctx.fillRect(State.selection.x + mx, State.selection.y + my, 1, 1);
+                            distCount++;
+                        }
+                    }
+                }
+            }
+        } else {
+            drawRetroDotLine(x1, y1, x2, y1); 
+            drawRetroDotLine(x2, y1, x2, y2); 
+            drawRetroDotLine(x2, y2, x1, y2); 
+            drawRetroDotLine(x1, y2, x1, y1); 
+        }
     }
 }
 
@@ -356,26 +500,58 @@ export function handleImageImport(img, fileName) {
 export async function copyToClipboard() {
     if (window.finalizeShape) window.finalizeShape(true);
     try {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = State.CANVAS_WIDTH;
-        tempCanvas.height = State.CANVAS_HEIGHT;
-        const tCtx = tempCanvas.getContext('2d');
-        tCtx.imageSmoothingEnabled = State.isAntiAlias;
+        let targetCanvas;
         
-        State.layers.forEach(layer => {
-            if (layer.visible) tCtx.drawImage(layer.canvas, 0, 0);
-        });
+        if (State.selection.active) {
+            if (!State.selection.isFloating) {
+                const layer = State.layers.find(l => l.id === State.currentLayerId);
+                if (layer) {
+                    floatSelection(layer);
+                }
+            }
+            
+            targetCanvas = document.createElement('canvas');
+            targetCanvas.width = Math.max(1, State.selection.w);
+            targetCanvas.height = Math.max(1, State.selection.h);
+            const tCtx = targetCanvas.getContext('2d');
+            tCtx.imageSmoothingEnabled = State.isAntiAlias;
+            if (State.selection.canvas) {
+                tCtx.drawImage(State.selection.canvas, 0, 0);
+            }
+        } else {
+            targetCanvas = document.createElement('canvas');
+            targetCanvas.width = State.CANVAS_WIDTH;
+            targetCanvas.height = State.CANVAS_HEIGHT;
+            const tCtx = targetCanvas.getContext('2d');
+            tCtx.imageSmoothingEnabled = State.isAntiAlias;
+            
+            State.layers.forEach(layer => {
+                if (layer.visible) tCtx.drawImage(layer.canvas, 0, 0);
+            });
+        }
         
-        tempCanvas.toBlob(async (blob) => {
+        targetCanvas.toBlob(async (blob) => {
             if (blob) {
                 const item = new ClipboardItem({ 'image/png': blob });
                 await navigator.clipboard.write([item]);
-                alert("システム: 画像をクリップボードにコピーしました。");
+                console.log("システム: 画像をクリップボードにコピーしました。");
             }
         }, 'image/png');
     } catch (err) {
-        alert("システム・エラー: コピーに失敗しました。環境設定をご確認ください。");
-        console.error(err);
+        console.error("システム・エラー: コピーに失敗しました。", err);
+    }
+}
+
+export async function cutToClipboard() {
+    copyToClipboard();
+    if (State.selection.active) {
+        deleteSelection();
+    } else {
+        const layer = State.layers.find(l => l.id === State.currentLayerId);
+        if (layer) {
+            layer.ctx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
+            saveState();
+        }
     }
 }
 

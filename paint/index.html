@@ -25,14 +25,15 @@
         </div>
         <div class="menu-item">編集
             <div class="dropdown-content">
-                <div class="dropdown-item" onclick="copyToClipboard()">コピー</div>
-                <div class="dropdown-item" onclick="pasteFromClipboard()">貼り付け</div>
+                <div class="dropdown-item" onclick="copyToClipboard()">コピー (Ctrl+C)</div>
+                <div class="dropdown-item" onclick="cutToClipboard()">切り取り (Ctrl+X)</div>
+                <div class="dropdown-item" onclick="pasteFromClipboard()">貼り付け (Ctrl+V)</div>
             </div>
         </div>
         <div class="menu-item">選択範囲
             <div class="dropdown-content">
                 <div class="dropdown-item" onclick="duplicateSelection()">選択範囲の複製</div>
-                <div class="dropdown-item" onclick="deleteSelection()">選択範囲の削除</div>
+                <div class="dropdown-item" onclick="deleteSelection()">選択範囲の削除 (Del)</div>
                 <div class="dropdown-item" onclick="invertSelection()">選択範囲の反転</div>
                 <div class="dropdown-item" onclick="deselect()">選択範囲の解除</div>
                 <div class="dropdown-item" onclick="finalizeSelection()">選択範囲の確定</div>
