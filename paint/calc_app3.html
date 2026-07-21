@@ -172,7 +172,7 @@
       padding: 16px 0;
     }
 
-    /* フィードバック (右側にオーバーレイ) */
+    /* フィードバック */
     .feedback-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(255,255,255,0.96); border-radius: 24px;
@@ -183,7 +183,7 @@
     .correct { color: #38a169; }
     .wrong { color: #e53e3e; }
 
-    /* --- 3. 学習モード (横置き分割レイアウト) --- */
+    /* --- 3. 学習モード --- */
     #train-screen {
       flex-direction: column;
       align-items: center;
@@ -234,12 +234,11 @@
     </button>
   </div>
 
-  <!-- 2. 学習(トレーニング)画面 -->
+  <!-- 2. 学習画面 -->
   <div id="train-screen" class="screen">
     <h2 style="color: #4a5568; margin-bottom: 5px; font-size: 1.8rem;">数字のパターンを学習させる</h2>
     
     <div class="layout-row">
-      <!-- 左側：書き込み -->
       <div class="col">
         <select id="train-digit-select" class="train-selector">
           <option value="0">0 (ゼロ)</option><option value="1">1 (いち)</option>
@@ -257,7 +256,6 @@
         <button class="btn btn-action" style="width: 100%; font-size: 1.2rem;" onclick="savePattern()">📝 登録する</button>
       </div>
       
-      <!-- 右側：管理 -->
       <div class="col">
         <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="openPreviewModal()">👀 登録データを見る・整理</button>
         <button class="btn btn-success" style="width: 100%; margin-bottom: 10px;" onclick="saveToLocalStorage()">💾 ブラウザに保存</button>
@@ -271,7 +269,6 @@
       </div>
     </div>
 
-    <!-- プレビュー用モーダル -->
     <div id="preview-modal" class="preview-modal">
       <div class="preview-content">
         <div class="preview-header">
@@ -283,10 +280,9 @@
     </div>
   </div>
 
-  <!-- 3. 問題画面 (iPad横置き向け) -->
+  <!-- 3. 問題画面 -->
   <div id="quiz-screen" class="screen">
     
-    <!-- 左側エリア：問題・進度 -->
     <div class="left-col">
       <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
       <div class="question-info">
@@ -299,7 +295,6 @@
       <button class="btn btn-secondary" style="align-self: flex-start;" onclick="showScreen('menu-screen')">🏠 もどる</button>
     </div>
 
-    <!-- 右側エリア：解答欄・ボタン -->
     <div class="right-col">
       <div class="canvas-container">
         <canvas id="quiz-canvas" width="400" height="400"></canvas>
@@ -308,11 +303,9 @@
         </div>
       </div>
 
-      <!-- キャンバスの下に「できた！」ボタン -->
       <button class="btn btn-action btn-done" onclick="checkAnswer()">できた！</button>
     </div>
 
-    <!-- 正解・不正解オーバーレイ (全画面) -->
     <div id="feedback-overlay" class="feedback-overlay">
       <div id="feedback-msg" class="feedback-msg"></div>
       <div id="recognized-info" class="question-box" style="padding: 20px 40px; border: 3px dashed #a0aec0; margin-bottom: 30px;"></div>
@@ -333,9 +326,7 @@
 </div>
 
 <script>
-  // ==========================================
-  // パターンデータ (初期データ)
-  // ==========================================
+  // 初期データ
   const RAW_PATTERNS = [
     ["00000000", "00111100", "01100110", "01100110", "01100110", "01100110", "00111100", "00000000"],
     ["00000000", "00011000", "00111000", "00011000", "00011000", "00011000", "00111100", "00000000"],
@@ -354,9 +345,6 @@
     KNOWN_PATTERNS.push({ digit: d, pattern: RAW_PATTERNS[d].join('').split('').map(Number) });
   }
 
-  // ==========================================
-  // ストレージ・ファイル入出力機能 (統合実装)
-  // ==========================================
   const STORAGE_KEY = 'tegaki_patterns_v1';
 
   function loadFromLocalStorage() {
@@ -414,9 +402,6 @@
     event.target.value = "";
   }
 
-  // ==========================================
-  // データプレビュー・削除処理 (統合実装)
-  // ==========================================
   function openPreviewModal() {
     renderPreviewGrid();
     document.getElementById('preview-modal').classList.add('active');
@@ -474,16 +459,13 @@
     }
   }
 
-  // ==========================================
-  // アプリケーション状態 & キャンバス初期化
-  // ==========================================
   let currentQuestions = [];
   let currentQuestionIndex = 0;
   let quizCanvas, quizCtx, trainCanvas, trainCtx;
   let drawnStrokes = [];
 
   window.onload = () => {
-    loadFromLocalStorage(); // 起動時に学習データを読み込み
+    loadFromLocalStorage();
 
     quizCanvas = document.getElementById('quiz-canvas');
     quizCtx = quizCanvas.getContext('2d');
@@ -499,9 +481,6 @@
     document.getElementById(id).classList.add('active');
   }
 
-  // ==========================================
-  // 問題自動生成ロジック
-  // ==========================================
   function startCategory(cat) {
     currentQuestions = generateQuestions(cat);
     currentQuestionIndex = 0;
@@ -554,9 +533,6 @@
     closeFeedback();
   }
 
-  // ==========================================
-  // キャンバス描画処理
-  // ==========================================
   function initCanvasEvents(cvs, ctx, lineWidth, trackStrokes) {
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
@@ -593,7 +569,9 @@
 
     const stopDraw = () => {
       if (isDrawing) {
-        if (trackStrokes) drawnStrokes.push(currentStroke);
+        if (trackStrokes && currentStroke.length > 1) {
+          drawnStrokes.push(currentStroke);
+        }
         isDrawing = false;
       }
     };
@@ -612,9 +590,6 @@
     if (cvs.id === 'quiz-canvas') drawnStrokes = [];
   }
 
-  // ==========================================
-  // 特徴抽出と手書き学習登録
-  // ==========================================
   function extractFeatures(context, cvs) {
     const imgData = context.getImageData(0, 0, cvs.width, cvs.height);
     const data = imgData.data;
@@ -669,12 +644,11 @@
     clearCanvas(trainCtx, trainCanvas);
   }
 
-  // ==========================================
-  // 解析・認識ロジック (複数桁・分数対応)
-  // ==========================================
-  function analyzeStrokes() {
+  // 解析・認識ロジック (不具合修正版)
+  function analyzeStrokes(qType) {
     if (drawnStrokes.length === 0) return null;
 
+    // 有効な線のみ抽出
     let strokeBoxes = drawnStrokes.map(st => {
       let xs = st.map(p => p.x);
       let ys = st.map(p => p.y);
@@ -684,35 +658,39 @@
       };
     });
 
-    // 分数の横線(バー)を検出
-    let barIndex = -1;
-    let maxAspect = 0;
-    for (let i = 0; i < strokeBoxes.length; i++) {
-      let box = strokeBoxes[i];
-      let w = box.maxX - box.minX;
-      let h = (box.maxY - box.minY) || 1; 
-      if (w > 50 && (w / h) > 3.0) { 
-        if ((w / h) > maxAspect) { maxAspect = w / h; barIndex = i; }
+    // 「分数」問題の時だけ横棒の認識を行う
+    if (qType === 'fraction') {
+      let barIndex = -1;
+      let maxAspect = 0;
+      for (let i = 0; i < strokeBoxes.length; i++) {
+        let box = strokeBoxes[i];
+        let w = box.maxX - box.minX;
+        let h = (box.maxY - box.minY) || 1; 
+        if (w > 40 && (w / h) > 2.5) { 
+          if ((w / h) > maxAspect) { maxAspect = w / h; barIndex = i; }
+        }
+      }
+
+      if (barIndex !== -1) {
+        let barBox = strokeBoxes[barIndex];
+        let barCenterY = (barBox.minY + barBox.maxY) / 2;
+
+        let topBoxes = strokeBoxes.filter((b, i) => i !== barIndex && b.maxY < barCenterY + 20);
+        let bottomBoxes = strokeBoxes.filter((b, i) => i !== barIndex && b.minY > barCenterY - 20);
+
+        let numStr = recognizeDigitGroup(topBoxes);
+        let denStr = recognizeDigitGroup(bottomBoxes);
+        
+        if (numStr && denStr) {
+          return { type: 'fraction', num: parseInt(numStr), den: parseInt(denStr) };
+        }
       }
     }
 
-    if (barIndex !== -1) {
-      let barBox = strokeBoxes[barIndex];
-      let barCenterY = (barBox.minY + barBox.maxY) / 2;
-
-      let topBoxes = strokeBoxes.filter((b, i) => i !== barIndex && b.maxY < barCenterY + 30);
-      let bottomBoxes = strokeBoxes.filter((b, i) => i !== barIndex && b.minY > barCenterY - 30);
-
-      let numStr = recognizeDigitGroup(topBoxes);
-      let denStr = recognizeDigitGroup(bottomBoxes);
-      
-      if (!numStr || !denStr) return null;
-      return { type: 'fraction', num: parseInt(numStr), den: parseInt(denStr) };
-    } else {
-      let valStr = recognizeDigitGroup(strokeBoxes);
-      if (!valStr) return null;
-      return { type: 'number', val: parseInt(valStr) };
-    }
+    // 通常の整数判定（たし算・ひき算等、または分数で横棒が見つからなかった場合）
+    let valStr = recognizeDigitGroup(strokeBoxes);
+    if (!valStr) return null;
+    return { type: 'number', val: parseInt(valStr) };
   }
 
   function recognizeDigitGroup(boxes) {
@@ -723,7 +701,7 @@
     for (let b of boxes) {
       let merged = false;
       for (let g of groups) {
-        if (!(b.minX > g.maxX + 25 || b.maxX < g.minX - 25)) {
+        if (!(b.minX > g.maxX + 30 || b.maxX < g.minX - 30)) {
           g.minX = Math.min(g.minX, b.minX);
           g.maxX = Math.max(g.maxX, b.maxX);
           g.minY = Math.min(g.minY, b.minY);
@@ -753,6 +731,7 @@
     offCtx.strokeStyle = '#2d3748';
 
     for (let st of strokesGroup) {
+      if(!st || st.length < 2) continue;
       offCtx.beginPath(); offCtx.moveTo(st[0].x, st[0].y);
       for (let i = 1; i < st.length; i++) offCtx.lineTo(st[i].x, st[i].y);
       offCtx.stroke();
@@ -779,12 +758,9 @@
     return bestDigit;
   }
 
-  // ==========================================
-  // 回答チェックとフィードバックUI
-  // ==========================================
   function checkAnswer() {
     const targetQ = currentQuestions[currentQuestionIndex];
-    const userResult = analyzeStrokes();
+    const userResult = analyzeStrokes(targetQ.type); // 問題タイプを渡す
 
     if (userResult === null) {
       alert("すうじが かかれていないか、うまく よみとれませんでした！");
