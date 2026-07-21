@@ -132,7 +132,6 @@ export function drawSelectionPreview(clearAndShape = true) {
     if (State.selection.active && State.selection.maskCanvas) {
         const ctx = DOM.previewCtx;
         ctx.save();
-        const z = State.currentZoom || 1;
 
         if ((State.selection.type === 'wand' || State.selection.type === 'mask') && State.selection.maskCanvas) {
             const edgeCanvas = document.createElement('canvas');
@@ -140,13 +139,16 @@ export function drawSelectionPreview(clearAndShape = true) {
             edgeCanvas.height = State.CANVAS_HEIGHT;
             const eCtx = edgeCanvas.getContext('2d');
             
-            eCtx.drawImage(State.selection.maskCanvas, State.selection.x - 1/z, State.selection.y);
-            eCtx.drawImage(State.selection.maskCanvas, State.selection.x + 1/z, State.selection.y);
-            eCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y - 1/z);
-            eCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y + 1/z);
+            const sx = Math.round(State.selection.x);
+            const sy = Math.round(State.selection.y);
+            
+            eCtx.drawImage(State.selection.maskCanvas, sx - 1, sy);
+            eCtx.drawImage(State.selection.maskCanvas, sx + 1, sy);
+            eCtx.drawImage(State.selection.maskCanvas, sx, sy - 1);
+            eCtx.drawImage(State.selection.maskCanvas, sx, sy + 1);
             
             eCtx.globalCompositeOperation = 'destination-out';
-            eCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
+            eCtx.drawImage(State.selection.maskCanvas, sx, sy);
             
             eCtx.globalCompositeOperation = 'source-in';
             const patCanvas = document.createElement('canvas');
@@ -159,28 +161,29 @@ export function drawSelectionPreview(clearAndShape = true) {
             
             ctx.drawImage(edgeCanvas, 0, 0);
         } else {
+            ctx.translate(0.5, 0.5);
             ctx.beginPath();
-            ctx.lineWidth = 1 / z;
+            ctx.lineWidth = 1;
             
             if (State.selection.type === 'ellipse') {
-                ctx.ellipse(State.selection.x + State.selection.w/2, State.selection.y + State.selection.h/2, Math.max(0.1, State.selection.w/2), Math.max(0.1, State.selection.h/2), 0, 0, Math.PI*2);
+                ctx.ellipse(Math.round(State.selection.x + State.selection.w/2), Math.round(State.selection.y + State.selection.h/2), Math.max(0.1, Math.round(State.selection.w/2)), Math.max(0.1, Math.round(State.selection.h/2)), 0, 0, Math.PI*2);
             } else if (State.selection.type === 'lasso') {
                 if (State.selection.path && State.selection.path.length > 0) {
-                    ctx.moveTo(State.selection.path[0].x, State.selection.path[0].y);
+                    ctx.moveTo(Math.round(State.selection.path[0].x), Math.round(State.selection.path[0].y));
                     for (let i = 1; i < State.selection.path.length; i++) {
-                        ctx.lineTo(State.selection.path[i].x, State.selection.path[i].y);
+                        ctx.lineTo(Math.round(State.selection.path[i].x), Math.round(State.selection.path[i].y));
                     }
                     ctx.closePath();
                 }
             } else {
-                ctx.rect(State.selection.x, State.selection.y, State.selection.w, State.selection.h);
+                ctx.rect(Math.round(State.selection.x), Math.round(State.selection.y), Math.round(State.selection.w), Math.round(State.selection.h));
             }
             
-            ctx.setLineDash([2 / z, 2 / z]);
+            ctx.setLineDash([2, 2]);
             ctx.lineDashOffset = 0;
             ctx.strokeStyle = '#000000';
             ctx.stroke();
-            ctx.lineDashOffset = 2 / z;
+            ctx.lineDashOffset = 2;
             ctx.strokeStyle = '#ffffff';
             ctx.stroke();
         }

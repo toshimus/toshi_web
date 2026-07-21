@@ -571,56 +571,58 @@ function draw(e) {
                 State.selection.path.push({x: pos.x, y: pos.y});
                 DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
                 drawShapePreview(); 
+                DOM.previewCtx.save();
+                DOM.previewCtx.translate(0.5, 0.5);
                 DOM.previewCtx.beginPath();
                 
-                const z = State.currentZoom || 1;
-                DOM.previewCtx.lineWidth = 1 / z;
+                DOM.previewCtx.lineWidth = 1;
                 
-                DOM.previewCtx.moveTo(State.selection.path[0].x, State.selection.path[0].y);
+                DOM.previewCtx.moveTo(Math.round(State.selection.path[0].x), Math.round(State.selection.path[0].y));
                 for (let i = 1; i < State.selection.path.length; i++) {
-                    DOM.previewCtx.lineTo(State.selection.path[i].x, State.selection.path[i].y);
+                    DOM.previewCtx.lineTo(Math.round(State.selection.path[i].x), Math.round(State.selection.path[i].y));
                 }
                 
-                DOM.previewCtx.setLineDash([2 / z, 2 / z]);
+                DOM.previewCtx.setLineDash([2, 2]);
                 DOM.previewCtx.lineDashOffset = 0;
                 DOM.previewCtx.strokeStyle = '#000000';
                 DOM.previewCtx.stroke();
-                DOM.previewCtx.lineDashOffset = 2 / z;
+                DOM.previewCtx.lineDashOffset = 2;
                 DOM.previewCtx.strokeStyle = '#ffffff';
                 DOM.previewCtx.stroke();
                 
-                DOM.previewCtx.setLineDash([]);
-                DOM.previewCtx.lineDashOffset = 0;
+                DOM.previewCtx.restore();
             } else {
                 DOM.previewCtx.clearRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
                 drawShapePreview(); 
+                DOM.previewCtx.save();
+                DOM.previewCtx.translate(0.5, 0.5);
                 DOM.previewCtx.beginPath();
                 
-                const z = State.currentZoom || 1;
-                DOM.previewCtx.lineWidth = 1 / z;
+                DOM.previewCtx.lineWidth = 1;
                 
                 if (State.currentTool === 'select-ellipse') {
                     let rx = Math.abs(pos.x - State.startX) / 2;
                     let ry = Math.abs(pos.y - State.startY) / 2;
                     let cx = Math.min(State.startX, pos.x) + rx;
                     let cy = Math.min(State.startY, pos.y) + ry;
-                    DOM.previewCtx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, Math.PI * 2);
+                    DOM.previewCtx.ellipse(Math.round(cx), Math.round(cy), Math.max(0.1, Math.round(rx)), Math.max(0.1, Math.round(ry)), 0, 0, Math.PI * 2);
                 } else {
-                    const w = pos.x - State.startX;
-                    const h = pos.y - State.startY;
-                    DOM.previewCtx.rect(State.startX, State.startY, w, h);
+                    const sx = Math.round(State.startX);
+                    const sy = Math.round(State.startY);
+                    const px = Math.round(pos.x);
+                    const py = Math.round(pos.y);
+                    DOM.previewCtx.rect(sx, sy, px - sx, py - sy);
                 }
                 
-                DOM.previewCtx.setLineDash([2 / z, 2 / z]);
+                DOM.previewCtx.setLineDash([2, 2]);
                 DOM.previewCtx.lineDashOffset = 0;
                 DOM.previewCtx.strokeStyle = '#000000';
                 DOM.previewCtx.stroke();
-                DOM.previewCtx.lineDashOffset = 2 / z;
+                DOM.previewCtx.lineDashOffset = 2;
                 DOM.previewCtx.strokeStyle = '#ffffff';
                 DOM.previewCtx.stroke();
                 
-                DOM.previewCtx.setLineDash([]);
-                DOM.previewCtx.lineDashOffset = 0;
+                DOM.previewCtx.restore();
             }
         }
         return;
@@ -649,23 +651,26 @@ function draw(e) {
         setupContextStyle(DOM.previewCtx, false); 
         
         if (State.currentTool === 'crop') {
+            DOM.previewCtx.save();
+            DOM.previewCtx.translate(0.5, 0.5);
             DOM.previewCtx.beginPath();
-            const z = State.currentZoom || 1;
-            DOM.previewCtx.lineWidth = 1 / z;
-            const width = pos.x - State.startX;
-            const height = pos.y - State.startY;
-            DOM.previewCtx.rect(State.startX, State.startY, width, height);
+            DOM.previewCtx.lineWidth = 1;
             
-            DOM.previewCtx.setLineDash([2 / z, 2 / z]);
+            const sx = Math.round(State.startX);
+            const sy = Math.round(State.startY);
+            const px = Math.round(pos.x);
+            const py = Math.round(pos.y);
+            DOM.previewCtx.rect(sx, sy, px - sx, py - sy);
+            
+            DOM.previewCtx.setLineDash([2, 2]);
             DOM.previewCtx.lineDashOffset = 0;
             DOM.previewCtx.strokeStyle = '#000000';
             DOM.previewCtx.stroke();
-            DOM.previewCtx.lineDashOffset = 2 / z;
+            DOM.previewCtx.lineDashOffset = 2;
             DOM.previewCtx.strokeStyle = '#ffffff';
             DOM.previewCtx.stroke();
 
-            DOM.previewCtx.setLineDash([]); 
-            DOM.previewCtx.lineDashOffset = 0;
+            DOM.previewCtx.restore();
         } else if (State.currentTool === 'line') {
             if (!State.isAntiAlias) {
                 drawBresenhamLine(DOM.previewCtx, State.startX, State.startY, pos.x, pos.y, false);
