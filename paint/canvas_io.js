@@ -685,12 +685,26 @@ export async function loadProjectSystem() {
     if (window.showOpenFilePicker) {
         try {
             const [fileHandle] = await window.showOpenFilePicker({
-                types: [{ description: 'KITT Project JSON', accept: {'application/json': ['.json']} }]
+                types: [
+                    { description: 'すべてのサポート形式', accept: {'application/json': ['.json'], 'image/*': ['.png', '.jpg', '.jpeg', '.bmp']} },
+                    { description: 'KITT Project JSON', accept: {'application/json': ['.json']} },
+                    { description: '画像ファイル', accept: {'image/*': ['.png', '.jpg', '.jpeg', '.bmp']} }
+                ]
             });
-            State.currentProjectHandle = fileHandle; 
             const file = await fileHandle.getFile();
-            const jsonString = await file.text();
-            processProjectData(jsonString);
+            if (file.name.toLowerCase().endsWith('.json')) {
+                State.currentProjectHandle = fileHandle; 
+                const jsonString = await file.text();
+                processProjectData(jsonString);
+            } else if (file.type.match('image.*') || file.name.match(/\.(png|jpe?g|bmp)$/i)) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = () => handleImageImport(img, file.name);
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
         } catch (err) {
             console.error("読み込みがキャンセルされました", err);
         }
@@ -704,11 +718,21 @@ export function loadProject(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        processProjectData(e.target.result);
-    };
-    reader.readAsText(file);
+    if (file.name.toLowerCase().endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            processProjectData(e.target.result);
+        };
+        reader.readAsText(file);
+    } else if (file.type.match('image.*') || file.name.match(/\.(png|jpe?g|bmp)$/i)) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = () => handleImageImport(img, file.name);
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
     event.target.value = '';
 }
 

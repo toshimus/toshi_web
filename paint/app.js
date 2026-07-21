@@ -222,12 +222,12 @@ function getMousePos(e) {
     let clientX = e.clientX;
     let clientY = e.clientY;
 
-    if (e.touches && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else if (e.changedTouches && e.changedTouches.length > 0) {
+    if (e.changedTouches && e.changedTouches.length > 0) {
         clientX = e.changedTouches[0].clientX;
         clientY = e.changedTouches[0].clientY;
+    } else if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
     }
 
     const scaleX = State.CANVAS_WIDTH / rect.width;
@@ -283,6 +283,10 @@ function setupPreviewCanvasEvents() {
         }
     });
 
+    overlay.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); 
+    });
+
     overlay.addEventListener('wheel', (e) => {
         e.preventDefault(); 
         if (e.deltaY < 0) zoomStep(1, e.clientX, e.clientY);
@@ -290,6 +294,14 @@ function setupPreviewCanvasEvents() {
     }, { passive: false });
 
     overlay.addEventListener('mousedown', (e) => {
+        if (e.button === 2) {
+            e.preventDefault();
+            let pos = getMousePos(e);
+            State.isDrawing = true;
+            State.isTemporaryEyedropper = true;
+            pickColor(pos.x, pos.y);
+            return;
+        }
         if (State.currentTool === 'pan') {
             startPanning(e);
         } else {
@@ -323,20 +335,21 @@ function setupPreviewCanvasEvents() {
     });
 
     overlay.addEventListener('touchstart', (e) => {
-        if (e.touches && e.touches.length > 0) {
-            updateBrushPreview(e.touches[0].clientX, e.touches[0].clientY);
+        if (e.targetTouches && e.targetTouches.length > 0) {
+            updateBrushPreview(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
         }
-        if (e.touches && e.touches.length >= 2) {
+        
+        if (e.targetTouches && e.targetTouches.length >= 2 && !State.isShiftPressed) {
             e.preventDefault();
             startPanning(e);
             State.initialPinchDistance = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
+                e.targetTouches[0].clientX - e.targetTouches[1].clientX,
+                e.targetTouches[0].clientY - e.targetTouches[1].clientY
             );
             return;
         }
         
-        if (State.currentTool === 'pan') {
+        if (State.currentTool === 'pan' && !State.isShiftPressed) {
             e.preventDefault();
             startPanning(e);
         } else {
@@ -346,10 +359,17 @@ function setupPreviewCanvasEvents() {
     }, { passive: false });
     
     window.addEventListener('touchmove', (e) => {
-        if (e.touches && e.touches.length > 0) {
-            updateBrushPreview(e.touches[0].clientX, e.touches[0].clientY);
+        if (e.targetTouches && e.targetTouches.length > 0) {
+            updateBrushPreview(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
         }
-        if (e.touches && e.touches.length >= 2) {
+
+        if (State.isTemporaryEyedropper || State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) {
+            e.preventDefault();
+            draw(e);
+            return;
+        }
+
+        if (e.touches && e.touches.length >= 2 && !State.isShiftPressed) {
             e.preventDefault();
             const currentDistance = Math.hypot(
                 e.touches[0].clientX - e.touches[1].clientX,
@@ -375,9 +395,6 @@ function setupPreviewCanvasEvents() {
         if (State.isPanning) {
             e.preventDefault();
             doPan(e);
-        } else if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) {
-            e.preventDefault(); 
-            draw(e);
         }
     }, { passive: false });
     
@@ -385,13 +402,13 @@ function setupPreviewCanvasEvents() {
         DOM.brushPreview.style.display = 'none'; 
         State.initialPinchDistance = null;
         if (State.isPanning) stopPanning();
-        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) stopDrawing(e);
+        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody || State.isTemporaryEyedropper) stopDrawing(e);
     });
     window.addEventListener('touchcancel', (e) => {
         DOM.brushPreview.style.display = 'none'; 
         State.initialPinchDistance = null;
         if (State.isPanning) stopPanning();
-        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) stopDrawing(e);
+        if (State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody || State.isTemporaryEyedropper) stopDrawing(e);
     });
 }
 
@@ -413,8 +430,9 @@ function setupContextStyle(ctx, isEraser = false) {
 function startDrawing(e) {
     let pos = getMousePos(e);
 
-    if (State.currentTool === 'eyedropper') {
+    if (State.currentTool === 'eyedropper' || State.isShiftPressed) {
         State.isDrawing = true;
+        State.isTemporaryEyedropper = true;
         pickColor(pos.x, pos.y);
         return;
     }
@@ -546,7 +564,7 @@ function draw(e) {
     let pos = getMousePos(e);
     State.hasMoved = true;
 
-    if (State.currentTool === 'eyedropper') {
+    if (State.currentTool === 'eyedropper' || State.isTemporaryEyedropper) {
         if (State.isDrawing) pickColor(pos.x, pos.y);
         return;
     }
@@ -734,8 +752,9 @@ function draw(e) {
 function stopDrawing(e) {
     let pos = getMousePos(e);
 
-    if (State.currentTool === 'eyedropper') {
+    if (State.currentTool === 'eyedropper' || State.isTemporaryEyedropper) {
         State.isDrawing = false;
+        State.isTemporaryEyedropper = false;
         return;
     }
 
@@ -999,6 +1018,25 @@ function init() {
     saveState(); 
     setupPreviewCanvasEvents();
     updateStatusBar();
+
+    const shiftBtn = document.getElementById('shift-btn');
+    if (shiftBtn) {
+        const pressShift = (e) => { 
+            e.preventDefault(); 
+            State.isShiftPressed = true; 
+            shiftBtn.style.backgroundColor = 'rgba(255,50,50,0.8)'; 
+            shiftBtn.style.borderColor = '#ffcccc';
+        };
+        const releaseShift = (e) => { 
+            State.isShiftPressed = false; 
+            shiftBtn.style.backgroundColor = 'rgba(80,80,80,0.7)'; 
+            shiftBtn.style.borderColor = '#aaa';
+        };
+        shiftBtn.addEventListener('mousedown', pressShift);
+        shiftBtn.addEventListener('touchstart', pressShift, {passive: false});
+        window.addEventListener('mouseup', releaseShift);
+        window.addEventListener('touchend', releaseShift);
+    }
 
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;

@@ -12,12 +12,11 @@
         <div class="menu-item">ファイル
             <div class="dropdown-content">
                 <div class="dropdown-item" onclick="createNewCanvas()">新規作成</div>
-                <div class="dropdown-item" onclick="loadProjectSystem()">開く (JSON)</div>
+                <div class="dropdown-item" onclick="loadProjectSystem()">開く (プロジェクト / 画像)</div>
                 <div class="dropdown-item" onclick="saveProject()">上書き保存 (JSON)</div>
                 <div class="dropdown-item" onclick="saveProjectAs()">名前を付けて保存 (JSON)</div>
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-item" onclick="selectSaveFolder()">📂 保存先フォルダを選択</div>
-                <div class="dropdown-item" onclick="document.getElementById('image-load-input').click()">画像読込</div>
                 <div class="dropdown-item" onclick="exportImage('png')">エクスポート (PNG)</div>
                 <div class="dropdown-item" onclick="exportImage('jpeg')">エクスポート (JPG)</div>
                 <div class="dropdown-item" onclick="exportImage('bmp')">エクスポート (BMP)</div>
@@ -37,8 +36,7 @@
                 <div class="dropdown-item" onclick="duplicateSelection()">選択範囲の複製</div>
                 <div class="dropdown-item" onclick="deleteSelection()">選択範囲の削除</div>
                 <div class="dropdown-item" onclick="invertSelection()">選択範囲の反転</div>
-                <div class="dropdown-item" onclick="deselect()">選択範囲の解除</div>
-                <div class="dropdown-item" onclick="finalizeSelection()">選択範囲の確定</div>
+                <div class="dropdown-item" onclick="finalizeSelection()">選択範囲の確定 / 解除</div>
             </div>
         </div>
         <div class="menu-item">画像
@@ -63,10 +61,12 @@
     </div>
 
     <!-- 古いブラウザ向けのフォールバック用インプット -->
-    <input type="file" id="load-input" style="display: none;" accept=".json" onchange="loadProject(event)">
-    <input type="file" id="image-load-input" style="display: none;" accept="image/png, image/jpeg, image/bmp" onchange="loadImageAsLayer(event)">
+    <input type="file" id="load-input" style="display: none;" accept=".json, image/png, image/jpeg, image/bmp" onchange="loadProject(event)">
 
     <div id="main-area">
+        <!-- Shift Button for iPad -->
+        <button id="shift-btn" style="position: fixed; left: 20px; bottom: 40px; z-index: 21000; width: 60px; height: 60px; border-radius: 50%; background-color: rgba(80,80,80,0.7); color: white; border: 2px solid #aaa; font-weight: bold; touch-action: none; user-select: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">SHIFT</button>
+
         <div id="toolbar">
             
             <div class="tool-section">

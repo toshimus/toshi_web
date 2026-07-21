@@ -23,6 +23,10 @@ export const State = {
     panScrollX: 0,
     panScrollY: 0,
     initialPinchDistance: null,
+    
+    isShiftPressed: false,
+    isTemporaryEyedropper: false,
+
     selection: {
         active: false,
         x: 0, y: 0, w: 0, h: 0,
