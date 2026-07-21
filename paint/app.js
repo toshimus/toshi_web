@@ -339,8 +339,16 @@ function setupPreviewCanvasEvents() {
             updateBrushPreview(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
         }
         
+        // 2本指以上で触れた場合、描画状態をキャンセルしてパン・ズームに移行
         if (e.targetTouches && e.targetTouches.length >= 2 && !State.isShiftPressed) {
             e.preventDefault();
+            
+            State.isDrawing = false;
+            State.isDraggingSelection = false;
+            State.isDraggingHandle = false;
+            State.isDraggingBody = false;
+            State.isTemporaryEyedropper = false;
+
             startPanning(e);
             State.initialPinchDistance = Math.hypot(
                 e.targetTouches[0].clientX - e.targetTouches[1].clientX,
@@ -363,12 +371,7 @@ function setupPreviewCanvasEvents() {
             updateBrushPreview(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
         }
 
-        if (State.isTemporaryEyedropper || State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) {
-            e.preventDefault();
-            draw(e);
-            return;
-        }
-
+        // パン・ズーム処理を最優先に評価する
         if (e.touches && e.touches.length >= 2 && !State.isShiftPressed) {
             e.preventDefault();
             const currentDistance = Math.hypot(
@@ -389,6 +392,12 @@ function setupPreviewCanvasEvents() {
                 }
             }
             if (State.isPanning) doPan(e);
+            return;
+        }
+
+        if (State.isTemporaryEyedropper || State.isDrawing || State.isDraggingSelection || State.isDraggingHandle || State.isDraggingBody) {
+            e.preventDefault();
+            draw(e);
             return;
         }
 
