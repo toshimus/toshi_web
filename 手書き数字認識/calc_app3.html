@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>たのしい けいさん アプリ (iPad 横置き版)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
+      background-color: #eef2f5;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 98vw;
+      height: 96vh;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* --- 画面切り替え --- */
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      padding: 20px 30px;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* --- ボタン共通 --- */
+    .btn {
+      color: white;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.1s;
+      text-align: center;
+    }
+    .btn:active { transform: translateY(4px); }
+    
+    .btn-primary { background-color: #4ecdc4; box-shadow: 0 6px 0 #38b2ac; }
+    .btn-primary:active { box-shadow: 0 2px 0 #38b2ac; }
+    .btn-action { background-color: #ff8e53; box-shadow: 0 6px 0 #e07038; }
+    .btn-action:active { box-shadow: 0 2px 0 #e07038; }
+    .btn-secondary { background-color: #a0aec0; box-shadow: 0 6px 0 #718096; }
+    .btn-secondary:active { box-shadow: 0 2px 0 #718096; }
+    .btn-success { background-color: #38a169; box-shadow: 0 6px 0 #276749; }
+    .btn-success:active { box-shadow: 0 2px 0 #276749; }
+
+    /* --- 1. メニュー画面 --- */
+    #menu-screen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+    }
+    .menu-title { font-size: 2.5rem; color: #2b6cb0; margin-bottom: 10px; }
+    .menu-subtitle { font-size: 1.2rem; color: #4a5568; margin-bottom: 30px; }
+    
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 30px;
+    }
+    .btn-menu {
+      background-color: #ffffff;
+      border: 3px solid #cbd5e0;
+      border-radius: 20px;
+      padding: 20px 15px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #2d3748;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #cbd5e0;
+      transition: all 0.1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+    .btn-menu:active { transform: translateY(4px); box-shadow: 0 2px 0 #cbd5e0; }
+
+    /* --- 2. 問題画面 (iPad横置き 左右分割) --- */
+    #quiz-screen {
+      flex-direction: row;
+      gap: 30px;
+      align-items: center;
+    }
+    
+    .left-col {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 20px;
+    }
+    .right-col {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 左側: 進度・問題 */
+    .progress-bar { width: 100%; background: #edf2f7; border-radius: 10px; height: 16px; overflow: hidden; margin-bottom: 10px; }
+    .progress-fill { height: 100%; background: #319795; width: 0%; transition: width 0.3s ease; }
+    .question-info { display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #4a5568; font-size: 1.2rem; margin-bottom: 20px; }
+    
+    .question-box {
+      font-size: 3.5rem; font-weight: bold; color: #1a202c; background: #f7fafc;
+      border: 3px solid #e2e8f0; border-radius: 24px; padding: 50px 20px;
+      text-align: center; display: flex; align-items: center; justify-content: center; gap: 15px;
+      margin-bottom: 40px;
+    }
+
+    /* 分数表示 */
+    .fraction {
+      display: inline-flex; flex-direction: column; align-items: center;
+      justify-content: center; vertical-align: middle; line-height: 1.1; margin: 0 8px;
+    }
+    .fraction .num { border-bottom: 4px solid #1a202c; padding: 0 8px; }
+    .fraction .den { padding: 0 8px; }
+
+    /* 右側: キャンバス・できたボタン */
+    .canvas-container { position: relative; touch-action: none; margin-bottom: 20px; }
+    canvas {
+      border: 4px dashed #cbd5e0;
+      border-radius: 20px;
+      background-color: #fafafa;
+      touch-action: none;
+      cursor: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%2232%22 height%3D%2232%22%3E%3Cpath d%3D%22M16 0v32M0 16h32%22 stroke%3D%22red%22 stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E') 16 16, crosshair;
+    }
+    .canvas-tools { position: absolute; right: 15px; top: 15px; }
+    .btn-clear { background: #e53e3e; color: white; border: none; border-radius: 12px; padding: 10px 18px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+    
+    .btn-done {
+      width: 100%;
+      max-width: 400px;
+      font-size: 2.2rem;
+      padding: 16px 0;
+    }
+
+    /* フィードバック */
+    .feedback-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.96); border-radius: 24px;
+      display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+    }
+    .feedback-overlay.active { display: flex; }
+    .feedback-msg { font-size: 4rem; font-weight: bold; margin-bottom: 20px; }
+    .correct { color: #38a169; }
+    .wrong { color: #e53e3e; }
+
+    /* --- 3. 学習モード --- */
+    #train-screen {
+      flex-direction: column;
+      align-items: center;
+      background: #f0f8ff;
+      overflow-y: auto;
+    }
+    .layout-row { display: flex; flex-direction: row; width: 100%; flex: 1; gap: 30px; align-items: center; justify-content: center; margin-top: 20px; }
+    .col { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 400px;}
+    .train-selector { font-size: 1.5rem; padding: 10px; border-radius: 8px; border: 2px solid #cbd5e0; margin-bottom: 15px; font-weight: bold; width: 100%; text-align: center; }
+    .data-tools { display: flex; gap: 10px; width: 100%; margin: 10px 0; }
+    .btn-half { flex: 1; font-size: 1rem; padding: 12px; margin: 0; }
+
+    /* プレビューモーダル */
+    .preview-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); border-radius: 24px; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
+    .preview-modal.active { display: flex; }
+    .preview-content { background: #fff; width: 90%; height: 90%; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; }
+    .preview-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; margin-bottom: 15px; }
+    .btn-close-modal { background: #cbd5e0; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.5rem; cursor: pointer; font-weight: bold; }
+    .preview-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; padding-bottom: 20px; }
+    .preview-item { display: flex; flex-direction: column; align-items: center; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px; }
+    .preview-item canvas { border: 1px solid #cbd5e0; border-radius: 4px; background: #fff; width: 64px; height: 64px; }
+    .preview-item-title { font-weight: bold; margin: 8px 0; color: #4a5568; }
+    .btn-delete-item { background: #fc8181; color: white; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-weight: bold; }
+
+    /* --- 4. 結果画面 --- */
+    #result-screen { flex-direction: column; align-items: center; justify-content: center; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 1. メニュー画面 -->
+  <div id="menu-screen" class="screen active">
+    <h1 class="menu-title">たのしい けいさん アプリ</h1>
+    <div class="menu-subtitle">挑戦するもんだいを選んでね！</div>
+    
+    <div class="menu-grid">
+      <button class="btn-menu" onclick="startCategory('add')"><span>➕</span> たし算</button>
+      <button class="btn-menu" onclick="startCategory('sub')"><span>➖</span> ひき算</button>
+      <button class="btn-menu" onclick="startCategory('mul')"><span>✖️</span> かけ算</button>
+      <button class="btn-menu" onclick="startCategory('div')"><span>➗</span> わり算</button>
+      <button class="btn-menu" style="grid-column: span 2;" onclick="startCategory('fraction')"><span>🍰</span> 分数（ぶんすう）</button>
+    </div>
+    
+    <button class="btn btn-secondary" onclick="showScreen('train-screen')" style="padding: 15px 40px; font-size: 1.2rem;">
+      🧠 手書きデータを学習・管理する
+    </button>
+  </div>
+
+  <!-- 2. 学習画面 -->
+  <div id="train-screen" class="screen">
+    <h2 style="color: #4a5568; margin-bottom: 5px; font-size: 1.8rem;">数字のパターンを学習させる</h2>
+    
+    <div class="layout-row">
+      <div class="col">
+        <select id="train-digit-select" class="train-selector">
+          <option value="0">0 (ゼロ)</option><option value="1">1 (いち)</option>
+          <option value="2">2 (に)</option><option value="3">3 (さん)</option>
+          <option value="4">4 (よん)</option><option value="5">5 (ご)</option>
+          <option value="6">6 (ろく)</option><option value="7">7 (なな)</option>
+          <option value="8">8 (はち)</option><option value="9">9 (きゅう)</option>
+        </select>
+        <div class="canvas-container">
+          <canvas id="train-canvas" width="280" height="280"></canvas>
+          <div class="canvas-tools">
+            <button class="btn-clear" onclick="clearCanvas(trainCtx, trainCanvas)">けす</button>
+          </div>
+        </div>
+        <button class="btn btn-action" style="width: 100%; font-size: 1.2rem;" onclick="savePattern()">📝 登録する</button>
+      </div>
+      
+      <div class="col">
+        <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="openPreviewModal()">👀 登録データを見る・整理</button>
+        <button class="btn btn-success" style="width: 100%; margin-bottom: 10px;" onclick="saveToLocalStorage()">💾 ブラウザに保存</button>
+        
+        <div class="data-tools">
+          <button class="btn btn-secondary btn-half" onclick="exportData()">📤 書き出す</button>
+          <button class="btn btn-secondary btn-half" onclick="document.getElementById('import-file').click()">📥 読み込む</button>
+          <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(event)">
+        </div>
+        <button class="btn btn-secondary" style="width: 100%; margin-top: 20px;" onclick="showScreen('menu-screen')">🔙 メニューへもどる</button>
+      </div>
+    </div>
+
+    <div id="preview-modal" class="preview-modal">
+      <div class="preview-content">
+        <div class="preview-header">
+          <h3 style="margin:0; font-size: 1.5rem;">登録データ一覧</h3>
+          <button class="btn-close-modal" onclick="closePreviewModal()">×</button>
+        </div>
+        <div id="preview-grid" class="preview-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 問題画面 -->
+  <div id="quiz-screen" class="screen">
+    
+    <div class="left-col">
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+      <div class="question-info">
+        <span id="category-title">カテゴリ</span>
+        <span id="question-num">だい 1 / 5 もん</span>
+      </div>
+
+      <div id="question-text" class="question-box"></div>
+
+      <button class="btn btn-secondary" style="align-self: flex-start;" onclick="showScreen('menu-screen')">🏠 もどる</button>
+    </div>
+
+    <div class="right-col">
+      <div class="canvas-container">
+        <canvas id="quiz-canvas" width="400" height="400"></canvas>
+        <div class="canvas-tools">
+          <button class="btn-clear" onclick="clearCanvas(quizCtx, quizCanvas)">けす</button>
+        </div>
+      </div>
+
+      <button class="btn btn-action btn-done" onclick="checkAnswer()">できた！</button>
+    </div>
+
+    <div id="feedback-overlay" class="feedback-overlay">
+      <div id="feedback-msg" class="feedback-msg"></div>
+      <div id="recognized-info" class="question-box" style="padding: 20px 40px; border: 3px dashed #a0aec0; margin-bottom: 30px;"></div>
+      <button id="next-btn" class="btn btn-action" style="display: none; font-size: 2rem; padding: 20px 60px;" onclick="nextQuestion()">つぎへ ➔</button>
+      <button id="retry-btn" class="btn btn-secondary" style="display: none; font-size: 1.5rem; padding: 15px 40px;" onclick="closeFeedback()">もういちど</button>
+    </div>
+
+  </div>
+
+  <!-- 4. 結果画面 -->
+  <div id="result-screen" class="screen">
+    <h1 style="color: #ff6b6b; font-size: 4rem; margin-bottom: 10px;">けっか はっぴょう</h1>
+    <div style="font-size: 6rem; margin: 20px 0;">🎉</div>
+    <p style="font-size: 2.5rem; font-weight: bold; color: #2d3748; margin-bottom: 40px;">全問クリア！ すごいね！</p>
+    <button class="btn btn-action" style="font-size: 1.8rem; padding: 15px 40px;" onclick="showScreen('menu-screen')">メニューへもどる</button>
+  </div>
+
+</div>
+
+<script>
+  // 初期データ
+  const RAW_PATTERNS = [
+    ["00000000", "00111100", "01100110", "01100110", "01100110", "01100110", "00111100", "00000000"],
+    ["00000000", "00011000", "00111000", "00011000", "00011000", "00011000", "00111100", "00000000"],
+    ["00000000", "00111100", "01100110", "00000110", "00011100", "01110000", "01111110", "00000000"],
+    ["00000000", "00111100", "01100110", "00011100", "00000110", "01100110", "00111100", "00000000"],
+    ["00000000", "00001100", "00011100", "00110100", "01100100", "01111111", "00000100", "00000000"],
+    ["00000000", "01111110", "01100000", "01111100", "00000110", "01100110", "00111100", "00000000"],
+    ["00000000", "00111100", "01100000", "01111100", "01100110", "01100110", "00111100", "00000000"],
+    ["00000000", "01111110", "00000110", "00001100", "00011000", "00110000", "01100000", "00000000"],
+    ["00000000", "00111100", "01100110", "00111100", "01100110", "01100110", "00111100", "00000000"],
+    ["00000000", "00111100", "01100110", "01100110", "00111110", "00000110", "00111100", "00000000"]
+  ];
+
+  let KNOWN_PATTERNS = [];
+  for (let d = 0; d < 10; d++) {
+    KNOWN_PATTERNS.push({ digit: d, pattern: RAW_PATTERNS[d].join('').split('').map(Number) });
+  }
+
+  const STORAGE_KEY = 'tegaki_patterns_v1';
+
+  function loadFromLocalStorage() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          KNOWN_PATTERNS = parsed;
+        }
+      } catch (e) {
+        console.error("学習データの読み込みに失敗しました", e);
+      }
+    }
+  }
+
+  function saveToLocalStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(KNOWN_PATTERNS));
+    alert("学習データをブラウザに保存しました！");
+  }
+
+  function exportData() {
+    const dataStr = JSON.stringify(KNOWN_PATTERNS);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tegaki_data.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].pattern) {
+          KNOWN_PATTERNS = parsed;
+          saveToLocalStorage();
+          alert("ファイルから学習データを読み込みました！");
+        } else {
+          alert("このファイルは正しい学習データではありません。");
+        }
+      } catch (err) {
+        alert("ファイルの読み込みに失敗しました。");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+  }
+
+  function openPreviewModal() {
+    renderPreviewGrid();
+    document.getElementById('preview-modal').classList.add('active');
+  }
+
+  function closePreviewModal() {
+    document.getElementById('preview-modal').classList.remove('active');
+  }
+
+  function renderPreviewGrid() {
+    const grid = document.getElementById('preview-grid');
+    grid.innerHTML = '';
+
+    KNOWN_PATTERNS.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'preview-item';
+
+      const cvs = document.createElement('canvas');
+      cvs.width = 64; cvs.height = 64;
+      const ctx = cvs.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, 64, 64);
+      
+      for (let i = 0; i < 64; i++) {
+        const val = item.pattern[i];
+        if (val > 0) {
+          const x = (i % 8) * 8;
+          const y = Math.floor(i / 8) * 8;
+          ctx.fillStyle = `rgba(45, 55, 72, ${val})`; 
+          ctx.fillRect(x, y, 8, 8);
+        }
+      }
+      
+      const title = document.createElement('div');
+      title.className = 'preview-item-title';
+      title.innerText = `数字: ${item.digit}`;
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn-delete-item';
+      delBtn.innerText = '🗑️ 削除';
+      delBtn.onclick = () => { deletePattern(index); };
+
+      div.appendChild(cvs);
+      div.appendChild(title);
+      div.appendChild(delBtn);
+      grid.appendChild(div);
+    });
+  }
+
+  function deletePattern(index) {
+    if(confirm(`「${KNOWN_PATTERNS[index].digit}」のデータを削除しますか？`)) {
+      KNOWN_PATTERNS.splice(index, 1);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(KNOWN_PATTERNS));
+      renderPreviewGrid(); 
+    }
+  }
+
+  let currentQuestions = [];
+  let currentQuestionIndex = 0;
+  let quizCanvas, quizCtx, trainCanvas, trainCtx;
+  let drawnStrokes = [];
+
+  window.onload = () => {
+    loadFromLocalStorage();
+
+    quizCanvas = document.getElementById('quiz-canvas');
+    quizCtx = quizCanvas.getContext('2d');
+    initCanvasEvents(quizCanvas, quizCtx, 28, true);
+
+    trainCanvas = document.getElementById('train-canvas');
+    trainCtx = trainCanvas.getContext('2d');
+    initCanvasEvents(trainCanvas, trainCtx, 24, false);
+  };
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function startCategory(cat) {
+    currentQuestions = generateQuestions(cat);
+    currentQuestionIndex = 0;
+    showScreen('quiz-screen');
+    loadQuestion();
+  }
+
+  function generateQuestions(cat) {
+    let list = [];
+    const titles = { add: "たし算", sub: "ひき算", mul: "かけ算", div: "わり算", fraction: "分数" };
+    document.getElementById('category-title').innerText = titles[cat];
+
+    for (let i = 0; i < 5; i++) {
+      if (cat === 'add') {
+        let a = Math.floor(Math.random() * 9) + 1;
+        let b = Math.floor(Math.random() * 9) + 1;
+        list.push({ type: 'number', val: a + b, html: `${a} ＋ ${b} ＝ ?` });
+      } else if (cat === 'sub') {
+        let a = Math.floor(Math.random() * 15) + 5;
+        let b = Math.floor(Math.random() * (a - 1)) + 1;
+        list.push({ type: 'number', val: a - b, html: `${a} ➖ ${b} ＝ ?` });
+      } else if (cat === 'mul') {
+        let a = Math.floor(Math.random() * 9) + 1;
+        let b = Math.floor(Math.random() * 9) + 1;
+        list.push({ type: 'number', val: a * b, html: `${a} ✖️ ${b} ＝ ?` });
+      } else if (cat === 'div') {
+        let b = Math.floor(Math.random() * 9) + 1;
+        let ans = Math.floor(Math.random() * 9) + 1;
+        let a = b * ans;
+        list.push({ type: 'number', val: ans, html: `${a} ➗ ${b} ＝ ?` });
+      } else if (cat === 'fraction') {
+        let den = Math.floor(Math.random() * 7) + 3;
+        let num1 = Math.floor(Math.random() * (den - 1)) + 1;
+        let num2 = Math.floor(Math.random() * (den - num1)) + 1;
+        list.push({
+          type: 'fraction', num: num1 + num2, den: den,
+          html: `<div class="fraction"><span class="num">${num1}</span><span class="den">${den}</span></div> ＋ <div class="fraction"><span class="num">${num2}</span><span class="den">${den}</span></div> ＝ ?`
+        });
+      }
+    }
+    return list;
+  }
+
+  function loadQuestion() {
+    const q = currentQuestions[currentQuestionIndex];
+    document.getElementById('question-num').innerText = `だい ${currentQuestionIndex + 1} / ${currentQuestions.length} もん`;
+    document.getElementById('question-text').innerHTML = q.html;
+    document.getElementById('progress-fill').style.width = `${((currentQuestionIndex + 1) / currentQuestions.length) * 100}%`;
+    clearCanvas(quizCtx, quizCanvas);
+    closeFeedback();
+  }
+
+  function initCanvasEvents(cvs, ctx, lineWidth, trackStrokes) {
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#2d3748';
+
+    let isDrawing = false;
+    let currentStroke = [];
+
+    const getPos = (e) => {
+      const rect = cvs.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+
+    const startDraw = (e) => {
+      e.preventDefault();
+      isDrawing = true;
+      const pos = getPos(e);
+      if (trackStrokes) currentStroke = [pos];
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    };
+
+    const draw = (e) => {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      if (trackStrokes) currentStroke.push(pos);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    };
+
+    const stopDraw = () => {
+      if (isDrawing) {
+        if (trackStrokes && currentStroke.length > 1) {
+          drawnStrokes.push(currentStroke);
+        }
+        isDrawing = false;
+      }
+    };
+
+    cvs.addEventListener('mousedown', startDraw);
+    cvs.addEventListener('mousemove', draw);
+    cvs.addEventListener('mouseup', stopDraw);
+    cvs.addEventListener('mouseleave', stopDraw);
+    cvs.addEventListener('touchstart', startDraw, { passive: false });
+    cvs.addEventListener('touchmove', draw, { passive: false });
+    cvs.addEventListener('touchend', stopDraw);
+  }
+
+  function clearCanvas(context, cvs) {
+    context.clearRect(0, 0, cvs.width, cvs.height);
+    if (cvs.id === 'quiz-canvas') drawnStrokes = [];
+  }
+
+  function extractFeatures(context, cvs) {
+    const imgData = context.getImageData(0, 0, cvs.width, cvs.height);
+    const data = imgData.data;
+    let minX = cvs.width, minY = cvs.height, maxX = 0, maxY = 0;
+    let hasPixel = false;
+
+    for (let y = 0; y < cvs.height; y++) {
+      for (let x = 0; x < cvs.width; x++) {
+        if (data[(y * cvs.width + x) * 4 + 3] > 30) {
+          hasPixel = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (!hasPixel) return null;
+
+    const boxW = maxX - minX + 1;
+    const boxH = maxY - minY + 1;
+    const maxDim = Math.max(boxW, boxH);
+
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = maxDim; offCanvas.height = maxDim;
+    const offCtx = offCanvas.getContext('2d');
+    
+    const offsetX = (maxDim - boxW) / 2;
+    const offsetY = (maxDim - boxH) / 2;
+    offCtx.drawImage(cvs, minX, minY, boxW, boxH, offsetX, offsetY, boxW, boxH);
+
+    const smallCanvas = document.createElement('canvas');
+    smallCanvas.width = 8; smallCanvas.height = 8;
+    const smallCtx = smallCanvas.getContext('2d');
+    
+    smallCtx.drawImage(offCanvas, 0, 0, maxDim, maxDim, 1, 1, 6, 6);
+
+    const smallData = smallCtx.getImageData(0, 0, 8, 8).data;
+    const X = [];
+    for (let i = 0; i < 64; i++) X.push(smallData[i * 4 + 3] / 255.0);
+    return X;
+  }
+
+  function savePattern() {
+    const X = extractFeatures(trainCtx, trainCanvas);
+    if (!X) { alert("すうじが かかれていません！"); return; }
+    
+    const digitToTrain = parseInt(document.getElementById('train-digit-select').value, 10);
+    KNOWN_PATTERNS.push({ digit: digitToTrain, pattern: X });
+    
+    alert(`「${digitToTrain}」の形を登録しました！\n残すには「ブラウザに保存」を押してください。`);
+    clearCanvas(trainCtx, trainCanvas);
+  }
+
+  // 解析・認識ロジック (不具合修正版)
+  function analyzeStrokes(qType) {
+    if (drawnStrokes.length === 0) return null;
+
+    // 有効な線のみ抽出
+    let strokeBoxes = drawnStrokes.map(st => {
+      let xs = st.map(p => p.x);
+      let ys = st.map(p => p.y);
+      return {
+        minX: Math.min(...xs), maxX: Math.max(...xs),
+        minY: Math.min(...ys), maxY: Math.max(...ys), stroke: st
+      };
+    });
+
+    // 「分数」問題の時だけ横棒の認識を行う
+    if (qType === 'fraction') {
+      let barIndex = -1;
+      let maxAspect = 0;
+      for (let i = 0; i < strokeBoxes.length; i++) {
+        let box = strokeBoxes[i];
+        let w = box.maxX - box.minX;
+        let h = (box.maxY - box.minY) || 1; 
+        if (w > 40 && (w / h) > 2.5) { 
+          if ((w / h) > maxAspect) { maxAspect = w / h; barIndex = i; }
+        }
+      }
+
+      if (barIndex !== -1) {
+        let barBox = strokeBoxes[barIndex];
+        let barCenterY = (barBox.minY + barBox.maxY) / 2;
+
+        let topBoxes = strokeBoxes.filter((b, i) => i !== barIndex && b.maxY < barCenterY + 20);
+        let bottomBoxes = strokeBoxes.filter((b, i) => i !== barIndex && b.minY > barCenterY - 20);
+
+        let numStr = recognizeDigitGroup(topBoxes);
+        let denStr = recognizeDigitGroup(bottomBoxes);
+        
+        if (numStr && denStr) {
+          return { type: 'fraction', num: parseInt(numStr), den: parseInt(denStr) };
+        }
+      }
+    }
+
+    // 通常の整数判定（たし算・ひき算等、または分数で横棒が見つからなかった場合）
+    let valStr = recognizeDigitGroup(strokeBoxes);
+    if (!valStr) return null;
+    return { type: 'number', val: parseInt(valStr) };
+  }
+
+  function recognizeDigitGroup(boxes) {
+    if (boxes.length === 0) return "";
+    boxes.sort((a, b) => a.minX - b.minX);
+
+    let groups = [];
+    for (let b of boxes) {
+      let merged = false;
+      for (let g of groups) {
+        if (!(b.minX > g.maxX + 30 || b.maxX < g.minX - 30)) {
+          g.minX = Math.min(g.minX, b.minX);
+          g.maxX = Math.max(g.maxX, b.maxX);
+          g.minY = Math.min(g.minY, b.minY);
+          g.maxY = Math.max(g.maxY, b.maxY);
+          g.strokes.push(b.stroke);
+          merged = true; break;
+        }
+      }
+      if (!merged) groups.push({ minX: b.minX, maxX: b.maxX, minY: b.minY, maxY: b.maxY, strokes: [b.stroke] });
+    }
+
+    let result = "";
+    for (let g of groups) {
+      let digit = predictSingleCharacter(g.strokes);
+      if (digit !== null) result += digit;
+    }
+    return result;
+  }
+
+  function predictSingleCharacter(strokesGroup) {
+    let offCvs = document.createElement('canvas');
+    offCvs.width = quizCanvas.width; offCvs.height = quizCanvas.height;
+    let offCtx = offCvs.getContext('2d');
+    
+    offCtx.lineWidth = 32;
+    offCtx.lineCap = 'round'; offCtx.lineJoin = 'round';
+    offCtx.strokeStyle = '#2d3748';
+
+    for (let st of strokesGroup) {
+      if(!st || st.length < 2) continue;
+      offCtx.beginPath(); offCtx.moveTo(st[0].x, st[0].y);
+      for (let i = 1; i < st.length; i++) offCtx.lineTo(st[i].x, st[i].y);
+      offCtx.stroke();
+    }
+
+    let X = extractFeatures(offCtx, offCvs);
+    if (!X) return null;
+    return matchPattern(X);
+  }
+
+  function matchPattern(X) {
+    let minDistance = Infinity;
+    let bestDigit = 0;
+    for (let i = 0; i < KNOWN_PATTERNS.length; i++) {
+      let distance = 0;
+      let patternData = KNOWN_PATTERNS[i].pattern;
+      let targetDigit = KNOWN_PATTERNS[i].digit;
+      for (let j = 0; j < 64; j++) {
+        let diff = X[j] - patternData[j];
+        distance += diff * diff;
+      }
+      if (distance < minDistance) { minDistance = distance; bestDigit = targetDigit; }
+    }
+    return bestDigit;
+  }
+
+  function checkAnswer() {
+    const targetQ = currentQuestions[currentQuestionIndex];
+    const userResult = analyzeStrokes(targetQ.type); // 問題タイプを渡す
+
+    if (userResult === null) {
+      alert("すうじが かかれていないか、うまく よみとれませんでした！");
+      return;
+    }
+
+    let isCorrect = false;
+    let infoHtml = "";
+
+    if (userResult.type === "fraction") {
+      infoHtml = `<div style="font-size: 1.5rem; color: #718096; margin-bottom: 5px;">あなたのこたえ</div><div class="fraction"><span class="num">${userResult.num}</span><span class="den">${userResult.den}</span></div>`;
+      if (targetQ.type === "fraction" && targetQ.num === userResult.num && targetQ.den === userResult.den) isCorrect = true;
+    } else {
+      infoHtml = `<div style="font-size: 1.5rem; color: #718096; margin-bottom: 5px;">あなたのこたえ</div><div>${userResult.val}</div>`;
+      if (targetQ.type === "number" && targetQ.val === userResult.val) isCorrect = true;
+    }
+
+    showFeedback(isCorrect, infoHtml);
+  }
+
+  function showFeedback(isCorrect, infoHtml) {
+    const overlay = document.getElementById('feedback-overlay');
+    const msg = document.getElementById('feedback-msg');
+    const info = document.getElementById('recognized-info');
+    const nextBtn = document.getElementById('next-btn');
+    const retryBtn = document.getElementById('retry-btn');
+
+    overlay.classList.add('active');
+    info.innerHTML = infoHtml;
+
+    if (isCorrect) {
+      msg.innerHTML = "せいかい！ 🎉";
+      msg.className = "feedback-msg correct";
+      nextBtn.style.display = "inline-block";
+      retryBtn.style.display = "none";
+    } else {
+      msg.innerHTML = "ざんねん！ 💡";
+      msg.className = "feedback-msg wrong";
+      nextBtn.style.display = "none";
+      retryBtn.style.display = "inline-block";
+    }
+  }
+
+  function closeFeedback() {
+    document.getElementById('feedback-overlay').classList.remove('active');
+  }
+
+  function nextQuestion() {
+    currentQuestionIndex++;
+    if (currentQuestionIndex < currentQuestions.length) {
+      loadQuestion();
+    } else {
+      showScreen('result-screen');
+    }
+  }
+</script>
+</body>
+</html>
