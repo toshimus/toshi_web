@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>たのしい すうじ＆けいさん アプリ</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
+      background-color: #f0f8ff;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 90vw;
+      max-width: 700px;
+      height: 92vh;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px;
+      position: relative;
+    }
+
+    /* 画面切り替え */
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* タイトル & スタート */
+    h1 {
+      font-size: 2.2rem;
+      color: #ff6b6b;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .start-icon {
+      font-size: 5rem;
+      margin: 10px 0;
+    }
+
+    .btn {
+      background-color: #4ecdc4;
+      color: white;
+      font-size: 1.4rem;
+      font-weight: bold;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #38b2ac;
+      transition: all 0.1s;
+      margin: 10px 0;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #38b2ac;
+    }
+
+    .btn-action {
+      background-color: #ff8e53;
+      box-shadow: 0 6px 0 #e07038;
+    }
+
+    .btn-action:active {
+      box-shadow: 0 2px 0 #e07038;
+    }
+
+    .btn-secondary {
+      background-color: #a0aec0;
+      box-shadow: 0 6px 0 #718096;
+    }
+
+    .btn-secondary:active {
+      box-shadow: 0 2px 0 #718096;
+    }
+
+    .btn-success {
+      background-color: #38a169;
+      box-shadow: 0 6px 0 #276749;
+    }
+
+    .btn-success:active {
+      box-shadow: 0 2px 0 #276749;
+    }
+
+    /* 問題画面 */
+    .progress-bar {
+      width: 100%;
+      background: #eee;
+      border-radius: 10px;
+      height: 16px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #4ecdc4;
+      width: 10%;
+      transition: width 0.3s ease;
+    }
+
+    .question-header {
+      font-size: 1.4rem;
+      color: #666;
+      font-weight: bold;
+    }
+
+    .question-box {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #2d3748;
+      background: #edf2f7;
+      padding: 12px 30px;
+      border-radius: 16px;
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    /* モード切り替えタブ */
+    .mode-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 2px solid #4ecdc4;
+      background: white;
+      color: #4ecdc4;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: #4ecdc4;
+      color: white;
+    }
+
+    /* キャンバス共通 */
+    .canvas-container {
+      position: relative;
+      touch-action: none;
+      margin: 10px 0;
+    }
+
+    canvas {
+      border: 4px dashed #cbd5e0;
+      border-radius: 16px;
+      background-color: #fafafa;
+      touch-action: none;
+      /* 赤色の十字カーソルをSVGで設定 */
+      cursor: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%2232%22 height%3D%2232%22%3E%3Cpath d%3D%22M16 0v32M0 16h32%22 stroke%3D%22red%22 stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E') 16 16, crosshair;
+    }
+
+    .canvas-tools {
+      position: absolute;
+      right: -60px;
+      top: 10px;
+    }
+
+    .btn-clear {
+      background: #e53e3e;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* テンキー (計算機) */
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 240px;
+    }
+
+    .key-btn {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      font-size: 1.8rem;
+      font-weight: bold;
+      padding: 12px;
+      border-radius: 12px;
+      color: #2d3748;
+      cursor: pointer;
+    }
+
+    .key-btn:active {
+      background: #edf2f7;
+    }
+
+    .key-btn.del {
+      background: #feb2b2;
+      color: #9b2c2c;
+      border-color: #fbb6ce;
+    }
+
+    .ans-display {
+      font-size: 1.2rem;
+      margin: 8px 0;
+      color: #4a5568;
+      height: 1.5em;
+    }
+
+    /* フィードバック領域 */
+    .feedback-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.95);
+      border-radius: 24px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .feedback-overlay.active {
+      display: flex;
+    }
+
+    .feedback-msg {
+      font-size: 3rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .correct { color: #38a169; }
+    .wrong { color: #e53e3e; }
+
+    /* 学習モード画面用 */
+    .train-selector {
+      font-size: 1.5rem;
+      padding: 8px;
+      border-radius: 8px;
+      border: 2px solid #cbd5e0;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 1. スタート画面 -->
+  <div id="start-screen" class="screen active">
+    <h1>たのしい すうじ＆けいさん</h1>
+    <div class="start-icon">✏️🔢</div>
+    <p style="font-size: 1.2rem; color: #718096; text-align: center; margin-bottom: 20px;">
+      てがき や ボタンで<br>すうじを こたえよう！
+    </p>
+    <button class="btn btn-action" onclick="startGame()">▶️ スタート！</button>
+    <button class="btn btn-secondary" onclick="showScreen('train-screen')" style="margin-top: 15px; font-size: 1.2rem;">🧠 じぶんの字を学習させる</button>
+  </div>
+
+  <!-- 2. 学習(トレーニング)画面 -->
+  <div id="train-screen" class="screen">
+    <h2 style="color: #4a5568; margin-bottom: 5px;">パターンを おぼえさせる</h2>
+    <p style="color: #718096; text-align: center; margin-top: 0;">どのすうじを登録するか選んで、<br>下にかいてね。</p>
+    
+    <div>
+      <select id="train-digit-select" class="train-selector">
+        <option value="0">0 (ゼロ)</option>
+        <option value="1">1 (いち)</option>
+        <option value="2">2 (に)</option>
+        <option value="3">3 (さん)</option>
+        <option value="4">4 (よん)</option>
+        <option value="5">5 (ご)</option>
+        <option value="6">6 (ろく)</option>
+        <option value="7">7 (なな)</option>
+        <option value="8">8 (はち)</option>
+        <option value="9">9 (きゅう)</option>
+      </select>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="train-canvas" width="220" height="220"></canvas>
+      <div class="canvas-tools">
+        <button class="btn-clear" onclick="clearCanvas(trainCtx, trainCanvas)">けす</button>
+      </div>
+    </div>
+
+    <button class="btn btn-action" style="font-size: 1.2rem;" onclick="savePattern()">📝 この字を一時登録する</button>
+    <button class="btn btn-success" style="font-size: 1.2rem;" onclick="saveToLocalStorage()">💾 データをブラウザに保存</button>
+    <button class="btn btn-secondary" style="font-size: 1.2rem;" onclick="showScreen('start-screen')">🔙 もどる</button>
+  </div>
+
+  <!-- 3. 問題画面 -->
+  <div id="quiz-screen" class="screen">
+    <div style="width:100%;">
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+        <span id="question-num" class="question-header">だい 1 / 10 もん</span>
+      </div>
+    </div>
+
+    <div id="question-text" class="question-box">「 2 」を かきなさい</div>
+
+    <!-- モード切り替え -->
+    <div class="mode-tabs">
+      <button id="tab-handwrite" class="tab-btn active" onclick="switchMode('handwrite')">✍️ てがき</button>
+      <button id="tab-keypad" class="tab-btn" onclick="switchMode('keypad')">🔢 ボタン</button>
+    </div>
+
+    <div style="position: relative; width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <!-- 手書きキャンバスエリア -->
+      <div id="handwrite-area">
+        <div class="canvas-container">
+          <canvas id="quiz-canvas" width="220" height="220"></canvas>
+          <div class="canvas-tools">
+            <button class="btn-clear" onclick="clearCanvas(quizCtx, quizCanvas)">けす</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- テンキーエリア -->
+      <div id="keypad-area" style="display: none;">
+        <div class="keypad">
+          <button class="key-btn" onclick="pressKey('1')">1</button>
+          <button class="key-btn" onclick="pressKey('2')">2</button>
+          <button class="key-btn" onclick="pressKey('3')">3</button>
+          <button class="key-btn" onclick="pressKey('4')">4</button>
+          <button class="key-btn" onclick="pressKey('5')">5</button>
+          <button class="key-btn" onclick="pressKey('6')">6</button>
+          <button class="key-btn" onclick="pressKey('7')">7</button>
+          <button class="key-btn" onclick="pressKey('8')">8</button>
+          <button class="key-btn" onclick="pressKey('9')">9</button>
+          <button class="key-btn del" onclick="pressKey('DEL')">⌫</button>
+          <button class="key-btn" onclick="pressKey('0')">0</button>
+        </div>
+      </div>
+
+      <div id="ans-display" class="ans-display">こたえ: <span id="user-input">-</span></div>
+    </div>
+
+    <button class="btn btn-action" onclick="checkAnswer()">できた！</button>
+
+    <!-- 正解・不正解オーバーレイ -->
+    <div id="feedback-overlay" class="feedback-overlay">
+      <div id="feedback-msg" class="feedback-msg"></div>
+      <p id="recognized-info" style="font-size: 1.2rem; color: #4a5568; margin-bottom: 20px;"></p>
+      <button id="next-btn" class="btn" style="display: none;" onclick="nextQuestion()">つぎの問題へ ➔</button>
+      <button id="retry-btn" class="btn btn-secondary" style="display: none;" onclick="closeFeedback()">もういちど</button>
+    </div>
+  </div>
+
+  <!-- 4. 結果画面 -->
+  <div id="result-screen" class="screen">
+    <h1 class="result-title">けっか はっぴょう</h1>
+    <div style="font-size: 4rem;">🎉</div>
+    <div class="score-box" id="final-score">10 / 10</div>
+    <p style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">ぜんぶ クリア！ すごいね！</p>
+    <button class="btn btn-action" onclick="showScreen('start-screen')">ホームへもどる</button>
+  </div>
+
+</div>
+
+<script>
+  // ==========================================
+  // パターンデータ
+  // ==========================================
+  // 0〜9の標準的な形（初期データ）
+  const RAW_PATTERNS = [
+    ["00000000", "00111100", "01100110", "01100110", "01100110", "01100110", "00111100", "00000000"],
+    ["00000000", "00011000", "00111000", "00011000", "00011000", "00011000", "00111100", "00000000"],
+    ["00000000", "00111100", "01100110", "00000110", "00011100", "01110000", "01111110", "00000000"],
+    ["00000000", "00111100", "01100110", "00011100", "00000110", "01100110", "00111100", "00000000"],
+    ["00000000", "00001100", "00011100", "00110100", "01100100", "01111111", "00000100", "00000000"],
+    ["00000000", "01111110", "01100000", "01111100", "00000110", "01100110", "00111100", "00000000"],
+    ["00000000", "00111100", "01100000", "01111100", "01100110", "01100110", "00111100", "00000000"],
+    ["00000000", "01111110", "00000110", "00001100", "00011000", "00110000", "01100000", "00000000"],
+    ["00000000", "00111100", "01100110", "00111100", "01100110", "01100110", "00111100", "00000000"],
+    ["00000000", "00111100", "01100110", "01100110", "00111110", "00000110", "00111100", "00000000"]
+  ];
+
+  let KNOWN_PATTERNS = [];
+
+  // 初期化：標準パターンを登録
+  for (let d = 0; d < 10; d++) {
+    const flatPattern = RAW_PATTERNS[d].join('').split('').map(Number);
+    KNOWN_PATTERNS.push({ digit: d, pattern: flatPattern });
+  }
+
+  // ==========================================
+  // ローカルストレージ（保存・読み込み）
+  // ==========================================
+  const STORAGE_KEY = 'tegaki_patterns_v1';
+
+  function loadFromLocalStorage() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= 10) {
+          KNOWN_PATTERNS = parsed;
+          console.log("保存された学習データを読み込みました");
+        }
+      } catch (e) {
+        console.error("学習データの読み込みに失敗しました", e);
+      }
+    }
+  }
+
+  function saveToLocalStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(KNOWN_PATTERNS));
+    alert("学習データをブラウザに保存しました！\n次回アプリを開いたときにも引き継がれます。");
+  }
+
+  // ==========================================
+  // 問題データ
+  // ==========================================
+  const QUESTIONS = [
+    { text: "「 2 」を かきなさい", ans: 2 },
+    { text: "「 5 」を かきなさい", ans: 5 },
+    { text: "1 + 2 = ?", ans: 3 },
+    { text: "4 + 4 = ?", ans: 8 },
+    { text: "「 0 」を かきなさい", ans: 0 },
+    { text: "9 - 3 = ?", ans: 6 },
+    { text: "2 + 5 = ?", ans: 7 },
+    { text: "10 - 6 = ?", ans: 4 },
+    { text: "「 1 」を かきなさい", ans: 1 },
+    { text: "5 + 4 = ?", ans: 9 }
+  ];
+
+  let currentQuestionIndex = 0;
+  let currentMode = 'handwrite';
+  let keyInputValue = "";
+
+  let quizCanvas, quizCtx;
+  let trainCanvas, trainCtx;
+
+  window.onload = () => {
+    // 保存データの読み込み
+    loadFromLocalStorage();
+
+    // キャンバスの初期化
+    quizCanvas = document.getElementById('quiz-canvas');
+    quizCtx = quizCanvas.getContext('2d');
+    initCanvasEvents(quizCanvas, quizCtx);
+
+    trainCanvas = document.getElementById('train-canvas');
+    trainCtx = trainCanvas.getContext('2d');
+    initCanvasEvents(trainCanvas, trainCtx);
+  };
+
+  // ==========================================
+  // UI 制御
+  // ==========================================
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function startGame() {
+    currentQuestionIndex = 0;
+    showScreen('quiz-screen');
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+    const q = QUESTIONS[currentQuestionIndex];
+    document.getElementById('question-num').innerText = `だい ${currentQuestionIndex + 1} / 10 もん`;
+    document.getElementById('question-text').innerText = q.text;
+    document.getElementById('progress-fill').style.width = `${((currentQuestionIndex + 1) / 10) * 100}%`;
+    
+    clearCanvas(quizCtx, quizCanvas);
+    keyInputValue = "";
+    updateDisplay("-");
+    closeFeedback();
+  }
+
+  function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('tab-handwrite').classList.toggle('active', mode === 'handwrite');
+    document.getElementById('tab-keypad').classList.toggle('active', mode === 'keypad');
+    
+    document.getElementById('handwrite-area').style.display = (mode === 'handwrite') ? 'block' : 'none';
+    document.getElementById('keypad-area').style.display = (mode === 'keypad') ? 'block' : 'none';
+    
+    updateDisplay(mode === 'keypad' ? (keyInputValue || "-") : "てがき");
+  }
+
+  // ==========================================
+  // キャンバス・描画処理
+  // ==========================================
+  function initCanvasEvents(cvs, ctx) {
+    ctx.lineWidth = 28;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#2d3748';
+
+    let isDrawing = false;
+
+    const getPos = (e) => {
+      const rect = cvs.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+
+    const startDraw = (e) => {
+      e.preventDefault();
+      isDrawing = true;
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    };
+
+    const draw = (e) => {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    };
+
+    const stopDraw = () => { isDrawing = false; };
+
+    cvs.addEventListener('mousedown', startDraw);
+    cvs.addEventListener('mousemove', draw);
+    cvs.addEventListener('mouseup', stopDraw);
+    cvs.addEventListener('touchstart', startDraw, { passive: false });
+    cvs.addEventListener('touchmove', draw, { passive: false });
+    cvs.addEventListener('touchend', stopDraw);
+  }
+
+  function clearCanvas(context, cvs) {
+    context.clearRect(0, 0, cvs.width, cvs.height);
+  }
+
+  // ==========================================
+  // 特徴抽出（余白カット＆8x8リサイズ処理）
+  // ==========================================
+  function extractFeatures(context, cvs) {
+    const imgData = context.getImageData(0, 0, cvs.width, cvs.height);
+    const data = imgData.data;
+    let minX = cvs.width, minY = cvs.height, maxX = 0, maxY = 0;
+    let hasPixel = false;
+
+    for (let y = 0; y < cvs.height; y++) {
+      for (let x = 0; x < cvs.width; x++) {
+        if (data[(y * cvs.width + x) * 4 + 3] > 30) {
+          hasPixel = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (!hasPixel) return null;
+
+    const boxW = maxX - minX + 1;
+    const boxH = maxY - minY + 1;
+    const maxDim = Math.max(boxW, boxH);
+
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = maxDim;
+    offCanvas.height = maxDim;
+    const offCtx = offCanvas.getContext('2d');
+    
+    const offsetX = (maxDim - boxW) / 2;
+    const offsetY = (maxDim - boxH) / 2;
+    offCtx.drawImage(cvs, minX, minY, boxW, boxH, offsetX, offsetY, boxW, boxH);
+
+    const smallCanvas = document.createElement('canvas');
+    smallCanvas.width = 8;
+    smallCanvas.height = 8;
+    const smallCtx = smallCanvas.getContext('2d');
+    
+    smallCtx.drawImage(offCanvas, 0, 0, maxDim, maxDim, 1, 1, 6, 6);
+
+    const smallData = smallCtx.getImageData(0, 0, 8, 8).data;
+    const X = [];
+    for (let i = 0; i < 64; i++) {
+      X.push(smallData[i * 4 + 3] / 255.0);
+    }
+    return X;
+  }
+
+  // ==========================================
+  // 手書き認識・学習ロジック
+  // ==========================================
+  function predictHandwriting() {
+    const X = extractFeatures(quizCtx, quizCanvas);
+    if (!X) return null;
+
+    let minDistance = Infinity;
+    let bestDigit = 0;
+
+    for (let i = 0; i < KNOWN_PATTERNS.length; i++) {
+      let distance = 0;
+      let patternData = KNOWN_PATTERNS[i].pattern;
+      let targetDigit = KNOWN_PATTERNS[i].digit;
+
+      for (let j = 0; j < 64; j++) {
+        let diff = X[j] - patternData[j];
+        distance += diff * diff;
+      }
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        bestDigit = targetDigit;
+      }
+    }
+    return bestDigit;
+  }
+
+  function savePattern() {
+    const X = extractFeatures(trainCtx, trainCanvas);
+    if (!X) {
+      alert("すうじが かかれていません！");
+      return;
+    }
+    const digitToTrain = parseInt(document.getElementById('train-digit-select').value, 10);
+    
+    KNOWN_PATTERNS.push({ digit: digitToTrain, pattern: X });
+    
+    alert(`「${digitToTrain}」の新しいかたちを 一時的に登録しました！\n次回以降も使いたい場合は「データをブラウザに保存」を押してください。`);
+    clearCanvas(trainCtx, trainCanvas);
+  }
+
+  // ==========================================
+  // ゲーム判定ロジック
+  // ==========================================
+  function pressKey(key) {
+    if (key === 'DEL') {
+      keyInputValue = keyInputValue.slice(0, -1);
+    } else {
+      if (keyInputValue.length < 2) keyInputValue += key;
+    }
+    updateDisplay(keyInputValue || "-");
+  }
+
+  function updateDisplay(val) {
+    document.getElementById('user-input').innerText = val;
+  }
+
+  function checkAnswer() {
+    const targetAns = QUESTIONS[currentQuestionIndex].ans;
+    let userAns = null;
+    let infoText = "";
+
+    if (currentMode === 'handwrite') {
+      userAns = predictHandwriting();
+      if (userAns === null) {
+        alert("すうじを かいてね！");
+        return;
+      }
+      infoText = `「${userAns}」と にんしき しました`;
+    } else {
+      if (!keyInputValue) {
+        alert("すうじを おしてね！");
+        return;
+      }
+      userAns = parseInt(keyInputValue, 10);
+      infoText = `あなたのこたえ: ${userAns}`;
+    }
+
+    const isCorrect = (userAns === targetAns);
+    showFeedback(isCorrect, infoText);
+  }
+
+  function showFeedback(isCorrect, infoText) {
+    const overlay = document.getElementById('feedback-overlay');
+    const msg = document.getElementById('feedback-msg');
+    const info = document.getElementById('recognized-info');
+    const nextBtn = document.getElementById('next-btn');
+    const retryBtn = document.getElementById('retry-btn');
+
+    overlay.classList.add('active');
+    info.innerText = infoText;
+
+    if (isCorrect) {
+      msg.innerText = "せいかい！ 🎉";
+      msg.className = "feedback-msg correct";
+      nextBtn.style.display = "inline-block";
+      retryBtn.style.display = "none";
+    } else {
+      msg.innerText = "ざんねん！ 💡";
+      msg.className = "feedback-msg wrong";
+      nextBtn.style.display = "none";
+      retryBtn.style.display = "inline-block";
+    }
+  }
+
+  function closeFeedback() {
+    document.getElementById('feedback-overlay').classList.remove('active');
+  }
+
+  function nextQuestion() {
+    currentQuestionIndex++;
+    if (currentQuestionIndex < QUESTIONS.length) {
+      loadQuestion();
+    } else {
+      showScreen('result-screen');
+    }
+  }
+</script>
+</body>
+</html>
