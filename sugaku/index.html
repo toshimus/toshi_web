@@ -121,6 +121,8 @@
     }
     
     /* ボタンのカラー定義 */
+    .btn-num1 { background-color: #ff9f43; } /* かず用の色 */
+
     .btn-001 { background-color: #3498db; }
     .btn-002 { background-color: #2ecc71; }
     .btn-003 { background-color: #e67e22; }
@@ -195,6 +197,7 @@
     <div class="main-wrapper">
         <div class="sidebar">
             <div class="category-btn" data-target="tools">便利ツール</div>
+            <div class="category-btn" data-target="numbers">かず</div>
             <div class="category-btn active" data-target="addition">たし算</div>
             <div class="category-btn" data-target="subtraction">ひき算</div>
             <div class="category-btn" data-target="multiplication">かけ算</div>
@@ -208,6 +211,10 @@
             <div id="tools" class="category-content">
                 <a href="dentaku.html" class="menu-button btn-501">電卓</a>
                 <a href="tool-numberline.html" class="menu-button btn-502">数直線（正負の数）</a>
+            </div>
+
+            <div id="numbers" class="category-content">
+                <a href="501.html" class="menu-button btn-num1">１０はどれかな？</a>
             </div>
 
             <div id="addition" class="category-content active">
