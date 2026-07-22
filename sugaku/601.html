@@ -415,7 +415,7 @@
     showScreen('quiz-screen'); loadQuestion();
   }
 
-  function generateQuestions(cat) {
+function generateQuestions(cat) {
     let list = [];
     const titles = { 
       kazu: "かず", add: "たし算", sub: "ひき算", mul: "かけ算", div: "わり算", 
@@ -428,7 +428,16 @@
         let ans = Math.floor(Math.random() * 9) + 1;
         const emojis = ["🍎", "⭐️", "🚗", "🐶", "⚽️", "🍓", "🌼"];
         let emoji = emojis[Math.floor(Math.random() * emojis.length)];
-        let items = Array(ans).fill(emoji).join('');
+        
+        let items = "";
+        for (let j = 0; j < ans; j++) {
+          items += emoji;
+          // 5個並ぶごとに改行タグを挿入
+          if ((j + 1) % 5 === 0 && j !== ans - 1) {
+            items += "<br>";
+          }
+        }
+        
         list.push({ 
           type: 'number', 
           val: ans, 
