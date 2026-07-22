@@ -4,88 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>かけ算九九 3択学習（ニガテ克服機能付き）</title>
+
+<!-- 共通スタイルの読み込み -->
+<link rel="stylesheet" href="app-common.css">
+
 <style>
     html, body {
         height: 100%;
-        overflow: hidden;
-        position: fixed;
         width: 100%;
     }
     body {
         font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         margin: 0;
-        padding: 20px;
+        padding: clamp(10px, 2vw, 20px);
         background-color: #f0f8ff;
         color: #333;
-        touch-action: none;
+        touch-action: manipulation;
         box-sizing: border-box;
         user-select: none;
         -webkit-user-select: none;
+        overflow-x: hidden;
     }
-    
-    /* スタート画面 */
-    .start-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #f0f8ff;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    }
-    .start-screen h1 {
-        font-size: 3rem;
-        color: #2c3e50;
-        margin-bottom: 10px;
-    }
-    .start-screen p {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #555;
-        margin-bottom: 30px;
-        text-align: center;
-        line-height: 1.5;
-    }
+
     .dan-selector {
         display: flex;
         flex-wrap: wrap;
         gap: 15px;
         justify-content: center;
         max-width: 600px;
-    }
-    .dan-btn {
-        padding: 20px 40px;
-        font-size: 2rem;
-        font-weight: bold;
-        color: #fff;
-        background-color: #e67e22;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        box-shadow: 0 5px 0 #d35400;
-        transition: transform 0.1s, box-shadow 0.1s;
-        box-sizing: border-box;
-    }
-    .dan-btn:active {
-        transform: translateY(5px);
-        box-shadow: none;
-    }
-
-    .status-bar {
-        font-size: 1.4rem;
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #555;
-    }
-    .question-title {
-        font-size: 1.8rem;
-        font-weight: bold;
-        margin-top: 5px;
-        margin-bottom: 20px;
+        width: 100%;
     }
 
     .problem-container {
@@ -104,7 +51,7 @@
         flex-direction: row;
         align-items: flex-start;
         justify-content: center;
-        gap: 30px;
+        gap: clamp(15px, 3vw, 30px);
         width: 100%;
     }
 
@@ -113,6 +60,7 @@
         flex-direction: column;
         align-items: center;
         flex: 1;
+        width: 100%;
     }
 
     /* 数式と解答エリア */
@@ -121,9 +69,9 @@
         flex-direction: row;
         align-items: center;
         justify-content: center;
-        gap: 15px;
+        gap: clamp(8px, 2vw, 15px);
         background-color: #ffffff;
-        padding: 30px 40px;
+        padding: clamp(15px, 3vh, 30px) clamp(15px, 3vw, 40px);
         border-radius: 15px;
         border: 2px solid #eee;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
@@ -133,7 +81,7 @@
     }
 
     .formula-term {
-        font-size: 6rem;
+        font-size: clamp(3rem, 9vw, 6rem);
         font-weight: bold;
         color: #333;
     }
@@ -142,12 +90,12 @@
     }
     .formula-term.question-mark {
         color: #e74c3c;
-        width: 120px;
+        min-width: clamp(60px, 15vw, 120px);
         text-align: center;
         border-bottom: 4px dashed #3498db;
     }
     .formula-op {
-        font-size: 5rem;
+        font-size: clamp(2.5rem, 7vw, 5rem);
         font-weight: bold;
         color: #7f8c8d;
     }
@@ -156,44 +104,46 @@
     .choices-container {
         display: flex;
         justify-content: center;
-        gap: 20px;
-        margin: 10px 0 30px 0;
+        gap: clamp(10px, 2vw, 20px);
+        margin: 10px 0 20px 0;
         width: 100%;
     }
     .choice-btn {
-        padding: 15px 10px;
-        font-size: 3.5rem;
+        flex: 1;
+        max-width: 180px;
+        padding: clamp(10px, 2vh, 15px) 5px;
+        font-size: clamp(2rem, 6vw, 3.5rem);
         font-weight: bold;
         color: #2c3e50;
         background-color: #f1c40f;
         border: 4px solid #f1c40f;
         border-radius: 15px;
         cursor: pointer;
-        box-shadow: 0 8px 0 #d4ac0d;
+        box-shadow: 0 6px 0 #d4ac0d;
         transition: all 0.1s;
-        width: 180px;
         -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
     }
     .choice-btn:active {
-        transform: translateY(8px);
+        transform: translateY(6px);
         box-shadow: none;
     }
     .choice-btn.selected {
         background-color: #e74c3c;
         border-color: #c0392b;
         color: #fff;
-        box-shadow: 0 8px 0 #c0392b;
+        box-shadow: 0 6px 0 #c0392b;
     }
     .choice-btn.selected:active {
-        transform: translateY(8px);
+        transform: translateY(6px);
         box-shadow: none;
     }
 
     /* 判定ボタン */
     .check-btn {
-        padding: 0 50px;
-        height: 80px;
-        font-size: 2rem;
+        padding: 0 clamp(20px, 4vw, 50px);
+        height: clamp(55px, 8vh, 80px);
+        font-size: clamp(1.4rem, 3vw, 2rem);
         cursor: pointer;
         border: 2px solid #00bfff;
         background-color: #00bfff;
@@ -221,48 +171,49 @@
     /* ヒントエリアのスタイル */
     .hint-column {
         width: 260px;
+        flex-shrink: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
     }
     .hint-btn {
-        padding: 15px 20px;
-        font-size: 1.6rem;
+        padding: 12px 15px;
+        font-size: clamp(1.2rem, 2.5vw, 1.6rem);
         font-weight: bold;
         color: #fff;
         background-color: #2ecc71;
         border: none;
         border-radius: 12px;
         cursor: pointer;
-        box-shadow: 0 6px 0 #27ae60;
+        box-shadow: 0 5px 0 #27ae60;
         transition: transform 0.1s, box-shadow 0.1s;
         width: 100%;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
     }
     .hint-btn:active {
-        transform: translateY(6px);
+        transform: translateY(5px);
         box-shadow: none;
     }
     .hint-list {
         display: none;
-        margin-top: 15px;
+        margin-top: 10px;
         background-color: #ffffff;
         border: 3px solid #2ecc71;
         border-radius: 12px;
-        padding: 15px;
+        padding: 10px 15px;
         width: 100%;
         box-sizing: border-box;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        font-size: 1.6rem;
-        line-height: 1.8;
+        font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+        line-height: 1.6;
     }
     .hint-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
         border-bottom: 1px dashed #ccc;
-        padding: 4px 5px;
+        padding: 3px 5px;
         font-weight: bold;
     }
     .hint-item:last-child {
@@ -270,72 +221,45 @@
     }
     .hint-blank {
         display: inline-block;
-        width: 50px;
-        height: 28px;
+        width: 45px;
+        height: 24px;
         border: 2px dashed #e74c3c;
         background-color: #f9f9f9;
         border-radius: 4px;
     }
 
-    .judge-overlay {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.7);
-        opacity: 0;
-        visibility: hidden;
-        background-color: transparent;
-        color: #ff3333;
-        font-size: 7rem;
-        font-weight: bold;
-        padding: 30px 60px;
-        -webkit-text-stroke: 3px #000;
-        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        pointer-events: none;
-        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
-        white-space: nowrap; 
-    }
-    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
-    .judge-overlay.incorrect { color: #3366ff; }
-    
-    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #ffffff; border-radius: 12px; border: 2px solid #a0c4ff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .clear-message h2 { font-size: 2rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
-    .final-result-details { font-size: 1.4rem; color: #333; line-height: 1.8; }
-    .menu-btn, .retry-btn { margin-top: 20px; padding: 12px 30px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; outline: none; touch-action: manipulation; text-decoration: none; display: inline-block; font-weight: bold;}
-    .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
-    .menu-btn { background-color: #95a5a6; color: #fff; }
-    
-    .top-nav { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        margin-bottom: 10px; 
-    }
-    
     .button-group {
         display: flex;
         gap: 10px;
     }
-    .toggle-group { display: flex; gap: 15px; }
-    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
-    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
-    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; touch-action: manipulation; }
 
+    /* モバイル画面（幅768px以下）用の調整 */
+    @media (max-width: 768px) {
+        .game-area {
+            flex-direction: column;
+            align-items: center;
+        }
+        .hint-column {
+            width: 100%;
+            max-width: 400px;
+        }
+    }
 </style>
 </head>
 <body>
 
+    <!-- スタート画面 -->
     <div id="start-screen" class="start-screen">
         <h1>かけ算 九九 3択テスト</h1>
         <p>全30問！<br>はじめの10問で間違えた「ニガテな問題」は<br>後半でもういちど出題されるよ！</p>
         <div class="dan-selector">
-            <button class="dan-btn" id="start-btn">全30問 スタート！</button>
+            <button class="start-btn" id="start-btn" style="background-color: #e67e22; box-shadow: 0 5px 0 #d35400;">全30問 スタート！</button>
         </div>
-        <BR><BR><a href="index.html" class="menu-btn" style="margin-top: 20px; background-color: #95a5a6;">メニューへ戻る</a>
+        <br><br><a href="index.html" class="menu-btn" style="margin-top: 20px; background-color: #95a5a6;">メニューへ戻る</a>
     </div>
 
-<div id="main-content" style="display: none;">
+    <!-- メイン画面 -->
+    <div id="main-content" style="display: none;">
         <div class="top-nav">
             <div class="toggle-group">
                 <label class="settings-toggle"><input type="checkbox" id="speech-checkbox" checked> スピーチON</label>
@@ -355,20 +279,10 @@
         <div id="judge-overlay" class="judge-overlay"></div>
     </div>
 
+    <!-- 共通モジュールの読み込み -->
+    <script src="app-common.js"></script>
+
     <script>
-        const okSound = new Audio('ok.mp3');
-        const ngSound = new Audio('ng.mp3');
-        const qSound = new Audio('q.mp3');
-
-        function speak(text) {
-            const speechCheckbox = document.getElementById('speech-checkbox');
-            if (speechCheckbox && !speechCheckbox.checked) return; 
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            window.speechSynthesis.speak(utterance);
-        }
-
         const kukuReadings = {
             1: { 1: ["いんいちが", "いち"], 2: ["いんにが", "に"], 3: ["いんさんが", "さん"], 4: ["いんしが", "し"], 5: ["いんごが", "ご"], 6: ["いんろくが", "ろく"], 7: ["いんしちが", "しち"], 8: ["いんはちが", "はち"], 9: ["いんくが", "く"] },
             2: { 1: ["にいちが", "に"], 2: ["ににんが", "し"], 3: ["にさんが", "ろく"], 4: ["にしが", "はち"], 5: ["にご", "じゅう"], 6: ["にろく", "じゅうに"], 7: ["にしち", "じゅうし"], 8: ["にはち", "じゅうろく"], 9: ["にく", "じゅうはち"] },
@@ -384,11 +298,10 @@
         let problems = [];
         let currentIndex = 0;
         let mistakeCount = 0;
-        let replaceIndex = 20; // 前半10問の不正解問題を、後半(21問目〜)の配列に上書きするためのインデックス
+        let replaceIndex = 20; 
         const appContainer = document.getElementById('app');
         let problemStartTime;
 
-        // 全30問をランダムに生成（後半は必要に応じて間違えた問題で上書きされます）
         function generateProblems() {
             problems = [];
             while (problems.length < 30) {
@@ -398,21 +311,17 @@
             }
         }
 
-        // ダミーを含めた3択の選択肢を生成するロジック
         function getChoices(n1, n2) {
             const correct = n1 * n2;
             let candidates = [];
             
-            // 引っかけ用ニアミスの数字を追加
             if (n2 > 1) candidates.push(n1 * (n2 - 1));
             if (n2 < 9) candidates.push(n1 * (n2 + 1));
             if (n1 > 1) candidates.push((n1 - 1) * n2);
             if (n1 < 9) candidates.push((n1 + 1) * n2);
             
-            // 重複排除と有効な数字（1〜81）の絞り込み
             candidates = candidates.filter((val, index, self) => self.indexOf(val) === index && val > 0 && val <= 81 && val !== correct);
             
-            // 候補が足りなければランダムな九九の答えを補充
             while (candidates.length < 2) {
                 let r = (Math.floor(Math.random() * 9) + 1) * (Math.floor(Math.random() * 9) + 1);
                 if (r !== correct && !candidates.includes(r)) {
@@ -420,18 +329,10 @@
                 }
             }
             
-            // 候補からランダムに2つ選出
             candidates.sort(() => Math.random() - 0.5);
             let finalChoices = [correct, candidates[0], candidates[1]];
             
-            // 3つの選択肢をシャッフル
             return finalChoices.sort(() => Math.random() - 0.5);
-        }
-
-        function formatTime(date) {
-            return date.getHours().toString().padStart(2, '0') + ':' + 
-                   date.getMinutes().toString().padStart(2, '0') + ':' + 
-                   date.getSeconds().toString().padStart(2, '0');
         }
 
         function renderProblem() {
@@ -452,12 +353,15 @@
                     htmlContent += `<div style="color: blue; font-weight: bold; margin-top: 15px;">パーフェクトです！素晴らしい成績です。</div>`;
                 }
                 htmlContent += `</div>`;
+                htmlContent += `<div style="margin-top: 25px;">`;
                 htmlContent += `<button class="retry-btn" onclick="location.reload()">もう一度挑戦する</button>`;
+                htmlContent += `<a href="view.html" class="menu-btn" style="background-color: #2ecc71; margin-right: 15px;">履歴を見る</a>`;
                 htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a>`;
+                htmlContent += `</div>`;
                 
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
-                speak("ぜんもんしゅうりょうです。おつかれさまでした。");
+                AppAudio.speak("ぜんもんしゅうりょうです。おつかれさまでした。");
                 return;
             }
 
@@ -467,28 +371,19 @@
             const prob = problems[currentIndex];
             const correctAns = prob.n1 * prob.n2;
             
-            // 出題時の九九読み上げ
             const yomi = kukuReadings[prob.n1][prob.n2][0];
-            speak(yomi);
+            AppAudio.speak(yomi);
+            AppAudio.playQ();
 
-            const soundCheckbox = document.getElementById('sound-checkbox');
-            if (soundCheckbox && soundCheckbox.checked) {
-                qSound.currentTime = 0; qSound.play().catch(e => {});
-            }
-
-            // コンテナ生成
             const container = document.createElement('div');
             container.className = 'problem-container';
 
-            // 左右並び替え用のゲームエリア
             const gameArea = document.createElement('div');
             gameArea.className = 'game-area';
 
-            // 左側カラム（メイン問題・選択肢）
             const mainColumn = document.createElement('div');
             mainColumn.className = 'main-column';
 
-            // --- 数式エリア ---
             const mathFormula = document.createElement('div');
             mathFormula.className = 'math-formula';
             
@@ -505,14 +400,12 @@
             mathFormula.appendChild(questionMark);
             mainColumn.appendChild(mathFormula);
 
-            // --- 3択ボタンエリア ---
             const choicesContainer = document.createElement('div');
             choicesContainer.className = 'choices-container';
             const choices = getChoices(prob.n1, prob.n2);
             
             let selectedAnswer = null;
 
-            // --- 判定ボタン作成 ---
             const checkBtnContainer = document.createElement('div');
             const checkBtn = document.createElement('button');
             checkBtn.className = 'check-btn';
@@ -520,7 +413,6 @@
             checkBtn.disabled = true; 
             checkBtnContainer.appendChild(checkBtn);
 
-            // 選択肢ボタンの生成
             choices.forEach(val => {
                 const btn = document.createElement('button');
                 btn.className = 'choice-btn';
@@ -540,7 +432,6 @@
             mainColumn.appendChild(choicesContainer);
             mainColumn.appendChild(checkBtnContainer);
 
-            // 右側カラム（ヒントボタン・一覧エリア）
             const hintColumn = document.createElement('div');
             hintColumn.className = 'hint-column';
 
@@ -551,7 +442,6 @@
             const hintList = document.createElement('div');
             hintList.className = 'hint-list';
 
-            // 現在の「？の段」の一覧を動的に生成（該当問題の答えだけ空白にする）
             let hintHtml = '';
             for (let i = 1; i <= 9; i++) {
                 if (i === prob.n2) {
@@ -562,7 +452,6 @@
             }
             hintList.innerHTML = hintHtml;
 
-            // ヒント表示切り替えのイベント
             hintBtn.addEventListener('click', () => {
                 if (hintList.style.display === 'block') {
                     hintList.style.display = 'none';
@@ -570,58 +459,41 @@
                 } else {
                     hintList.style.display = 'block';
                     hintBtn.textContent = 'ヒントを閉じる';
-                    speak(`${prob.n1}のだんのヒントです`);
+                    AppAudio.speak(`${prob.n1}のだんのヒントです`);
                 }
             });
 
             hintColumn.appendChild(hintBtn);
             hintColumn.appendChild(hintList);
 
-            // 各カラムをゲームエリアに結合
             gameArea.appendChild(mainColumn);
             gameArea.appendChild(hintColumn);
             container.appendChild(gameArea);
             appContainer.appendChild(container);
 
-            // 判定処理
             checkBtn.addEventListener('click', () => {
                 if (selectedAnswer === null) return; 
 
                 const isCorrect = (selectedAnswer === correctAns);
-                const endTime = new Date();
-                const problemType = "かけ算九九";
-                const problemContent = `${prob.n1} × ${prob.n2}`;
-                const userAnswer = selectedAnswer.toString();
-                const inputMethod = "3択入力";
-                const resultStr = isCorrect ? "正解" : "不正解";
-                
-                const yyyy = problemStartTime.getFullYear();
-                const mm = String(problemStartTime.getMonth() + 1).padStart(2, '0');
-                const dd = String(problemStartTime.getDate()).padStart(2, '0');
-                const dateStr = `${yyyy}/${mm}/${dd}`;
-                
-                const csvLine = `"${dateStr}","${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
-                
-                if (window.webkit && window.webkit.messageHandlers.appBridge) {
-                    window.webkit.messageHandlers.appBridge.postMessage({
-                        action: "saveCSV",
-                        csvLine: csvLine
-                    });
-                } else {
-                    const storageKey = "kuku_history";
-                    let history = localStorage.getItem(storageKey) || "";
-                    history += csvLine;
-                    localStorage.setItem(storageKey, history);
-                    console.log("LocalStorageに保存しました: " + csvLine);
-                }
+
+                AppLogger.save({
+                    storageKey: "kuku_history",
+                    problemType: "かけ算九九",
+                    problemContent: `${prob.n1} × ${prob.n2}`,
+                    userAnswer: selectedAnswer.toString(),
+                    startTime: problemStartTime,
+                    endTime: new Date(),
+                    inputMethod: "3択入力",
+                    isCorrect: isCorrect
+                });
 
                 const overlayJudge = document.getElementById('judge-overlay');
                 if (isCorrect) {
                     overlayJudge.textContent = 'せいかい！';
                     overlayJudge.className = 'judge-overlay show';
-                    if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
+                    AppAudio.playOk();
                     
-                    speak(kukuReadings[prob.n1][prob.n2][1]);
+                    AppAudio.speak(kukuReadings[prob.n1][prob.n2][1]);
                     
                     checkBtn.disabled = true;
                     Array.from(choicesContainer.children).forEach(c => c.style.pointerEvents = 'none');
@@ -631,15 +503,14 @@
                 } else {
                     overlayJudge.textContent = 'おしい！';
                     overlayJudge.className = 'judge-overlay incorrect show';
+                    AppAudio.speak("おしい！");
+                    AppAudio.playNg();
                     mistakeCount++;
                     
-                    // 💡 前半10問で間違えた場合、後半の配列(インデックス20〜)に同じ問題を上書きセットする
                     if (currentIndex < 10 && replaceIndex < 30) {
                         problems[replaceIndex] = { n1: prob.n1, n2: prob.n2 };
                         replaceIndex++;
                     }
-
-                    if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
                     
                     setTimeout(() => { 
                         overlayJudge.classList.remove('show'); 
@@ -652,12 +523,11 @@
             });
         }
 
-        // スタート画面のボタン処理
         document.getElementById('start-btn').addEventListener('click', () => {
             generateProblems();
             currentIndex = 0;
             mistakeCount = 0;
-            replaceIndex = 20; // 初期化
+            replaceIndex = 20;
             
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';

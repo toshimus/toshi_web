@@ -1,388 +1,308 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>分数のたし算（１＋分数）</title>
-<style>
-    html, body {
-        height: 100%;
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-    }
-    body {
-        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-        margin: 0;
-        padding: 20px;
-        background-color: #ffffff;
-        color: #333;
-        touch-action: none;
-        box-sizing: border-box;
-        user-select: none;
-        -webkit-user-select: none;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>分数のたし算（１＋分数）</title>
     
-    /* スタート画面 */
-    .start-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #f0f8ff;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    }
-    .start-screen h1 {
-        font-size: 3rem;
-        color: #2c3e50;
-        margin-bottom: 40px;
-    }
-    .start-btn {
-        padding: 20px 60px;
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #fff;
-        background-color: #3498db;
-        border: none;
-        border-radius: 15px;
-        cursor: pointer;
-        box-shadow: 0 8px 0 #2980b9;
-        transition: transform 0.1s, box-shadow 0.1s;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .start-btn:active {
-        transform: translateY(8px);
-        box-shadow: none;
-    }
+    <!-- 共通スタイルの読み込み -->
+    <link rel="stylesheet" href="app-common.css">
 
-    .status-bar {
-        font-size: 1.2rem;
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #555;
-    }
-    .question-title-container {
-        display: flex;
-        align-items: center;
-        font-size: 1.6rem;
-        font-weight: normal;
-        margin-bottom: 20px;
-        margin-top: 0;
-        flex-wrap: wrap; 
-    }
+    <!-- １＋分数 固有のスタイル -->
+    <style>
+        .question-title-container {
+            display: flex;
+            align-items: center;
+            font-size: 1.4rem;
+            font-weight: normal;
+            margin-bottom: 20px;
+            margin-top: 0;
+            flex-wrap: wrap; 
+            line-height: 1.5;
+        }
 
-    .problem-container {
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 10px;
-        width: 100%;
-        max-width: 950px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    .problem-main {
-        display: flex;
-        flex-direction: column; 
-        align-items: center;    
-        width: 100%;
-    }
+        .problem-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 950px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .problem-main {
+            display: flex;
+            flex-direction: column; 
+            align-items: center;    
+            width: 100%;
+        }
 
-    .bar-wrapper {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 15px;
-    }
-    
-    .length-indicator-container {
-        position: relative;
-        width: 100%;
-        height: 30px; 
-        margin-bottom: 5px;
-        display: flex;
-        align-items: center; 
-        justify-content: center; 
-    }
-    .red-bar-indicator {
-        position: absolute;
-        width: 100%;
-        height: 2px; 
-        background-color: red;
-        border-radius: 1px;
-        box-sizing: border-box;
-        top: 50%;
-        transform: translateY(-50%);
-    }
-    .red-bar-indicator::before,
-    .red-bar-indicator::after {
-        content: '';
-        position: absolute;
-        top: -8px; 
-        height: 18px; 
-        width: 2px;
-        background-color: red;
-    }
-    .red-bar-indicator::before { left: 0; }
-    .red-bar-indicator::after { right: 0; }
+        .bar-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        
+        /* テープ図の上部寸法線 */
+        .length-indicator-container {
+            position: relative;
+            width: 100%;
+            height: 30px; 
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+        }
+        .red-bar-indicator {
+            position: absolute;
+            width: 100%;
+            height: 2px; 
+            background-color: red;
+            border-radius: 1px;
+            box-sizing: border-box;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .red-bar-indicator::before,
+        .red-bar-indicator::after {
+            content: '';
+            position: absolute;
+            top: -8px; 
+            height: 18px; 
+            width: 2px;
+            background-color: red;
+        }
+        .red-bar-indicator::before { left: 0; }
+        .red-bar-indicator::after { right: 0; }
 
-    .indicator-label-center {
-        position: relative;
-        z-index: 2; 
-        background-color: #ffffff; 
-        padding: 0 10px; 
-        color: red;
-        font-size: 1.6rem; 
-        font-weight: bold;
-        line-height: 1.0;
-        top: -1px; 
-    }
+        .indicator-label-center {
+            position: relative;
+            z-index: 2; 
+            background-color: #ffffff; 
+            padding: 0 10px; 
+            color: red;
+            font-size: 1.6rem; 
+            font-weight: bold;
+            line-height: 1.0;
+            top: -1px; 
+        }
 
-    .bar {
-        display: flex;
-        width: 100%;
-        height: 50px;
-        border: 2px solid #000;
-        box-sizing: border-box;
-    }
-    .segment {
-        flex: 1;
-        border-right: 1px dotted #000;
-        box-sizing: border-box;
-        transition: background-color 0.2s ease;
-    }
-    .segment:last-child {
-        border-right: none;
-    }
-    .segment.filled {
-        background-color: #00bfff; 
-    }
-    .segment.pink-filled {
-        background-color: #ffb3ba; 
-    }
-    
-    .inner-fraction {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        font-size: 1.3rem;
-        font-weight: bold;
-    }
-    .inner-num {
-        border-bottom: 2px solid #000;
-        padding: 0 4px;
-        line-height: 1.1;
-    }
-    .inner-den {
-        padding: 0 4px;
-        line-height: 1.1;
-    }
+        /* テープ図 */
+        .bar {
+            display: flex;
+            width: 100%;
+            height: 50px;
+            border: 2px solid #000;
+            box-sizing: border-box;
+            background-color: #fcfcfc;
+        }
+        .segment {
+            flex: 1;
+            border-right: 1px dotted #000;
+            box-sizing: border-box;
+            transition: background-color 0.2s ease;
+        }
+        .segment:last-child {
+            border-right: none;
+        }
+        .segment.filled {
+            background-color: #00bfff; 
+        }
+        .segment.pink-filled {
+            background-color: #ffb3ba; 
+        }
+        
+        .inner-fraction {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        .inner-num {
+            border-bottom: 2px solid #000;
+            padding: 0 4px;
+            line-height: 1.1;
+        }
+        .inner-den {
+            padding: 0 4px;
+            line-height: 1.1;
+        }
 
-    .controls-area {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-    }
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
 
-    /* 段階的な計算式エリア */
-    .equation-section {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.6rem;
-        font-weight: bold;
-        margin-bottom: 15px;
-        flex-wrap: wrap; 
-        width: 100%;
-        background-color: #fff;
-        padding: 15px 5px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .step-container {
-        display: flex;
-        align-items: center;
-    }
-    .operator {
-        margin: 0 8px;
-        color: #555;
-        flex-shrink: 0;
-        font-size: 2.2rem;
-    }
-    .operator-eq {
-        margin: 0 15px; 
-        color: #555;
-        flex-shrink: 0;
-        font-size: 2.2rem;
-    }
-    .eq-btn {
-        margin: 0 15px;
-        color: #fff;
-        background-color: #3498db;
-        border-radius: 8px;
-        padding: 0 15px;
-        height: 40px;
-        font-size: 1.8rem;
-        font-weight: bold;
-        cursor: pointer;
-        flex-shrink: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 4px 0 #2980b9;
-        transition: all 0.1s;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .eq-btn:active {
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    .eq-fraction {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        margin: 0 8px;
-    }
-    .eq-fraction .inner-num {
-        border-bottom: 3px solid #000;
-        padding: 0 5px;
-        font-size: 2.2rem;
-    }
-    .eq-fraction .inner-den {
-        padding: 0 5px;
-        font-size: 2.2rem;
-    }
+        /* 段階的な計算式エリア */
+        .equation-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            flex-wrap: wrap; 
+            width: 100%;
+            background-color: #fff;
+            padding: 15px 5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            gap: 5px;
+        }
+        .step-container {
+            display: flex;
+            align-items: center;
+        }
+        .operator {
+            margin: 0 8px;
+            color: #555;
+            flex-shrink: 0;
+            font-size: 2.2rem;
+        }
+        .operator-eq {
+            margin: 0 12px; 
+            color: #555;
+            flex-shrink: 0;
+            font-size: 2.2rem;
+        }
+        .eq-btn {
+            margin: 0 12px;
+            color: #fff;
+            background-color: #3498db;
+            border-radius: 8px;
+            padding: 0 15px;
+            height: 40px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 0 #2980b9;
+            transition: all 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .eq-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        .eq-fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 8px;
+        }
+        .eq-fraction .inner-num {
+            border-bottom: 3px solid #000;
+            padding: 0 5px;
+            font-size: 2.2rem;
+        }
+        .eq-fraction .inner-den {
+            padding: 0 5px;
+            font-size: 2.2rem;
+        }
 
-    /* 吸着型点線枠のスタイル */
-    .drop-zone {
-        width: 50px;
-        height: 50px;
-        border: 2px dashed #3498db;
-        background-color: #f0f8ff;
-        border-radius: 6px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 2.2rem;
-        font-weight: bold;
-        cursor: pointer;
-        color: #333;
-        flex-shrink: 0;
-    }
-    .fraction-line {
-        width: 100%;
-        height: 3px;
-        background-color: #000;
-        margin: 5px 0;
-    }
+        /* 入力用ドロップゾーン枠 */
+        .drop-zone {
+            width: 50px;
+            height: 50px;
+            border: 2px dashed #3498db;
+            background-color: #f0f8ff;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: #333;
+            flex-shrink: 0;
+        }
+        .fraction-line {
+            width: 100%;
+            height: 3px;
+            background-color: #000;
+            margin: 5px 0;
+        }
 
-    .instruction-red {
-        color: red;
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin-bottom: 15px;
-        text-align: center;
-        line-height: 1.4;
-    }
+        .instruction-red {
+            color: #e74c3c;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            line-height: 1.4;
+        }
 
-    /* できた！ボタン */
-    .btn-container {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        margin-top: 5px;
-    }
-    .check-btn {
-        padding: 15px 50px;
-        font-size: 1.5rem;
-        cursor: pointer;
-        border: 2px solid #00bfff;
-        background-color: #00bfff;
-        color: #fff;
-        font-weight: bold;
-        border-radius: 8px;
-        outline: none;
-        box-shadow: 0 4px 0 #0088cc;
-    }
-    .check-btn:active {
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    .check-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+        /* ボタン等 */
+        .btn-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: 5px;
+        }
+        .check-btn {
+            padding: 12px 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border: none;
+            background-color: #00bfff;
+            color: #fff;
+            font-weight: bold;
+            border-radius: 10px;
+            outline: none;
+            box-shadow: 0 4px 0 #0088cc;
+            touch-action: manipulation;
+        }
+        .check-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        .check-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-    /* その他共通UI */
-    .div-btn {
-        width: 40px; height: 40px; font-size: 1.4rem;
-        cursor: pointer; border: 1px solid #999;
-        background-color: #fff; border-radius: 8px;
-        margin: 0 8px;
-    }
-    .division-label {
-        font-size: 1.3rem;
-        color: #555;
-        margin-left: 10px;
-    }
-    
-    .judge-overlay {
-        position: fixed; top: 50%; left: 50%;
-        transform: translate(-50%, -50%) scale(0.7);
-        opacity: 0; visibility: hidden; color: #ff3333;
-        font-size: 6rem; font-weight: bold; padding: 30px 60px;
-        -webkit-text-stroke: 3px #000; text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
-        z-index: 9999; pointer-events: none; transition: all 0.3s;
-        white-space: nowrap; 
-    }
-    .judge-overlay.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1.0); }
-    .judge-overlay.incorrect { color: #3366ff; }
-    
-    .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #f8f9fa; border-radius: 12px; border: 2px solid #a0c4ff; }
-    .clear-message h2 { font-size: 1.8rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
-    .final-result-details { font-size: 1.3rem; color: #333; line-height: 1.8; }
-    .retry-btn, .menu-btn { padding: 12px 30px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 8px; color:#fff; text-decoration: none; display: inline-block; margin: 10px;}
-    .retry-btn { background-color: #a0c4ff; }
-    .menu-btn { background-color: #95a5a6; }
-    
-    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .toggle-group { display: flex; gap: 15px; }
-    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; }
-    .settings-toggle input { transform: scale(1.3); margin-right: 8px; }
-    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; }
-
-    /* ==========================================
-       計算機パネルとオーバーレイのスタイル追加
-       ========================================== */
-    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
-    .pieces-container:active { cursor: grabbing; }
-    
-    .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
-    .piece:active { transform: translateY(4px); box-shadow: none; }
-    
-    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
-    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
-    
-    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
-</style>
+        .div-btn {
+            width: 45px; height: 45px; font-size: 1.5rem;
+            cursor: pointer; border: 2px solid #3498db;
+            background-color: #fff; border-radius: 10px;
+            margin: 0 8px;
+            font-weight: bold;
+            color: #2c3e50;
+            box-shadow: 0 3px 0 #bdc3c7;
+        }
+        .div-btn:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+        .division-label {
+            font-size: 1.2rem;
+            color: #555;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
+    <!-- スタート画面 -->
     <div id="start-screen" class="start-screen">
         <h1>分数のたし算（１＋分数）</h1>
         <button id="start-btn" class="start-btn">スタート</button>
         <div style="margin-top: 30px; text-align: center;">
-            <a href="index.html" class="menu-btn" style="background-color: #95a5a6;">メニューへ戻る</a>
+            <a href="index.html" class="menu-btn">メニューへ戻る</a>
         </div>
     </div>
 
+    <!-- メイン画面 -->
     <div id="main-content" style="display: none;">
         <div class="top-nav">
             <div class="toggle-group">
@@ -400,39 +320,23 @@
         <div id="app"></div>
         <div id="judge-overlay" class="judge-overlay"></div>
 
+        <!-- テンキー用オーバーレイとパネル -->
         <div class="overlay" id="overlay"></div>
         <div class="pieces-container" id="calc-container"></div>
     </div>
 
+    <!-- 共通JavaScriptの読み込み -->
+    <script src="app-common.js"></script>
+
+    <!-- １＋分数 固有JavaScript -->
     <script>
-        const okSound = new Audio('ok.mp3');
-        const ngSound = new Audio('ng.mp3');
-        const qSound = new Audio('q.mp3');
-
-        function speak(text) {
-            const speechCheckbox = document.getElementById('speech-checkbox');
-            if (speechCheckbox && !speechCheckbox.checked) return; 
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function formatTime(date) {
-            return date.getHours().toString().padStart(2, '0') + ':' + 
-                   date.getMinutes().toString().padStart(2, '0') + ':' + 
-                   date.getSeconds().toString().padStart(2, '0');
-        }
-
         const numberReadings = ["ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう", "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"];
 
-        /* ==========================================
-           計算機パネルの構築とロジック（初期化）
-           ========================================== */
+        /* --- 計算機パネルの構築とドラッグ制御 --- */
         const overlay = document.getElementById('overlay');
         const calcContainer = document.getElementById('calc-container');
         let activeInputBox = null;
-        let baseValue = 0; /* +10ボタン用のベース値 */
+        let baseValue = 0;
 
         const calcKeys = [
             '7', '8', '9',
@@ -450,8 +354,9 @@
                 piece.classList.add('delete-btn');
                 piece.addEventListener('click', () => {
                     if (activeInputBox) {
-                        activeInputBox.textContent = ''; // 内容をクリア
-                        baseValue = 0; // ベース値もリセット
+                        activeInputBox.textContent = ''; 
+                        baseValue = 0; 
+                        AppAudio.speak("けしました");
                     }
                 });
             } else if (key === '+10') {
@@ -459,26 +364,23 @@
                 piece.addEventListener('click', () => {
                     if (activeInputBox) {
                         baseValue += 10;
-                        activeInputBox.textContent = baseValue; // 一時的に表示
-                        speak("じゅう");
+                        activeInputBox.textContent = baseValue; 
+                        AppAudio.speak("じゅう");
                     }
                 });
             } else {
-                // 0〜9の数字ボタン（押した瞬間に確定して閉じる）
                 piece.addEventListener('click', () => {
                     if (activeInputBox) {
                         const num = parseInt(key, 10);
                         const finalValue = baseValue + num;
                         activeInputBox.textContent = finalValue;
                         
-                        // 入力された数字を読み上げる
                         if (finalValue >= 0 && finalValue <= 20) {
-                            speak(numberReadings[finalValue]);
+                            AppAudio.speak(numberReadings[finalValue]);
                         } else {
-                            speak(finalValue.toString());
+                            AppAudio.speak(finalValue.toString());
                         }
 
-                        // 即決でパネルを閉じる
                         calcContainer.style.display = 'none';
                         overlay.style.display = 'none';
                         activeInputBox = null;
@@ -494,7 +396,7 @@
             activeInputBox = null;
         });
 
-        /* 計算機パネルのドラッグ移動ロジック */
+        // パネルのドラッグ制御
         let isDragging = false;
         let dragStartX, dragStartY, initialLeft, initialTop;
 
@@ -521,9 +423,7 @@
             calcContainer.style.top = (initialTop + dy) + 'px';
         }
 
-        function stopDrag() {
-            isDragging = false;
-        }
+        function stopDrag() { isDragging = false; }
 
         calcContainer.addEventListener('mousedown', startDrag);
         document.addEventListener('mousemove', doDrag, { passive: false });
@@ -533,9 +433,7 @@
         document.addEventListener('touchend', stopDrag);
 
 
-        /* ==========================================
-           問題生成と判定ロジック
-           ========================================== */
+        /* --- 問題生成と判定ロジック --- */
         const allProblems = [];
         for (let d = 2; d <= 8; d++) {
             for (let n = 1; n < d; n++) {
@@ -573,7 +471,7 @@
                     <a href="index.html" class="menu-btn">メニューへ戻る</a>
                 `;
                 appContainer.appendChild(clearMsg);
-                speak("ぜんもんごうかくです。おつかれさまでした。");
+                AppAudio.speak("ぜんもんごうかくです。おつかれさまでした。");
                 return;
             }
             
@@ -581,17 +479,15 @@
             document.getElementById('status-bar').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 10 問`;
 
-            const soundCheckbox = document.getElementById('sound-checkbox');
-            if (soundCheckbox && soundCheckbox.checked) {
-                qSound.currentTime = 0; qSound.play().catch(e => {});
-            }
-            speak(`つぎのぶんすうのたしざんをもとめなさい。いち、たす、${prob.den}ぶんの${prob.num}、は`);
+            AppAudio.playQ();
+            AppAudio.speak(`つぎのぶんすうのたしざんをもとめなさい。いち、たす、${prob.den}ぶんの${prob.num}、は`);
 
             const container = document.createElement('div');
             container.className = 'problem-container';
             const mainArea = document.createElement('div');
             mainArea.className = 'problem-main';
             
+            // 1つ目のテープ図（分割操作可能）
             const bar1Wrapper = document.createElement('div');
             bar1Wrapper.className = 'bar-wrapper';
             bar1Wrapper.innerHTML = `
@@ -608,6 +504,7 @@
             `;
             mainArea.appendChild(bar1Wrapper);
 
+            // 2つ目のテープ図
             const bar2Wrapper = document.createElement('div');
             bar2Wrapper.className = 'bar-wrapper';
             bar2Wrapper.innerHTML = `
@@ -719,13 +616,13 @@
             container.appendChild(controlsArea);
             appContainer.appendChild(container);
 
-            // 「＝」ボタンによるステップ進行イベント
+            // 「＝」ボタンによるステップ展開
             opEq1.addEventListener('click', () => {
                 if(opEq1.classList.contains('eq-btn')) {
                     opEq1.className = 'operator-eq';
                     step1.style.display = 'flex';
                     opEq2.style.display = 'flex';
-                    speak("イコール");
+                    AppAudio.speak("イコール");
                 }
             });
 
@@ -734,13 +631,12 @@
                     opEq2.className = 'operator-eq';
                     step2.style.display = 'flex';
                     
-                    // 最終回答の分子と分母が同じになるかをチェック
                     const correctFinalN = prob.den + prob.num;
                     const correctFinalD = prob.den;
                     if (correctFinalN === correctFinalD) {
                         opEq3.style.display = 'flex';
                     }
-                    speak("イコール");
+                    AppAudio.speak("イコール");
                 }
             });
 
@@ -748,16 +644,19 @@
                 if(opEq3.classList.contains('eq-btn')) {
                     opEq3.className = 'operator-eq';
                     step3.style.display = 'flex';
-                    speak("イコール");
+                    AppAudio.speak("イコール");
                 }
             });
 
-            // 入力枠のイベントリスナー
+            // 各ドロップゾーンのイベント
             const zones = equationSection.querySelectorAll('.drop-zone');
             zones.forEach(zone => {
                 zone.addEventListener('click', () => { 
-                    zone.textContent = ''; 
-                    baseValue = 0; // ベース値をリセット
+                    if (zone.textContent !== '') {
+                        zone.textContent = ''; 
+                        AppAudio.speak("けしました");
+                    }
+                    baseValue = 0; 
                     activeInputBox = zone;
                     calcContainer.style.display = 'flex';
                     overlay.style.display = 'block';
@@ -786,7 +685,7 @@
                     currentDivisions--;
                     document.getElementById('div-label').textContent = `（${currentDivisions} 分割）`;
                     updateBar1();
-                    speak(currentDivisions + "ぶんかつ");
+                    AppAudio.speak(currentDivisions + "ぶんかつ");
                 }
             };
             document.getElementById('plus-btn').onclick = () => {
@@ -794,7 +693,7 @@
                     currentDivisions++;
                     document.getElementById('div-label').textContent = `（${currentDivisions} 分割）`;
                     updateBar1();
-                    speak(currentDivisions + "ぶんかつ");
+                    AppAudio.speak(currentDivisions + "ぶんかつ");
                 }
             };
 
@@ -810,6 +709,7 @@
                 bar2.appendChild(seg);
             }
 
+            // 採点処理
             checkBtn.onclick = () => {
                 const boxStepNum = document.getElementById('ans-step-num');
                 const boxStepDen = document.getElementById('ans-step-den');
@@ -821,71 +721,78 @@
                 const sDen = boxStepDen ? boxStepDen.textContent : "";
                 const fNum = boxFinalNum ? boxFinalNum.textContent : "";
                 const fDen = boxFinalDen ? boxFinalDen.textContent : "";
-                
-                // すべての入力枠が埋まっているかチェック
-                if(sNum === "" || sDen === "" || fNum === "" || fDen === "") return;
+
+                const correctFinalN = prob.den + prob.num;
+                const correctFinalD = prob.den;
+                const needsWhole = (correctFinalN === correctFinalD);
+
+                const overlayJudge = document.getElementById('judge-overlay');
+
+                // 空欄チェック
+                if (sNum === "" || sDen === "" || fNum === "" || fDen === "" || (needsWhole && (!boxFinalWhole || boxFinalWhole.textContent === ""))) {
+                    overlayJudge.textContent = 'すうじを いれてね';
+                    overlayJudge.className = 'judge-overlay incorrect show';
+                    AppAudio.speak("すうじを いれてね");
+                    setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                    return;
+                }
                 
                 const uStepN = parseInt(sNum, 10);
                 const uStepD = parseInt(sDen, 10);
                 const uFinalN = parseInt(fNum, 10);
                 const uFinalD = parseInt(fDen, 10);
 
-                const correctFinalN = prob.den + prob.num;
-                const correctFinalD = prob.den;
-                const needsWhole = (correctFinalN === correctFinalD);
-
                 let uFinalWhole = null;
                 if (needsWhole) {
-                    if (boxFinalWhole && boxFinalWhole.textContent === "") return;
                     uFinalWhole = parseInt(boxFinalWhole.textContent, 10);
                 }
 
-                // 1を分数に直した形が合っているか
-                //const stepCorrect = (uStepD === prob.den && uStepN === prob.den);
-                // 最終回答が合っているか
-                //let finalCorrect = (uFinalD === prob.den && uFinalN === correctFinalN);
-
-                // 1を分数に直した形が合っているか
+                // 正誤判定
                 const stepCorrect = (uStepD === prob.den && uStepN === prob.den);
-                // 最終回答が合っているか (約分を考慮し、クロス乗算で値が等しいか判定します)
                 let finalCorrect = (uFinalN * prob.den === correctFinalN * uFinalD);
 
-                
                 if (needsWhole) {
                     if (uFinalWhole !== 1) finalCorrect = false;
                 }
 
                 const isCorrect = stepCorrect && finalCorrect;
                 
-                const endTime = new Date();
-                const problemType = `1＋分数のたし算`;
-                const problemContent = `1 + ${prob.num}/${prob.den}`;
                 let userAnswer = `途中:${sNum}/${sDen}, 最終:${fNum}/${fDen}`;
                 if (needsWhole) userAnswer += ` = ${uFinalWhole}`;
                 
-                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},"計算機入力",${isCorrect ? "正解" : "不正解"}\n`;
-                if (window.webkit && window.webkit.messageHandlers.appBridge) {
-                    window.webkit.messageHandlers.appBridge.postMessage({ action: "saveCSV", csvLine: csvLine });
-                }
+                // 共通ログ機能による履歴保存
+                AppLogger.save({
+                    storageKey: "fraction_add_1_history",
+                    problemType: "1＋分数のたし算",
+                    problemContent: `1 + ${prob.num}/${prob.den}`,
+                    userAnswer: userAnswer,
+                    startTime: problemStartTime,
+                    endTime: new Date(),
+                    inputMethod: "計算機入力",
+                    isCorrect: isCorrect
+                });
 
-                const overlayJudge = document.getElementById('judge-overlay');
                 if (isCorrect) {
                     overlayJudge.textContent = 'せいかい！';
                     overlayJudge.className = 'judge-overlay show';
-                    if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
+                    AppAudio.speak("せいかい！");
+                    AppAudio.playOk();
+                    
                     checkBtn.disabled = true; 
                     setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
                     setTimeout(() => { currentIndex++; renderProblem(); }, 1500);
                 } else {
                     overlayJudge.textContent = 'おしい！';
                     overlayJudge.className = 'judge-overlay incorrect show';
+                    AppAudio.speak("おしい！");
                     mistakeCount++; 
-                    if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
+                    AppAudio.playNg();
                     setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
                 }
             };
         }
 
+        // --- スタートボタン ---
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';

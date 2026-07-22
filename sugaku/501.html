@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>１０はどれ？</title>
 <style>
+    :root {
+        /* 画面幅・高さに合わせて自動スケールするマス目サイズ */
+        --cell-size: clamp(22px, 5.2vw, 55px);
+    }
+
+    @media (max-height: 600px) {
+        :root {
+            --cell-size: clamp(18px, 6vh, 45px);
+        }
+    }
+
     html, body {
         height: 100%;
         overflow: hidden;
@@ -14,13 +25,16 @@
     body {
         font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         margin: 0;
-        padding: 20px;
+        padding: clamp(10px, 2vw, 20px);
         background-color: #ffffff;
         color: #333;
         touch-action: none;
         box-sizing: border-box;
         user-select: none;
         -webkit-user-select: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
     }
     
     /* スタート画面 */
@@ -36,21 +50,25 @@
         justify-content: center;
         align-items: center;
         z-index: 10000;
+        padding: 20px;
+        box-sizing: border-box;
     }
     .start-screen h1 {
-        font-size: 3rem;
+        font-size: clamp(2rem, 6vw, 3rem);
         color: #2c3e50;
         margin-bottom: 10px;
+        text-align: center;
     }
     .start-screen p {
-        font-size: 1.5rem;
+        font-size: clamp(1.1rem, 3.5vw, 1.5rem);
         font-weight: bold;
         color: #555;
         margin-bottom: 30px;
+        text-align: center;
     }
     .start-btn {
-        padding: 20px 60px;
-        font-size: 2.5rem;
+        padding: clamp(12px, 2.5vw, 20px) clamp(30px, 6vw, 60px);
+        font-size: clamp(1.8rem, 5vw, 2.5rem);
         font-weight: bold;
         color: #fff;
         background-color: #3498db;
@@ -74,26 +92,33 @@
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        margin-bottom: 10px; 
+        margin-bottom: 5px; 
+        width: 100%;
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
+        flex-wrap: wrap;
+        gap: 10px;
     }
     .toggle-group { display: flex; gap: 15px; }
-    .settings-toggle { font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
-    .settings-toggle input { transform: scale(1.3); margin-right: 8px; cursor: pointer; }
-    .button-group { display: flex; gap: 10px; }
-    .back-btn { padding: 8px 15px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: 0.9rem; touch-action: manipulation; }
+    .settings-toggle { font-size: clamp(0.9rem, 2vw, 1.1rem); color: #555; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
+    .settings-toggle input { transform: scale(1.2); margin-right: 6px; cursor: pointer; }
+    .button-group { display: flex; gap: 8px; }
+    .back-btn { padding: 6px 12px; background-color: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; text-decoration: none; color: #2c3e50; font-size: clamp(0.8rem, 1.8vw, 0.9rem); touch-action: manipulation; }
 
     .status-bar {
-        font-size: 1.4rem;
+        font-size: clamp(1rem, 2.5vw, 1.4rem);
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         color: #555;
+        text-align: center;
     }
 
     .question-title {
-        font-size: 2rem;
+        font-size: clamp(1.3rem, 3.8vw, 2rem);
         font-weight: bold;
-        margin-top: 5px;
-        margin-bottom: 20px;
+        margin-top: 0;
+        margin-bottom: clamp(10px, 2vh, 20px);
         text-align: center;
         color: #e74c3c;
     }
@@ -105,19 +130,23 @@
         max-width: 1000px;
         margin: 0 auto;
         align-items: center;
+        flex: 1;
+        justify-content: center;
     }
 
     /* 左右の選択肢エリア */
     .frames-container {
         display: flex;
         justify-content: center;
-        gap: 60px;
-        margin: 10px 0;
+        align-items: center;
+        gap: clamp(10px, 3vw, 50px);
+        margin: 5px 0;
+        width: 100%;
     }
     
     .frame-wrapper {
         cursor: pointer;
-        padding: 20px 30px;
+        padding: clamp(10px, 2vw, 20px) clamp(8px, 2vw, 25px);
         border-radius: 15px;
         border: 4px solid transparent;
         transition: all 0.2s;
@@ -125,13 +154,14 @@
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         display: flex;
         flex-direction: column;
-        gap: 15px; 
+        gap: clamp(8px, 1.5vh, 15px); 
         -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
     }
     .frame-wrapper:hover {
         background-color: #f0f8ff;
         border-color: #a0c4ff;
-        transform: scale(1.03);
+        transform: scale(1.02);
     }
     .frame-wrapper:active {
         transform: scale(0.97);
@@ -141,29 +171,32 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 20px;
+        gap: clamp(4px, 1.2vw, 15px);
     }
 
     .number-display {
-        font-size: 4rem;
+        font-size: calc(var(--cell-size) * 1.1);
         font-weight: bold;
         color: #555;
-        width: 60px;
+        width: calc(var(--cell-size) * 1.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     /* 5×2のマス目 */
     .ten-frame {
         display: grid;
-        grid-template-columns: repeat(5, 55px);
-        grid-template-rows: repeat(2, 55px);
-        border: 4px solid #333;
+        grid-template-columns: repeat(5, var(--cell-size));
+        grid-template-rows: repeat(2, var(--cell-size));
+        border: clamp(2px, 0.4vw, 4px) solid #333;
         background-color: #fff;
         gap: 0;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         pointer-events: none;
     }
     .cell {
-        border: 2px solid #ccc;
+        border: 1px solid #ccc;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -173,8 +206,8 @@
     
     /* ●のスタイル */
     .circle {
-        width: 40px;
-        height: 40px;
+        width: calc(var(--cell-size) * 0.72);
+        height: calc(var(--cell-size) * 0.72);
         border-radius: 50%;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
@@ -197,10 +230,10 @@
         visibility: hidden;
         background-color: transparent;
         color: #ff3333;
-        font-size: 7rem;
+        font-size: clamp(3rem, 10vw, 7rem);
         font-weight: bold;
-        padding: 30px 60px;
-        -webkit-text-stroke: 3px #000;
+        padding: 20px 40px;
+        -webkit-text-stroke: 2px #000;
         text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
         z-index: 9999;
         pointer-events: none;
@@ -212,8 +245,8 @@
 
     /* クリアメッセージ・メニューボタン */
     .clear-message { text-align: center; margin-top: 20px; padding: 25px; background-color: #ffffff; border-radius: 12px; border: 2px solid #a0c4ff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .clear-message h2 { font-size: 2rem; color: #d9534f; margin-top: 0; margin-bottom: 20px; }
-    .final-result-details { font-size: 1.4rem; color: #333; line-height: 1.8; margin-bottom: 20px; }
+    .clear-message h2 { font-size: clamp(1.5rem, 4vw, 2rem); color: #d9534f; margin-top: 0; margin-bottom: 20px; }
+    .final-result-details { font-size: clamp(1.1rem, 3vw, 1.4rem); color: #333; line-height: 1.8; margin-bottom: 20px; }
     .retry-btn, .menu-btn { padding: 12px 30px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; outline: none; touch-action: manipulation; text-decoration: none; display: inline-block; font-weight: bold; text-align: center;}
     .retry-btn { background-color: #a0c4ff; color: #fff; margin-right: 15px; }
     .menu-btn { background-color: #95a5a6; color: #fff; }
@@ -227,10 +260,10 @@
         <p>１０こ あるのは どっちかな？</p>
         <button id="start-btn" class="start-btn">スタート</button>
         <br><br>
-        <a href="index.html" class="menu-btn" style="margin-top: 20px; background-color: #95a5a6;">メニューへ戻る</a>
+        <a href="index.html" class="menu-btn" style="background-color: #95a5a6;">メニューへ戻る</a>
     </div>
 
-    <div id="main-content" style="display: none;">
+    <div id="main-content" style="display: none; height: 100%; width: 100%;">
         <!-- ナビゲーションと設定 -->
         <div class="top-nav">
             <div class="toggle-group">
@@ -252,11 +285,11 @@
                 <!-- 左側の枠 (数字は左、マスは右) -->
                 <div class="frame-wrapper" id="frame-left">
                     <div class="frame-row">
-                        <div class="number-display" id="num-left-top" style="text-align: right;"></div>
+                        <div class="number-display" id="num-left-top"></div>
                         <div class="ten-frame" id="grid-left-top"></div>
                     </div>
                     <div class="frame-row">
-                        <div class="number-display" id="num-left-bottom" style="text-align: right;"></div>
+                        <div class="number-display" id="num-left-bottom"></div>
                         <div class="ten-frame" id="grid-left-bottom"></div>
                     </div>
                 </div>
@@ -265,11 +298,11 @@
                 <div class="frame-wrapper" id="frame-right">
                     <div class="frame-row">
                         <div class="ten-frame" id="grid-right-top"></div>
-                        <div class="number-display" id="num-right-top" style="text-align: left;"></div>
+                        <div class="number-display" id="num-right-top"></div>
                     </div>
                     <div class="frame-row">
                         <div class="ten-frame" id="grid-right-bottom"></div>
-                        <div class="number-display" id="num-right-bottom" style="text-align: left;"></div>
+                        <div class="number-display" id="num-right-bottom"></div>
                     </div>
                 </div>
             </div>
@@ -281,28 +314,10 @@
         <div id="judge-overlay" class="judge-overlay"></div>
     </div>
 
+    <!-- 共通モジュールの読み込み -->
+    <script src="app-common.js"></script>
+
     <script>
-        // 音声関連
-        const okSound = new Audio('ok.mp3');
-        const ngSound = new Audio('ng.mp3');
-        const qSound = new Audio('q.mp3');
-
-        function speak(text) {
-            const speechCheckbox = document.getElementById('speech-checkbox');
-            if (speechCheckbox && !speechCheckbox.checked) return; 
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            window.speechSynthesis.speak(utterance);
-        }
-
-        // CSV記録用のフォーマット関数
-        function formatTime(date) {
-            return date.getHours().toString().padStart(2, '0') + ':' + 
-                   date.getMinutes().toString().padStart(2, '0') + ':' + 
-                   date.getSeconds().toString().padStart(2, '0');
-        }
-
         const appContainer = document.getElementById('main-content');
         
         let currentQuestion = 1;
@@ -358,20 +373,16 @@
                 htmlContent += `<a href="index.html" class="menu-btn">メニューへ戻る</a></div>`;
                 
                 clearArea.innerHTML = htmlContent;
-                speak("ぜんもんクリアです。おつかれさまでした。");
+                AppAudio.speak("ぜんもんクリアです。おつかれさまでした。");
                 return;
             }
 
             problemStartTime = new Date();
             document.getElementById('status-bar').textContent = `第 ${currentQuestion} 問 / 全 ${totalQuestions} 問`;
             
-            const soundCheckbox = document.getElementById('sound-checkbox');
-            if (soundCheckbox && soundCheckbox.checked) {
-                qSound.currentTime = 0; qSound.play().catch(e => {});
-            }
-
-            // 問題読み上げ
-            speak("じゅうこ あるのは どっちかな？");
+            // 問題提示音と読み上げ
+            AppAudio.playQ();
+            AppAudio.speak("じゅうこ あるのは どっちかな？");
 
             const gridLeftTop = document.getElementById('grid-left-top');
             const gridLeftBottom = document.getElementById('grid-left-bottom');
@@ -431,45 +442,28 @@
             const overlayJudge = document.getElementById('judge-overlay');
             const frameLeft = document.getElementById('frame-left');
             const frameRight = document.getElementById('frame-right');
-            const soundCheckbox = document.getElementById('sound-checkbox');
 
             frameLeft.style.pointerEvents = 'none';
             frameRight.style.pointerEvents = 'none';
 
             const isCorrect = (selectedSide === currentProblemDetails.correctSide);
             
-            // CSV保存処理
-            const endTime = new Date();
-            const problemType = "10はどれ？";
-            const problemContent = `${currentProblemDetails.leftContent} vs ${currentProblemDetails.rightContent}`;
-            const userAnswer = selectedSide === 0 ? "左を選択" : "右を選択";
-            const resultStr = isCorrect ? "正解" : "不正解";
-            
-            const yyyy = problemStartTime.getFullYear();
-            const mm = String(problemStartTime.getMonth() + 1).padStart(2, '0');
-            const dd = String(problemStartTime.getDate()).padStart(2, '0');
-            const dateStr = `${yyyy}/${mm}/${dd}`;
-            
-            const csvLine = `"${dateStr}","${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},"枠をタップ",${resultStr}\n`;
-            
-            if (window.webkit && window.webkit.messageHandlers.appBridge) {
-                window.webkit.messageHandlers.appBridge.postMessage({
-                    action: "saveCSV",
-                    csvLine: csvLine
-                });
-            } else {
-                const storageKey = "10_wa_dore_history";
-                let history = localStorage.getItem(storageKey) || "";
-                history += csvLine;
-                localStorage.setItem(storageKey, history);
-                console.log("CSVログ保存: " + csvLine);
-            }
+            // 共通モジュール（AppLogger）による履歴保存
+            AppLogger.save({
+                storageKey: "10_wa_dore_history",
+                problemType: "10はどれ？",
+                problemContent: `${currentProblemDetails.leftContent} vs ${currentProblemDetails.rightContent}`,
+                userAnswer: selectedSide === 0 ? "左を選択" : "右を選択",
+                startTime: problemStartTime,
+                endTime: new Date(),
+                inputMethod: "枠をタップ",
+                isCorrect: isCorrect
+            });
 
             if (isCorrect) {
                 overlayJudge.textContent = 'せいかい！';
                 overlayJudge.className = 'judge-overlay show';
-                speak('せいかい！');
-                if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
+                AppAudio.playOk();
                 
                 setTimeout(() => { 
                     overlayJudge.classList.remove('show'); 
@@ -480,8 +474,7 @@
                 overlayJudge.textContent = 'おしい！';
                 overlayJudge.className = 'judge-overlay incorrect show';
                 mistakeCount++;
-                speak('おしい！');
-                if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
+                AppAudio.playNg();
                 
                 setTimeout(() => { 
                     overlayJudge.classList.remove('show'); 

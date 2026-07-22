@@ -1,366 +1,165 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>水のかさ（分数）</title>
-<style>
-    html, body {
-        height: 100%;
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-    }
-    body {
-        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-        margin: 0;
-        padding: 20px;
-        background-color: #ffffff;
-        color: #333;
-        touch-action: none;
-        box-sizing: border-box;
-        user-select: none;
-        -webkit-user-select: none;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>水のかさ（分数）</title>
     
-    /* スタート画面のスタイル */
-    .start-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #f0f8ff;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    }
-    .start-screen h1 {
-        font-size: 3rem;
-        color: #2c3e50;
-        margin-bottom: 40px;
-    }
-    .start-btn {
-        padding: 20px 60px;
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #fff;
-        background-color: #3498db;
-        border: none;
-        border-radius: 15px;
-        cursor: pointer;
-        box-shadow: 0 8px 0 #2980b9;
-        transition: transform 0.1s, box-shadow 0.1s;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .start-btn:active {
-        transform: translateY(8px);
-        box-shadow: none;
-    }
+    <!-- 共通スタイルの読み込み -->
+    <link rel="stylesheet" href="app-common.css">
 
-    /* 上部ステータスバーと問題文のスタイル */
-    .status-bar {
-        font-size: 1.4rem;
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #555;
-    }
-    .question-title {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-top: 5px;
-        margin-bottom: 20px;
-    }
-
-    .problem-container {
-        display: flex;
-        flex-direction: row;
-        margin-bottom: 10px;
-        width: 100%;
-        max-width: 900px;
-        align-items: center;
-    }
-    
-    .beaker-area {
-        width: 280px; 
-        height: 350px; 
-        margin-right: 40px;
-        display: flex;
-        justify-content: center;
-        align-items: flex-end;
-        position: relative;
-    }
-    .svg-container {
-        width: 100%;
-        height: 100%;
-    }
-    
-    /* SVG内のカウント用矩形のスタイル */
-    .countable-segment {
-        cursor: pointer;
-        outline: none; 
-        -webkit-tap-highlight-color: transparent;
-    }
-    .countable-segment.counted {
-        stroke: red;
-        stroke-width: 4px;
-        fill: rgba(255, 0, 0, 0.1);
-    }
-    
-    .question-area {
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
-    .question-block {
-        margin-bottom: 15px;
-    }
-    .question-text {
-        font-size: 1.2rem;
-        margin-bottom: 10px;
-    }
-    .input-row {
-        display: flex;
-        align-items: center;
-        margin-left: 20px;
-    }
-    
-    /* ドロップゾーン（□の枠） */
-    .drop-zone {
-        width: 50px;
-        height: 50px;
-        border: 2px dashed #3498db;
-        background-color: #f0f8ff;
-        border-radius: 8px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 2rem;
-        font-weight: bold;
-        cursor: pointer;
-        color: #333;
-    }
-    
-    .unit {
-        font-size: 1.2rem;
-        margin-left: 15px;
-    }
-    
-    .fraction-input {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-right: 10px;
-    }
-    .fraction-line {
-        width: 100%;
-        height: 3px;
-        background-color: #000;
-        margin: 5px 0;
-    }
-    
-    .hint-text {
-        text-align: center;
-        color: #e74c3c;
-        font-size: 1rem;
-        font-weight: bold;
-        margin-top: 5px;
-    }
-    
-    /* 判定ボタンを右側に配置するためのコンテナ */
-    .check-btn-container {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        margin-left: 20px;
-    }
-    /* 判定ボタンを青色の立体パターンに変更 */
-    .check-btn {
-        padding: 0 30px;
-        height: 60px;
-        font-size: 1.6rem;
-        font-weight: bold;
-        cursor: pointer;
-        border: none;
-        background-color: #00bfff;
-        color: #ffffff;
-        border-radius: 10px;
-        font-family: inherit;
-        outline: none;
-        box-shadow: 0 4px 0 #0088cc;
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .check-btn:active {
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    .check-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    
-    .result-display {
-        font-size: 5rem;
-        color: red;
-        font-weight: bold;
-        text-align: center;
-        width: 100%;
-        margin-top: 5px;
-        min-height: 80px; 
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        white-space: nowrap;
-    }
-
-    /* ポップアップ判定表示用のスタイル */
-    .judge-overlay {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.7);
-        opacity: 0;
-        visibility: hidden;
-        background-color: transparent;
-        color: #ff3333;
-        font-size: 6rem;
-        font-weight: bold;
-        padding: 30px 60px;
-        -webkit-text-stroke: 3px #000;
-        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        pointer-events: none;
-        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
-        white-space: nowrap;
-    }
-    .judge-overlay.show {
-        opacity: 1;
-        visibility: visible;
-        transform: translate(-50%, -50%) scale(1.0);
-    }
-    .judge-overlay.incorrect {
-        color: #3366ff;
-    }
-    
-    .clear-message {
-        text-align: center;
-        margin-top: 20px;
-        padding: 25px;
-        background-color: #f8f9fa;
-        border-radius: 12px;
-        border: 2px solid #a0c4ff;
-    }
-    .clear-message h2 {
-        font-size: 1.8rem;
-        color: #d9534f;
-        margin-top: 0;
-        margin-bottom: 20px;
-    }
-    .final-result-details {
-        font-size: 1.3rem;
-        color: #333;
-        line-height: 1.8;
-    }
-    .menu-btn, .retry-btn {
-        margin-top: 20px;
-        padding: 12px 30px;
-        font-size: 1.1rem;
-        cursor: pointer;
-        border: none;
-        border-radius: 8px;
-        outline: none;
-        touch-action: manipulation;
-        text-decoration: none;
-        display: inline-block;
-    }
-    .retry-btn {
-        background-color: #a0c4ff;
-        color: #fff;
-        margin-right: 15px;
-    }
-    .menu-btn {
-        background-color: #95a5a6;
-        color: #fff;
-    }
-    
-    .top-nav {
-        display: flex;
-        justify-content: space-between; 
-        align-items: center;            
-        margin-bottom: 10px;
-    }
-    .toggle-group {
-        display: flex;
-        gap: 15px;
-    }
-    .settings-toggle {
-        font-size: 1.1rem;
-        color: #555;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .settings-toggle input {
-        transform: scale(1.3);
-        margin-right: 8px;
-        cursor: pointer;
-    }
-    .back-btn {
-        padding: 8px 15px;
-        background-color: #ecf0f1;
-        border: 1px solid #bdc3c7;
-        border-radius: 5px;
-        text-decoration: none;
-        color: #2c3e50;
-        font-size: 0.9rem;
-        touch-action: manipulation;
-    }
-
-    /* ==========================================
-       計算機パネルとオーバーレイのスタイル追加
-       ========================================== */
-    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
-    .pieces-container:active { cursor: grabbing; }
-    
-    .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
-    .piece:active { transform: translateY(4px); box-shadow: none; }
-    
-    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
-    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
-    
-    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
-</style>
+    <!-- 004（水のかさ）固有のスタイル -->
+    <style>
+        .problem-container {
+            display: flex;
+            flex-direction: row;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            gap: clamp(10px, 3vw, 30px);
+        }
+        
+        .beaker-area {
+            width: clamp(180px, 35vw, 260px); 
+            height: clamp(220px, 40vh, 320px); 
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .svg-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* SVG内のカウント用矩形のスタイル */
+        .countable-segment {
+            cursor: pointer;
+            outline: none; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        .countable-segment.counted {
+            stroke: red;
+            stroke-width: 4px;
+            fill: rgba(255, 0, 0, 0.1);
+        }
+        
+        .question-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: clamp(10px, 2vh, 20px);
+        }
+        .question-block {
+            margin-bottom: 0;
+        }
+        .question-text {
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            margin-bottom: 8px;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+        }
+        
+        .drop-zone {
+            width: clamp(45px, 7vw, 55px);
+            height: clamp(45px, 7vw, 55px);
+            border: 2px dashed #3498db;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: bold;
+            cursor: pointer;
+            color: #333;
+            touch-action: manipulation;
+        }
+        
+        .unit {
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            margin-left: 10px;
+        }
+        
+        .fraction-input {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 5px;
+        }
+        .fraction-line {
+            width: 100%;
+            height: 3px;
+            background-color: #000;
+            margin: 4px 0;
+        }
+        
+        .hint-text {
+            text-align: center;
+            color: #e74c3c;
+            font-size: clamp(0.85rem, 2vw, 1rem);
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .check-btn-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .check-btn {
+            padding: 0 clamp(15px, 3vw, 25px);
+            height: clamp(50px, 8vh, 60px);
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            background-color: #00bfff;
+            color: #ffffff;
+            border-radius: 10px;
+            font-family: inherit;
+            outline: none;
+            box-shadow: 0 4px 0 #0088cc;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            white-space: nowrap;
+        }
+        .check-btn:active { transform: translateY(4px); box-shadow: none; }
+        .check-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: translateY(4px); box-shadow: none; }
+    </style>
 </head>
 <body>
 
+    <!-- スタート画面 -->
     <div id="start-screen" class="start-screen">
         <h1>水のかさ（分数）</h1>
         <button id="start-btn" class="start-btn">スタート</button>
         <div style="margin-top: 30px; text-align: center;">
-            <a href="index.html" class="menu-btn" style="background-color: #95a5a6;">メニューへ戻る</a>
+            <a href="index.html" class="menu-btn">メニューへ戻る</a>
         </div>
-
     </div>
 
-    <div id="main-content" style="display: none;">
+    <!-- メイン表示領域 -->
+    <div id="main-content" style="display: none; height: 100%; width: 100%;">
         <div class="top-nav">
             <div class="toggle-group">
                 <label class="settings-toggle">
-                    <input type="checkbox" id="speech-checkbox" checked>
-                    スピーチON
+                    <input type="checkbox" id="speech-checkbox" checked> スピーチON
                 </label>
                 <label class="settings-toggle">
-                    <input type="checkbox" id="sound-checkbox" checked>
-                    効果音ON
+                    <input type="checkbox" id="sound-checkbox" checked> 効果音ON
                 </label>
             </div>
             <a href="index.html" class="back-btn">メニューへ戻る</a>
@@ -370,154 +169,19 @@
         <h1 class="question-title" id="question-title">・ 図を見て、水のかさを答えましょう。</h1>
         
         <div id="app"></div>
-        
         <div id="judge-overlay" class="judge-overlay"></div>
-
-        <div class="overlay" id="overlay"></div>
-        <div class="pieces-container" id="calc-container"></div>
     </div>
 
+    <!-- 共有JavaScriptの読み込み -->
+    <script src="app-common.js"></script>
+    <script src="calc-keyboard.js"></script>
+
+    <!-- 水のかさ（分数）固有のJavaScript -->
     <script>
-        // 音声ファイル（mp3）のセットアップ
-        const okSound = new Audio('ok.mp3');
-        const ngSound = new Audio('ng.mp3');
-        const qSound = new Audio('q.mp3');
-
-        // 音声読み上げ用の関数（Web Speech API）
-        function speak(text) {
-            const speechCheckbox = document.getElementById('speech-checkbox');
-            if (speechCheckbox && !speechCheckbox.checked) {
-                return; 
-            }
-            
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            window.speechSynthesis.speak(utterance);
-        }
-
-        // 読み上げ用の数字辞書
-        const numberReadings = [
-            "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
-            "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
-        ];
-
-        /* ==========================================
-           計算機パネルの構築とロジック（改修版：即決入力）
-           ========================================== */
-        const overlay = document.getElementById('overlay');
-        const calcContainer = document.getElementById('calc-container');
-        let activeInputBox = null; /* タップされた入力枠を記録する変数 */
-        let baseValue = 0; /* +10ボタン用のベース値 */
-
-        const calcKeys = [
-            '7', '8', '9',
-            '4', '5', '6',
-            '1', '2', '3',
-            '0', '削除', '+10'
-        ];
-
-        calcKeys.forEach(key => {
-            const piece = document.createElement('div');
-            piece.className = 'piece';
-            piece.textContent = key;
-            
-            if (key === '削除') {
-                piece.classList.add('delete-btn');
-                piece.addEventListener('click', () => {
-                    if (activeInputBox) {
-                        activeInputBox.textContent = ''; // 内容をクリア
-                        baseValue = 0; // ベース値もリセット
-                    }
-                });
-            } else if (key === '+10') {
-                piece.classList.add('enter-btn');
-                piece.addEventListener('click', () => {
-                    if (activeInputBox) {
-                        baseValue += 10;
-                        activeInputBox.textContent = baseValue; // 一時的に表示
-                        speak("じゅう");
-                    }
-                });
-            } else {
-                // 0〜9の数字ボタン（押した瞬間に確定して閉じる）
-                piece.addEventListener('click', () => {
-                    if (activeInputBox) {
-                        const num = parseInt(key, 10);
-                        const finalValue = baseValue + num;
-                        activeInputBox.textContent = finalValue;
-                        
-                        // 入力された数字を読み上げる
-                        if (finalValue >= 0 && finalValue <= 20) {
-                            speak(numberReadings[finalValue]);
-                        } else {
-                            speak(finalValue.toString());
-                        }
-
-                        // 即決でパネルを閉じる
-                        calcContainer.style.display = 'none';
-                        overlay.style.display = 'none';
-                        activeInputBox = null;
-                    }
-                });
-            }
-            calcContainer.appendChild(piece);
-        });
-
-        overlay.addEventListener('click', () => {
-            calcContainer.style.display = 'none';
-            overlay.style.display = 'none';
-            activeInputBox = null;
-        });
-
-        /* 計算機パネルのドラッグ移動ロジック */
-        let isDragging = false;
-        let dragStartX, dragStartY, initialLeft, initialTop;
-
-        function startDrag(e) {
-            if (e.target.classList.contains('piece')) return;
-            isDragging = true;
-            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            dragStartX = clientX;
-            dragStartY = clientY;
-            let style = window.getComputedStyle(calcContainer);
-            initialLeft = parseFloat(style.left);
-            initialTop = parseFloat(style.top);
-        }
-
-        function doDrag(e) {
-            if (!isDragging) return;
-            e.preventDefault();
-            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            let dx = clientX - dragStartX;
-            let dy = clientY - dragStartY;
-            calcContainer.style.left = (initialLeft + dx) + 'px';
-            calcContainer.style.top = (initialTop + dy) + 'px';
-        }
-
-        function stopDrag() {
-            isDragging = false;
-        }
-
-        calcContainer.addEventListener('mousedown', startDrag);
-        document.addEventListener('mousemove', doDrag, { passive: false });
-        document.addEventListener('mouseup', stopDrag);
-        calcContainer.addEventListener('touchstart', startDrag, { passive: false });
-        document.addEventListener('touchmove', doDrag, { passive: false });
-        document.addEventListener('touchend', stopDrag);
-
-
-        /* ==========================================
-           問題生成と判定ロジック
-           ========================================== */
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 8) + 3; // 分母は3から10
+            const den = Math.floor(Math.random() * 8) + 3; // 分母：3〜10
             const num = Math.floor(Math.random() * (den - 1)) + 1; 
             const fracKey = `${num}/${den}`;
             if (!seen.has(fracKey)) {
@@ -537,18 +201,10 @@
         let currentIndex = 0;
         let mistakeCount = 0;
         const appContainer = document.getElementById('app');
-        
-        let problemStartTime = new Date();
-
-        function formatTime(date) {
-            return date.getHours().toString().padStart(2, '0') + ':' + 
-                   date.getMinutes().toString().padStart(2, '0') + ':' + 
-                   date.getSeconds().toString().padStart(2, '0');
-        }
+        let problemStartTime;
 
         function renderProblem() {
             appContainer.innerHTML = '';
-            
             problemStartTime = new Date();
 
             if (currentIndex >= problems.length) {
@@ -573,7 +229,7 @@
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
                 
-                speak("ぜんもんくりあです。おつかれさまでした。");
+                AppAudio.speak("ぜんもんくりあです。おつかれさまでした。");
                 return;
             }
             
@@ -581,12 +237,7 @@
             document.getElementById('question-title').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
-            // 問題提示音の再生
-            const soundCheckbox = document.getElementById('sound-checkbox');
-            if (soundCheckbox && soundCheckbox.checked) {
-                qSound.currentTime = 0;
-                qSound.play().catch(e => console.log("ブラウザの自動再生制限により保留されました:", e));
-            }
+            AppAudio.playQ();
 
             const prob = problems[currentIndex];
 
@@ -615,7 +266,7 @@
             water.setAttribute('fill', '#e0f0fa');
             svg.appendChild(water);
 
-            // カウント用の透明な矩形群の描画
+            // カウント用領域（タップ用）
             for (let i = 0; i < prob.den; i++) {
                 const segmentHeight = 200 / prob.den;
                 const segmentY = 220 - segmentHeight * (i + 1);
@@ -623,23 +274,16 @@
                 const countRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 countRect.setAttribute('x', '40');
                 countRect.setAttribute('y', segmentY.toString());
-                countRect.setAttribute('width', '90'); // ビーカー内幅
+                countRect.setAttribute('width', '90');
                 countRect.setAttribute('height', segmentHeight.toString());
-                countRect.setAttribute('fill', 'transparent'); // クリックを検知するため
-                countRect.setAttribute('class', 'countable-segment'); // CSSクラスを適用
-                countRect.setAttribute('stroke', 'none'); // 初期状態は枠線なし
+                countRect.setAttribute('fill', 'transparent');
+                countRect.setAttribute('class', 'countable-segment');
 
-                // 押している間だけ赤枠を表示し、離すと消える制御
-                const showBox = function(e) {
-                    this.classList.add('counted');
-                };
-                const hideBox = function(e) {
-                    this.classList.remove('counted');
-                };
+                const showBox = function() { this.classList.add('counted'); };
+                const hideBox = function() { this.classList.remove('counted'); };
 
                 countRect.addEventListener('mousedown', showBox);
                 countRect.addEventListener('touchstart', showBox, {passive: true});
-                
                 countRect.addEventListener('mouseup', hideBox);
                 countRect.addEventListener('mouseleave', hideBox);
                 countRect.addEventListener('touchend', hideBox);
@@ -648,30 +292,21 @@
                 svg.appendChild(countRect);
             }
 
-            // ビーカーの輪郭描画
+            // ビーカーの外郭
             const beakerOutline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
             beakerOutline.setAttribute('points', '40,20 40,220 130,220 130,20');
             beakerOutline.setAttribute('fill', 'none');
             beakerOutline.setAttribute('stroke', '#000');
             beakerOutline.setAttribute('stroke-width', '4');
-            // 下の矩形のクリックを邪魔しないようにする
             beakerOutline.setAttribute('pointer-events', 'none'); 
             svg.appendChild(beakerOutline);
 
-            // 目盛りの線描画（長さの調整を適用）
+            // 目盛り描画
             for (let i = 0; i <= prob.den; i++) {
                 const yPos = 220 - (200 / prob.den) * i;
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 
-                // --- 線の長さを条件分岐 ---
-                let lineX1;
-                if (i === 0 || i === prob.den) {
-                    lineX1 = 15; // 0と一番上（1L）の目盛りは一番長く
-                } else if (i % 5 === 0) {
-                    lineX1 = 22; // 5個目の目盛りは少し長く
-                } else {
-                    lineX1 = 30; // 通常の目盛り（少し短く）
-                }
+                let lineX1 = (i === 0 || i === prob.den) ? 15 : (i % 5 === 0 ? 22 : 30);
 
                 line.setAttribute('x1', lineX1.toString());
                 line.setAttribute('y1', yPos.toString());
@@ -679,7 +314,6 @@
                 line.setAttribute('y2', yPos.toString());
                 line.setAttribute('stroke', '#000');
                 line.setAttribute('stroke-width', '2');
-                // 下の矩形のクリックを邪魔しないようにする
                 line.setAttribute('pointer-events', 'none'); 
                 svg.appendChild(line);
                 
@@ -689,28 +323,21 @@
                     label1L.setAttribute('y', '35');
                     label1L.setAttribute('font-size', '24');
                     label1L.setAttribute('font-weight', 'bold');
-                    // 下の矩形のクリックを邪魔しないようにする
                     label1L.setAttribute('pointer-events', 'none'); 
                     label1L.textContent = '1L';
                     svg.appendChild(label1L);
                     
                     const topDecorL = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    topDecorL.setAttribute('x1', '25');
-                    topDecorL.setAttribute('y1', '20');
-                    topDecorL.setAttribute('x2', '55');
-                    topDecorL.setAttribute('y2', '20');
-                    topDecorL.setAttribute('stroke', '#000');
-                    topDecorL.setAttribute('stroke-width', '2');
+                    topDecorL.setAttribute('x1', '25'); topDecorL.setAttribute('y1', '20');
+                    topDecorL.setAttribute('x2', '55'); topDecorL.setAttribute('y2', '20');
+                    topDecorL.setAttribute('stroke', '#000'); topDecorL.setAttribute('stroke-width', '2');
                     topDecorL.setAttribute('pointer-events', 'none'); 
                     svg.appendChild(topDecorL);
                     
                     const topDecorR = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    topDecorR.setAttribute('x1', '115');
-                    topDecorR.setAttribute('y1', '20');
-                    topDecorR.setAttribute('x2', '145');
-                    topDecorR.setAttribute('y2', '20');
-                    topDecorR.setAttribute('stroke', '#000');
-                    topDecorR.setAttribute('stroke-width', '2');
+                    topDecorR.setAttribute('x1', '115'); topDecorR.setAttribute('y1', '20');
+                    topDecorR.setAttribute('x2', '145'); topDecorR.setAttribute('y2', '20');
+                    topDecorR.setAttribute('stroke', '#000'); topDecorR.setAttribute('stroke-width', '2');
                     topDecorR.setAttribute('pointer-events', 'none'); 
                     svg.appendChild(topDecorR);
                 }
@@ -727,7 +354,6 @@
             // 質問1: めもりの数
             const q1Block = document.createElement('div');
             q1Block.className = 'question-block';
-            
             const q1Text = document.createElement('div');
             q1Text.className = 'question-text';
             q1Text.textContent = '① 図の水のかさは 1めもりの何こ分ですか？';
@@ -738,13 +364,7 @@
             const countZone = document.createElement('div');
             countZone.className = 'drop-zone';
             countZone.id = 'ans-count';
-            countZone.addEventListener('click', () => { 
-                countZone.textContent = ''; 
-                baseValue = 0; // 追加
-                activeInputBox = countZone;
-                calcContainer.style.display = 'flex';
-                overlay.style.display = 'block';
-            });
+            countZone.addEventListener('click', () => { CalcKeyboard.open(countZone); });
 
             const q1Unit = document.createElement('div');
             q1Unit.className = 'unit';
@@ -752,14 +372,12 @@
 
             q1InputRow.appendChild(countZone);
             q1InputRow.appendChild(q1Unit);
-            
             q1Block.appendChild(q1Text);
             q1Block.appendChild(q1InputRow);
             
             // 質問2: 分数
             const q2Block = document.createElement('div');
             q2Block.className = 'question-block';
-            
             const q2Text = document.createElement('div');
             q2Text.className = 'question-text';
             q2Text.textContent = '② 水のかさは、何Lですか？';
@@ -773,13 +391,7 @@
             const numZone = document.createElement('div');
             numZone.className = 'drop-zone';
             numZone.id = 'ans-num';
-            numZone.addEventListener('click', () => { 
-                numZone.textContent = ''; 
-                baseValue = 0; // 追加
-                activeInputBox = numZone;
-                calcContainer.style.display = 'flex';
-                overlay.style.display = 'block';
-            });
+            numZone.addEventListener('click', () => { CalcKeyboard.open(numZone); });
 
             const fractionLine = document.createElement('div');
             fractionLine.className = 'fraction-line';
@@ -787,13 +399,7 @@
             const denZone = document.createElement('div');
             denZone.className = 'drop-zone';
             denZone.id = 'ans-den';
-            denZone.addEventListener('click', () => { 
-                denZone.textContent = ''; 
-                baseValue = 0; // 追加
-                activeInputBox = denZone;
-                calcContainer.style.display = 'flex';
-                overlay.style.display = 'block';
-            });
+            denZone.addEventListener('click', () => { CalcKeyboard.open(denZone); });
 
             fractionInput.appendChild(numZone);
             fractionInput.appendChild(fractionLine);
@@ -805,16 +411,14 @@
 
             q2InputRow.appendChild(fractionInput);
             q2InputRow.appendChild(q2Unit);
-            
             q2Block.appendChild(q2Text);
             q2Block.appendChild(q2InputRow);
 
             questionArea.appendChild(q1Block);
             questionArea.appendChild(q2Block);
-            
             container.appendChild(questionArea);
 
-            // --- 判定ボタンを解答の右側に配置 ---
+            // 判定ボタン
             const checkBtnContainer = document.createElement('div');
             checkBtnContainer.className = 'check-btn-container';
             const checkBtn = document.createElement('button');
@@ -825,15 +429,10 @@
             container.appendChild(checkBtnContainer);
             appContainer.appendChild(container);
 
-            // --- 計算機入力用のヒントテキスト ---
             const hintText = document.createElement('div');
             hintText.className = 'hint-text';
             hintText.innerHTML = '枠をタップして、計算機で数字を入力してください';
             appContainer.appendChild(hintText);
-
-            const resultDisplay = document.createElement('div');
-            resultDisplay.className = 'result-display';
-            appContainer.appendChild(resultDisplay);
 
             checkBtn.addEventListener('click', () => {
                 const userCount = parseInt(document.getElementById('ans-count').textContent, 10);
@@ -844,64 +443,44 @@
 
                 const isCorrect1 = (userCount === prob.num);
                 const isCorrect2 = (userNum === prob.num) && (userDen === prob.den);
-
                 const isCorrect = isCorrect1 && isCorrect2;
 
-                const endTime = new Date();
-                const problemType = "水のかさ（分数）";
-                const problemContent = `図：${prob.num}/${prob.den}L`;
-                const userAnswer = `${userCount}こ分, ${userNum}/${userDen}L`;
-                const inputMethod = "計算機入力";
-                const resultStr = isCorrect ? "正解" : "不正解";
-                
-                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
-                
-                if (window.webkit && window.webkit.messageHandlers.appBridge) {
-                    window.webkit.messageHandlers.appBridge.postMessage({
-                        action: "saveCSV",
-                        csvLine: csvLine
-                    });
-                }
+                AppLogger.save({
+                    storageKey: "water_volume_fraction_history",
+                    problemType: "水のかさ（分数）",
+                    problemContent: `図：${prob.num}/${prob.den}L`,
+                    userAnswer: `${userCount}こ分, ${userNum}/${userDen}L`,
+                    startTime: problemStartTime,
+                    endTime: new Date(),
+                    inputMethod: "計算機入力",
+                    isCorrect: isCorrect
+                });
 
-                const overlay = document.getElementById('judge-overlay');
+                const judgeOverlay = document.getElementById('judge-overlay');
 
                 if (isCorrect) {
-                    overlay.textContent = 'せいかい！';
-                    overlay.className = 'judge-overlay show';
-                    
-                    if (soundCheckbox && soundCheckbox.checked) {
-                        okSound.currentTime = 0;
-                        okSound.play();
-                    }
+                    judgeOverlay.textContent = 'せいかい！';
+                    judgeOverlay.className = 'judge-overlay show';
+                    AppAudio.playOk();
                     
                     checkBtn.disabled = true;
                     
-                    setTimeout(() => {
-                        overlay.classList.remove('show');
-                    }, 1200);
-                    
+                    setTimeout(() => { judgeOverlay.classList.remove('show'); }, 1200);
                     setTimeout(() => {
                         currentIndex++;
                         renderProblem();
                     }, 1500);
                 } else {
-                    overlay.textContent = 'おしい！';
-                    overlay.className = 'judge-overlay incorrect show';
+                    judgeOverlay.textContent = 'おしい！';
+                    judgeOverlay.className = 'judge-overlay incorrect show';
                     mistakeCount++;
+                    AppAudio.playNg();
                     
-                    if (soundCheckbox && soundCheckbox.checked) {
-                        ngSound.currentTime = 0;
-                        ngSound.play();
-                    }
-                    
-                    setTimeout(() => {
-                        overlay.classList.remove('show');
-                    }, 1200);
+                    setTimeout(() => { judgeOverlay.classList.remove('show'); }, 1200);
                 }
             });
         }
 
-        // --- スタートボタンのイベントリスナー ---
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';

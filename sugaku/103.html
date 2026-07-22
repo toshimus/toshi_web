@@ -1,422 +1,243 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>分母が同じ分数のたし算</title>
-<style>
-    html, body {
-        height: 100%;
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-    }
-    body {
-        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-        margin: 0;
-        padding: 20px;
-        background-color: #ffffff;
-        color: #333;
-        touch-action: none;
-        box-sizing: border-box;
-        user-select: none;
-        -webkit-user-select: none;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>分母が同じ分数のたし算</title>
     
-    /* スタート画面 */
-    .start-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #f0f8ff;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    }
-    .start-screen h1 {
-        font-size: 3rem;
-        color: #2c3e50;
-        margin-bottom: 40px;
-    }
-    .start-btn {
-        padding: 20px 60px;
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #fff;
-        background-color: #3498db;
-        border: none;
-        border-radius: 15px;
-        cursor: pointer;
-        box-shadow: 0 8px 0 #2980b9;
-        transition: transform 0.1s, box-shadow 0.1s;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .start-btn:active {
-        transform: translateY(8px);
-        box-shadow: none;
-    }
+    <!-- 共通スタイルの読み込み -->
+    <link rel="stylesheet" href="app-common.css">
 
-    .status-bar {
-        font-size: 1.4rem;
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #555;
-    }
-    .question-title {
-        font-size: 1.8rem;
-        font-weight: bold;
-        margin-top: 5px;
-        margin-bottom: 20px;
-    }
+    <!-- 103 固有のスタイル -->
+    <style>
+        .problem-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1050px;
+            margin: 0 auto;
+        }
+        
+        /* 視覚的エリア */
+        .visual-section {
+            background-color: #f9f9f9;
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .fraction-row {
+            display: grid;
+            grid-template-columns: 1fr 120px;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .fraction-row:last-child {
+            margin-bottom: 0;
+        }
+        .operator-row {
+            display: flex;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+        }
 
-    .problem-container {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        max-width: 1050px;
-        margin: 0 auto;
-    }
-    
-    /* 視覚的エリア */
-    .visual-section {
-        background-color: #f9f9f9;
-        padding: 15px 20px;
-        border-radius: 12px;
-        border: 2px solid #ddd;
-        margin-bottom: 20px;
-    }
-    .fraction-row {
-        display: grid;
-        grid-template-columns: 1fr 120px;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 15px;
-        width: 100%;
-    }
-    .fraction-row:last-child {
-        margin-bottom: 0;
-    }
-    .operator-row {
-        display: flex;
-        justify-content: center;
-        font-size: 2rem;
-        font-weight: bold;
-        color: #555;
-        margin-bottom: 15px;
-    }
+        .bar-container {
+            height: 45px;
+        }
+        .bar {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #000;
+            box-sizing: border-box;
+        }
+        .segment {
+            flex: 1;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .f1-color { background-color: #a0c4ff; }
+        .f2-color { background-color: #ffb6b9; }
 
-    .bar-container {
-        height: 45px;
-    }
-    .bar {
-        display: flex;
-        width: 100%;
-        height: 100%;
-        border: 2px solid #000;
-        box-sizing: border-box;
-    }
-    .segment {
-        flex: 1;
-        height: 100%;
-        box-sizing: border-box;
-    }
-    .f1-color { background-color: #a0c4ff; }
-    .f2-color { background-color: #ffb6b9; }
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 2.2rem;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+        .numerator {
+            border-bottom: 3px solid #000;
+            padding: 0 8px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+        }
+        .denominator {
+            padding: 0 8px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+        }
 
-    .fraction {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        font-size: 2.2rem;
-        font-weight: bold;
-        line-height: 1.2;
-    }
-    .numerator {
-        border-bottom: 3px solid #000;
-        padding: 0 8px;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-    }
-    .denominator {
-        padding: 0 8px;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-    }
+        /* 計算式エリア */
+        .equation-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            flex-wrap: wrap; 
+            width: 100%;
+            background-color: #fff;
+            padding: 20px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 2px solid #eee;
+            box-sizing: border-box;
+        }
+        .step-container {
+            display: flex;
+            align-items: center;
+        }
 
-    /* 計算式エリア */
-    .equation-section {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.6rem;
-        font-weight: bold;
-        margin-bottom: 15px;
-        flex-wrap: wrap; 
-        width: 100%;
-        background-color: #fff;
-        padding: 20px 10px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        border: 2px solid #eee;
-        box-sizing: border-box;
-    }
-    .step-container {
-        display: flex;
-        align-items: center;
-    }
+        .operator {
+            margin: 0 10px;
+            color: #555;
+            flex-shrink: 0;
+            font-size: 2.2rem;
+        }
+        .operator-eq {
+            margin: 0 15px; 
+            color: #555;
+            flex-shrink: 0;
+            font-size: 2.2rem;
+        }
+        .eq-btn {
+            margin: 0 15px;
+            color: #fff;
+            background-color: #3498db;
+            border-radius: 8px;
+            padding: 0 20px;
+            height: 45px;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 0 #2980b9;
+            transition: all 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .eq-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        .eq-fraction {
+            font-size: 2.2rem;
+            margin: 0 8px;
+        }
+        
+        .drop-zone {
+            width: 55px;
+            height: 55px;
+            border: 3px dashed #3498db;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: #333;
+            flex-shrink: 0;
+        }
+        .fraction-line {
+            width: 100%;
+            height: 4px;
+            background-color: #000;
+            margin: 6px 0;
+        }
+        
+        .numerator-sum {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 0 5px;
+        }
+        .numerator-sum .drop-zone {
+            width: 50px;
+            height: 50px;
+            font-size: 2rem;
+        }
+        .numerator-sum span {
+            font-size: 1.8rem;
+            margin: 0 5px;
+        }
 
-    .operator {
-        margin: 0 10px;
-        color: #555;
-        flex-shrink: 0;
-        font-size: 2.2rem;
-    }
-    .operator-eq {
-        margin: 0 15px; 
-        color: #555;
-        flex-shrink: 0;
-        font-size: 2.2rem;
-    }
-    .eq-btn {
-        margin: 0 15px;
-        color: #fff;
-        background-color: #3498db;
-        border-radius: 8px;
-        padding: 0 20px;
-        height: 45px;
-        font-size: 2rem;
-        font-weight: bold;
-        cursor: pointer;
-        flex-shrink: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 4px 0 #2980b9;
-        transition: all 0.1s;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .eq-btn:active {
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    .eq-fraction {
-        font-size: 2.2rem;
-        margin: 0 8px;
-    }
-    
-    .drop-zone {
-        width: 55px;
-        height: 55px;
-        border: 3px dashed #3498db;
-        background-color: #f0f8ff;
-        border-radius: 8px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 2.2rem;
-        font-weight: bold;
-        cursor: pointer;
-        color: #333;
-        flex-shrink: 0;
-    }
-    .fraction-line {
-        width: 100%;
-        height: 4px;
-        background-color: #000;
-        margin: 6px 0;
-    }
-    
-    .numerator-sum {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 0 5px;
-    }
-    .numerator-sum .drop-zone {
-        width: 50px;
-        height: 50px;
-        font-size: 2rem;
-    }
-    .numerator-sum span {
-        font-size: 1.8rem;
-        margin: 0 5px;
-    }
-
-    .instruction-red {
-        color: red;
-        font-size: 1.1rem;
-        font-weight: bold;
-        text-align: center;
-    }
-    
-    .check-btn-container {
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        margin-top: 15px;
-    }
-    .check-btn {
-        padding: 0 25px;
-        height: 60px;
-        font-size: 1.4rem;
-        cursor: pointer;
-        border: 2px solid #00bfff;
-        background-color: #00bfff;
-        color: #fff;
-        font-weight: bold;
-        border-radius: 8px;
-        outline: none;
-        box-shadow: 0 4px 0 #0088cc;
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-        flex-shrink: 0;
-    }
-    .check-btn:active {
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    .check-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    
-    .judge-overlay {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.7);
-        opacity: 0;
-        visibility: hidden;
-        background-color: transparent;
-        color: #ff3333;
-        font-size: 7rem;
-        font-weight: bold;
-        padding: 30px 60px;
-        -webkit-text-stroke: 3px #000;
-        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        pointer-events: none;
-        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
-        white-space: nowrap; 
-    }
-    .judge-overlay.show {
-        opacity: 1;
-        visibility: visible;
-        transform: translate(-50%, -50%) scale(1.0);
-    }
-    .judge-overlay.incorrect {
-        color: #3366ff;
-    }
-    
-    .clear-message {
-        text-align: center;
-        margin-top: 20px;
-        padding: 25px;
-        background-color: #f8f9fa;
-        border-radius: 12px;
-        border: 2px solid #a0c4ff;
-    }
-    .clear-message h2 {
-        font-size: 2rem;
-        color: #d9534f;
-        margin-top: 0;
-        margin-bottom: 20px;
-    }
-    .final-result-details {
-        font-size: 1.4rem;
-        color: #333;
-        line-height: 1.8;
-    }
-    .menu-btn, .retry-btn {
-        margin-top: 20px;
-        padding: 12px 30px;
-        font-size: 1.2rem;
-        cursor: pointer;
-        border: none;
-        border-radius: 8px;
-        outline: none;
-        touch-action: manipulation;
-        text-decoration: none;
-        display: inline-block;
-        font-weight: bold;
-    }
-    .retry-btn {
-        background-color: #a0c4ff;
-        color: #fff;
-        margin-right: 15px;
-    }
-    .menu-btn {
-        background-color: #95a5a6;
-        color: #fff;
-    }
-    
-    .top-nav {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    .toggle-group {
-        display: flex;
-        gap: 15px;
-    }
-    .settings-toggle {
-        font-size: 1.1rem;
-        color: #555;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .settings-toggle input {
-        transform: scale(1.3);
-        margin-right: 8px;
-        cursor: pointer;
-    }
-    .back-btn {
-        padding: 8px 15px;
-        background-color: #ecf0f1;
-        border: 1px solid #bdc3c7;
-        border-radius: 5px;
-        text-decoration: none;
-        color: #2c3e50;
-        font-size: 0.9rem;
-        touch-action: manipulation;
-    }
-
-    /* ==========================================
-       計算機パネルとオーバーレイのスタイル追加
-       ========================================== */
-    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
-    .pieces-container:active { cursor: grabbing; }
-    
-    .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
-    .piece:active { transform: translateY(4px); box-shadow: none; }
-    
-    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
-    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
-    
-    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
-</style>
+        .instruction-red {
+            color: red;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .check-btn-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .check-btn {
+            padding: 0 25px;
+            height: 60px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            border: 2px solid #00bfff;
+            background-color: #00bfff;
+            color: #fff;
+            font-weight: bold;
+            border-radius: 8px;
+            outline: none;
+            box-shadow: 0 4px 0 #0088cc;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            flex-shrink: 0;
+        }
+        .check-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        .check-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+    </style>
 </head>
 <body>
 
+    <!-- スタート画面 -->
     <div id="start-screen" class="start-screen">
         <h1>分母が同じ分数のたし算</h1>
         <button id="start-btn" class="start-btn">スタート</button>
         <div style="margin-top: 30px; text-align: center;">
-            <a href="index.html" class="menu-btn" style="background-color: #95a5a6;">メニューへ戻る</a>
+            <a href="index.html" class="menu-btn">メニューへ戻る</a>
         </div>
     </div>
 
+    <!-- メイン画面 -->
     <div id="main-content" style="display: none;">
         <div class="top-nav">
             <div class="toggle-group">
@@ -437,142 +258,50 @@
         
         <div id="app"></div>
         <div id="judge-overlay" class="judge-overlay"></div>
-
-        <div class="overlay" id="overlay"></div>
-        <div class="pieces-container" id="calc-container"></div>
     </div>
 
+    <!-- 共通JavaScriptの読み込み -->
+    <script src="app-common.js"></script>
+    <script src="calc-keyboard.js"></script>
+
+    <!-- 103 固有JavaScript -->
     <script>
-        const okSound = new Audio('ok.mp3');
-        const ngSound = new Audio('ng.mp3');
-        const qSound = new Audio('q.mp3');
-
-        function speak(text) {
-            const speechCheckbox = document.getElementById('speech-checkbox');
-            if (speechCheckbox && !speechCheckbox.checked) return; 
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            window.speechSynthesis.speak(utterance);
-        }
-
-        const numberReadings = [
-            "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
-            "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
-        ];
-
-        /* ==========================================
-           計算機パネルの構築とロジック（初期化）
-           ========================================== */
-        const overlay = document.getElementById('overlay');
-        const calcContainer = document.getElementById('calc-container');
-        let activeInputBox = null;
-        let baseValue = 0; /* +10ボタン用のベース値 */
-
-        const calcKeys = [
-            '7', '8', '9',
-            '4', '5', '6',
-            '1', '2', '3',
-            '0', '削除', '+10'
-        ];
-
-        calcKeys.forEach(key => {
-            const piece = document.createElement('div');
-            piece.className = 'piece';
-            piece.textContent = key;
-            
-            if (key === '削除') {
-                piece.classList.add('delete-btn');
-                piece.addEventListener('click', () => {
-                    if (activeInputBox) {
-                        activeInputBox.textContent = ''; // 内容をクリア
-                        baseValue = 0; // ベース値もリセット
-                    }
-                });
-            } else if (key === '+10') {
-                piece.classList.add('enter-btn');
-                piece.addEventListener('click', () => {
-                    if (activeInputBox) {
-                        baseValue += 10;
-                        activeInputBox.textContent = baseValue; // 一時的に表示
-                        speak("じゅう");
-                    }
-                });
-            } else {
-                // 0〜9の数字ボタン（押した瞬間に確定して閉じる）
-                piece.addEventListener('click', () => {
-                    if (activeInputBox) {
-                        const num = parseInt(key, 10);
-                        const finalValue = baseValue + num;
-                        activeInputBox.textContent = finalValue;
-                        
-                        // 入力された数字を読み上げる
-                        if (finalValue >= 0 && finalValue <= 20) {
-                            speak(numberReadings[finalValue]);
-                        } else {
-                            speak(finalValue.toString());
-                        }
-
-                        // 即決でパネルを閉じる
-                        calcContainer.style.display = 'none';
-                        overlay.style.display = 'none';
-                        activeInputBox = null;
-                    }
-                });
+        /* ガイドメッセージ（トースト表示＋音声通知） */
+        function showGuideMessage(msg, speakMsg) {
+            AppAudio.speak(speakMsg || msg);
+            let guideEl = document.getElementById('guide-toast');
+            if (!guideEl) {
+                guideEl = document.createElement('div');
+                guideEl.id = 'guide-toast';
+                guideEl.style.cssText = `
+                    position: fixed;
+                    bottom: 80px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background-color: rgba(44, 62, 80, 0.95);
+                    color: #fff;
+                    padding: 14px 28px;
+                    border-radius: 30px;
+                    font-size: 1.3rem;
+                    font-weight: bold;
+                    z-index: 9998;
+                    pointer-events: none;
+                    transition: opacity 0.3s ease;
+                    text-align: center;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                    white-space: nowrap;
+                `;
+                document.body.appendChild(guideEl);
             }
-            calcContainer.appendChild(piece);
-        });
-
-        overlay.addEventListener('click', () => {
-            calcContainer.style.display = 'none';
-            overlay.style.display = 'none';
-            activeInputBox = null;
-        });
-
-        /* 計算機パネルのドラッグ移動ロジック */
-        let isDragging = false;
-        let dragStartX, dragStartY, initialLeft, initialTop;
-
-        function startDrag(e) {
-            if (e.target.classList.contains('piece')) return;
-            isDragging = true;
-            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            dragStartX = clientX;
-            dragStartY = clientY;
-            let style = window.getComputedStyle(calcContainer);
-            initialLeft = parseFloat(style.left);
-            initialTop = parseFloat(style.top);
+            guideEl.textContent = msg;
+            guideEl.style.opacity = '1';
+            clearTimeout(guideEl.timer);
+            guideEl.timer = setTimeout(() => {
+                guideEl.style.opacity = '0';
+            }, 2500);
         }
 
-        function doDrag(e) {
-            if (!isDragging) return;
-            e.preventDefault();
-            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            let dx = clientX - dragStartX;
-            let dy = clientY - dragStartY;
-            calcContainer.style.left = (initialLeft + dx) + 'px';
-            calcContainer.style.top = (initialTop + dy) + 'px';
-        }
-
-        function stopDrag() {
-            isDragging = false;
-        }
-
-        calcContainer.addEventListener('mousedown', startDrag);
-        document.addEventListener('mousemove', doDrag, { passive: false });
-        document.addEventListener('mouseup', stopDrag);
-        calcContainer.addEventListener('touchstart', startDrag, { passive: false });
-        document.addEventListener('touchmove', doDrag, { passive: false });
-        document.addEventListener('touchend', stopDrag);
-
-        /* ==========================================
-           問題生成と判定ロジック
-           ========================================== */
-        // 問題の自動生成（分母が同じ分数）
+        /* --- 問題生成と判定ロジック --- */
         const problems = [];
         while (problems.length < 10) {
             const d = Math.floor(Math.random() * 8) + 2; 
@@ -583,15 +312,9 @@
 
         let currentIndex = 0;
         let mistakeCount = 0;
-
-        const appContainer = document.getElementById('app');
         let problemStartTime;
 
-        function formatTime(date) {
-            return date.getHours().toString().padStart(2, '0') + ':' + 
-                   date.getMinutes().toString().padStart(2, '0') + ':' + 
-                   date.getSeconds().toString().padStart(2, '0');
-        }
+        const appContainer = document.getElementById('app');
 
         function renderProblem() {
             appContainer.innerHTML = '';
@@ -618,7 +341,7 @@
                 
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
-                speak("ぜんもんくりあです。おつかれさまでした。");
+                AppAudio.speak("ぜんもんくりあです。おつかれさでした。");
                 return;
             }
 
@@ -626,14 +349,10 @@
             document.getElementById('question-title').style.display = 'block';
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
-            const soundCheckbox = document.getElementById('sound-checkbox');
-            if (soundCheckbox && soundCheckbox.checked) {
-                qSound.currentTime = 0;
-                qSound.play().catch(e => {});
-            }
+            AppAudio.playQ();
 
             const prob = problems[currentIndex];
-            speak(`${prob.d}ぶんの${prob.n1}、たす、${prob.d}ぶんの${prob.n2}、は`);
+            AppAudio.speak(`${prob.d}ぶんの${prob.n1}、たす、${prob.d}ぶんの${prob.n2}、は`);
 
             const container = document.createElement('div');
             container.className = 'problem-container';
@@ -778,7 +497,7 @@
                     opEq1.className = 'operator-eq';
                     step1.style.display = 'flex';
                     opEq2.style.display = 'flex';
-                    speak("イコール");
+                    AppAudio.speak("イコール");
                 }
             });
             opEq2.addEventListener('click', () => {
@@ -792,25 +511,21 @@
                     if (correctFinalN === correctFinalD) {
                         opEq3.style.display = 'flex';
                     }
-                    speak("イコール");
+                    AppAudio.speak("イコール");
                 }
             });
             opEq3.addEventListener('click', () => {
                 if(opEq3.classList.contains('eq-btn')) {
                     opEq3.className = 'operator-eq';
                     step3.style.display = 'flex';
-                    speak("イコール");
+                    AppAudio.speak("イコール");
                 }
             });
 
-            // ドロップゾーンのタップで計算機ポップアップ
+            // ドロップゾーンのタップで共通計算機キーボード呼び出し
             [zoneSumN1, zoneSumN2, zoneSumD, zoneFinalN, zoneFinalD, zoneFinalWhole].forEach(zone => {
                 zone.addEventListener('click', () => { 
-                    zone.textContent = ''; 
-                    baseValue = 0; // ベース値をリセット
-                    activeInputBox = zone;
-                    calcContainer.style.display = 'flex';
-                    overlay.style.display = 'block';
+                    CalcKeyboard.open(zone);
                 });
             });
 
@@ -845,70 +560,92 @@
             checkBtn.addEventListener('click', () => {
                 const overlayJudge = document.getElementById('judge-overlay');
 
-                // 途中式および最終式の入力値の取得
-                const uSumN1 = parseInt(document.getElementById('ans-sum-num-1').textContent, 10);
-                const uSumN2 = parseInt(document.getElementById('ans-sum-num-2').textContent, 10);
-                const uSumD = parseInt(document.getElementById('ans-sum-den').textContent, 10);
-
-                const uFinalN = parseInt(document.getElementById('ans-final-num').textContent, 10);
-                const uFinalD = parseInt(document.getElementById('ans-final-den').textContent, 10);
-
-                if (isNaN(uFinalN) || isNaN(uFinalD) || isNaN(uSumN1) || isNaN(uSumN2) || isNaN(uSumD)) return; 
-
-                // 正解の計算
-                //const correctFinalN = prob.n1 + prob.n2;
-                //const correctFinalD = prob.d;
-                //const needsWhole = (correctFinalN === correctFinalD);
-                
-                //let lastCorrect = (uFinalN === correctFinalN) && (uFinalD === correctFinalD);
-
-
-                // 正解の計算
+                // 正解の計算基準値
                 const correctFinalN = prob.n1 + prob.n2;
                 const correctFinalD = prob.d;
                 const needsWhole = (correctFinalN === correctFinalD);
-                
-                // 約分を考慮し、クロス乗算で値が等しいか判定します
-                let lastCorrect = (uFinalN * correctFinalD === correctFinalN * uFinalD);
 
-
-                let uFinalWhole = null;
-
-                // 1 になる場合の追加判定
-                if (needsWhole) {
-                    const boxFinalWhole = document.getElementById('ans-final-whole');
-                    if (!boxFinalWhole || boxFinalWhole.textContent === "") return;
-                    uFinalWhole = parseInt(boxFinalWhole.textContent, 10);
-                    if (uFinalWhole !== 1) {
-                        lastCorrect = false;
-                    }
+                // --- 未展開・未入力チェック ---
+                if (step1.style.display === 'none') {
+                    showGuideMessage('「＝」ボタンを押して式を進めてね！', 'イコールボタンを おして しきを すすめてね');
+                    return;
                 }
 
-                // CSV連携
-                const endTime = new Date();
-                const problemType = "分母が同じ分数のたし算";
-                const problemContent = `${prob.n1}/${prob.d} + ${prob.n2}/${prob.d}`;
+                const uSumN1Str = document.getElementById('ans-sum-num-1').textContent;
+                const uSumN2Str = document.getElementById('ans-sum-num-2').textContent;
+                const uSumDStr = document.getElementById('ans-sum-den').textContent;
+
+                if (uSumN1Str === '' || uSumN2Str === '' || uSumDStr === '') {
+                    showGuideMessage('途中の式の枠に数字を入れてね！', 'とちゅうの しきの わくに すうじを いれてね');
+                    return;
+                }
+
+                if (step2.style.display === 'none') {
+                    showGuideMessage('次の「＝」ボタンを押してね！', 'つぎの イコールボタンを おしてね');
+                    return;
+                }
+
+                const uFinalNStr = document.getElementById('ans-final-num').textContent;
+                const uFinalDStr = document.getElementById('ans-final-den').textContent;
+
+                if (uFinalNStr === '' || uFinalDStr === '') {
+                    showGuideMessage('答えの分数を入力してね！', 'こたえの ぶんすうの わくに すうじを いれてね');
+                    return;
+                }
+
+                let uFinalWhole = null;
+                if (needsWhole) {
+                    if (step3.style.display === 'none') {
+                        showGuideMessage('最後の「＝」ボタンを押して 1 にしよう！', 'さいごの イコールボタンを おしてね');
+                        return;
+                    }
+                    const boxFinalWhole = document.getElementById('ans-final-whole');
+                    const uFinalWholeStr = boxFinalWhole ? boxFinalWhole.textContent : '';
+                    if (uFinalWholeStr === '') {
+                        showGuideMessage('最後の枠に「1」を入力してね！', 'さいごの わくに すうじを いれてね');
+                        return;
+                    }
+                    uFinalWhole = parseInt(uFinalWholeStr, 10);
+                }
+
+                // 数値変換
+                const uSumN1 = parseInt(uSumN1Str, 10);
+                const uSumN2 = parseInt(uSumN2Str, 10);
+                const uSumD = parseInt(uSumDStr, 10);
+                const uFinalN = parseInt(uFinalNStr, 10);
+                const uFinalD = parseInt(uFinalDStr, 10);
+
+                // 約分を考慮し、クロス乗算で値が等しいか判定
+                let lastCorrect = (uFinalN * correctFinalD === correctFinalN * uFinalD);
+
+                // 1 になる場合の追加判定
+                if (needsWhole && uFinalWhole !== 1) {
+                    lastCorrect = false;
+                }
+
                 let userAnswer = `途中:(${uSumN1}+${uSumN2})/${uSumD}, 最終:${uFinalN}/${uFinalD}`;
                 if (needsWhole && uFinalWhole !== null) {
                     userAnswer += `=${uFinalWhole}`;
                 }
-                const inputMethod = "計算機入力";
-                const resultStr = lastCorrect ? "正解" : "不正解";
-                
-                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
-                
-                if (window.webkit && window.webkit.messageHandlers.appBridge) {
-                    window.webkit.messageHandlers.appBridge.postMessage({
-                        action: "saveCSV",
-                        csvLine: csvLine
-                    });
-                }
+
+                // 共通ログ機能による履歴保存
+                AppLogger.save({
+                    storageKey: "fraction_add_same_den_history",
+                    problemType: "分母が同じ分数のたし算",
+                    problemContent: `${prob.n1}/${prob.d} + ${prob.n2}/${prob.d}`,
+                    userAnswer: userAnswer,
+                    startTime: problemStartTime,
+                    endTime: new Date(),
+                    inputMethod: "計算機入力",
+                    isCorrect: lastCorrect
+                });
 
                 // 判定演出
                 if (!lastCorrect) {
                     overlayJudge.textContent = 'おしい！';
                     overlayJudge.className = 'judge-overlay incorrect show';
-                    if (soundCheckbox && soundCheckbox.checked) { ngSound.currentTime = 0; ngSound.play(); }
+                    AppAudio.speak("おしい！");
+                    AppAudio.playNg();
                     mistakeCount++;
                     setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
                     return;
@@ -925,7 +662,8 @@
                 }
                 
                 overlayJudge.className = 'judge-overlay show';
-                if (soundCheckbox && soundCheckbox.checked) { okSound.currentTime = 0; okSound.play(); }
+                AppAudio.speak("せいかい！");
+                AppAudio.playOk();
 
                 checkBtn.disabled = true;
                 
@@ -943,7 +681,6 @@
             document.getElementById('main-content').style.display = 'block';
             renderProblem();
         });
-
     </script>
 </body>
 </html>

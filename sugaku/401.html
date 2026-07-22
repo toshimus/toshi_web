@@ -7,20 +7,19 @@
 <style>
     html, body {
         height: 100%;
-        overflow: hidden;
-        position: fixed;
         width: 100%;
     }
     body {
         font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         margin: 0;
-        padding: 20px;
+        padding: clamp(10px, 2vw, 20px);
         background-color: #ffffff;
         color: #333;
-        touch-action: none;
+        touch-action: manipulation;
         box-sizing: border-box;
         user-select: none;
         -webkit-user-select: none;
+        overflow-x: hidden;
     }
     
     /* スタート画面のスタイル */
@@ -36,15 +35,18 @@
         justify-content: center;
         align-items: center;
         z-index: 10000;
+        padding: 20px;
+        box-sizing: border-box;
     }
     .start-screen h1 {
-        font-size: 3rem;
+        font-size: clamp(2rem, 6vw, 3rem);
         color: #2c3e50;
         margin-bottom: 40px;
+        text-align: center;
     }
     .start-btn {
-        padding: 20px 60px;
-        font-size: 2.5rem;
+        padding: clamp(12px, 3vh, 20px) clamp(30px, 8vw, 60px);
+        font-size: clamp(1.6rem, 5vw, 2.5rem);
         font-weight: bold;
         color: #fff;
         background-color: #3498db;
@@ -62,13 +64,13 @@
 
     /* 上部ステータスバーと問題文のスタイル */
     .status-bar {
-        font-size: 1.2rem;
+        font-size: clamp(1rem, 2.5vw, 1.2rem);
         font-weight: bold;
         margin-bottom: 10px;
         color: #555;
     }
     .question-title {
-        font-size: 1.6rem;
+        font-size: clamp(1.2rem, 3.5vw, 1.6rem);
         font-weight: normal;
         margin-bottom: 25px;
         margin-top: 0;
@@ -91,7 +93,7 @@
         margin-bottom: 20px;
     }
     
-    /* 数直線のスタイル追加・修正 */
+    /* 数直線のスタイル */
     .number-line-container {
         position: relative;
         width: 100%;
@@ -118,7 +120,7 @@
         position: absolute;
         top: 50%;
         height: 100%;
-        width: 30px; 
+        width: clamp(15px, 3vw, 30px); 
         transform: translate(-50%, -50%);
         cursor: pointer;
     }
@@ -140,11 +142,11 @@
         position: absolute;
         top: calc(50% + 20px);
         left: 50%;
-        width: 28px;
-        height: 28px;
-        line-height: 24px;
+        width: clamp(18px, 3.5vw, 28px);
+        height: clamp(18px, 3.5vw, 28px);
+        line-height: clamp(16px, 3vw, 24px);
         text-align: center;
-        font-size: 1.8rem;
+        font-size: clamp(0.75rem, 2.2vw, 1.6rem);
         color: #333;
         font-weight: bold;
         border-radius: 50%;
@@ -158,12 +160,12 @@
         background-color: #fff0f0;
     }
 
-    /* ドラッグマーカー（青丸）のスタイル修正：内部テキストの中央配置 */
+    /* ドラッグマーカー（青丸）のスタイル */
     .drag-marker {
         position: absolute;
         top: 10px;
-        width: 54px;
-        height: 54px;
+        width: clamp(38px, 8vw, 54px);
+        height: clamp(38px, 8vw, 54px);
         background-color: #3498db;
         border: 3px solid #fff;
         border-radius: 50%;
@@ -172,11 +174,10 @@
         z-index: 10;
         box-shadow: 0 4px 8px rgba(0,0,0,0.4);
         touch-action: none;
-        display: none; /* JSでflexに変更して表示 */
+        display: none;
         
-        /* 内部の距離数値を中央に表示するための設定 */
         color: #ffffff;
-        font-size: 1.6rem;
+        font-size: clamp(1.1rem, 3vw, 1.6rem);
         font-weight: bold;
         align-items: center;
         justify-content: center;
@@ -191,40 +192,40 @@
         align-items: center;
         justify-content: center;
         margin-top: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
     }
     .answer-label {
-        font-size: 1.5rem;
-        margin-right: 20px;
+        font-size: clamp(1.2rem, 3vw, 1.5rem);
     }
     
     .drop-zone {
-        width: 80px;
-        height: 60px;
+        width: clamp(65px, 15vw, 80px);
+        height: clamp(50px, 12vw, 60px);
         border: 2px dashed #3498db;
         background-color: #f0f8ff;
         border-radius: 8px;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 2.2rem;
+        font-size: clamp(1.6rem, 4vw, 2.2rem);
         font-weight: bold;
         cursor: pointer;
         color: #333;
-        margin-right: 20px;
     }
 
     .hint-text {
         text-align: center;
         color: #e74c3c;
-        font-size: 1.1rem;
+        font-size: clamp(0.9rem, 2vw, 1.1rem);
         font-weight: bold;
-        margin-top: 10px;
+        margin-top: 15px;
     }
     
     .check-btn {
-        padding: 0 30px;
-        height: 60px;
-        font-size: 1.6rem;
+        padding: 0 clamp(20px, 4vw, 30px);
+        height: clamp(50px, 12vw, 60px);
+        font-size: clamp(1.2rem, 3vw, 1.6rem);
         font-weight: bold;
         cursor: pointer;
         border: none;
@@ -260,9 +261,9 @@
         visibility: hidden;
         background-color: transparent;
         color: #ff3333;
-        font-size: 6rem;
+        font-size: clamp(3.5rem, 10vw, 6rem);
         font-weight: bold;
-        padding: 30px 60px;
+        padding: 20px 40px;
         -webkit-text-stroke: 3px #000;
         text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
         z-index: 9999;
@@ -288,20 +289,20 @@
         border: 2px solid #a0c4ff;
     }
     .clear-message h2 {
-        font-size: 1.8rem;
+        font-size: clamp(1.4rem, 4vw, 1.8rem);
         color: #d9534f;
         margin-top: 0;
         margin-bottom: 20px;
     }
     .final-result-details {
-        font-size: 1.3rem;
+        font-size: clamp(1.1rem, 3vw, 1.3rem);
         color: #333;
         line-height: 1.8;
     }
     .menu-btn, .retry-btn {
         margin-top: 20px;
         padding: 12px 30px;
-        font-size: 1.1rem;
+        font-size: clamp(1rem, 2.5vw, 1.1rem);
         cursor: pointer;
         border: none;
         border-radius: 8px;
@@ -309,6 +310,7 @@
         touch-action: manipulation;
         text-decoration: none;
         display: inline-block;
+        font-weight: bold;
     }
     .retry-btn {
         background-color: #a0c4ff;
@@ -331,7 +333,7 @@
         gap: 15px;
     }
     .settings-toggle {
-        font-size: 1.1rem;
+        font-size: clamp(0.9rem, 2vw, 1.1rem);
         color: #555;
         cursor: pointer;
         display: flex;
@@ -339,32 +341,84 @@
         -webkit-tap-highlight-color: transparent;
     }
     .settings-toggle input {
-        transform: scale(1.3);
-        margin-right: 8px;
+        transform: scale(1.2);
+        margin-right: 6px;
         cursor: pointer;
     }
     .back-btn {
-        padding: 8px 15px;
+        padding: 6px 12px;
         background-color: #ecf0f1;
         border: 1px solid #bdc3c7;
         border-radius: 5px;
         text-decoration: none;
         color: #2c3e50;
-        font-size: 0.9rem;
+        font-size: clamp(0.8rem, 1.8vw, 0.9rem);
         touch-action: manipulation;
     }
 
-    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
+    .pieces-container { 
+        display: none; 
+        justify-content: center; 
+        align-items: center; 
+        flex-wrap: wrap; 
+        gap: 8px; 
+        padding: 15px; 
+        background-color: #ecf0f1; 
+        border-radius: 12px; 
+        width: 90vw; 
+        max-width: 300px; 
+        margin: 0 auto; 
+        box-sizing: border-box; 
+        position: fixed; 
+        top: 50%; 
+        left: 50%; 
+        transform: translate(-50%, -50%); 
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+        z-index: 1000; 
+        cursor: grab; 
+    }
     .pieces-container:active { cursor: grabbing; }
     
-    .calc-display { flex: 1 1 100%; height: 50px; background-color: #fff; border: 2px inset #bdc3c7; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: flex-end; align-items: center; padding: 0 15px; font-size: 2.2rem; font-weight: bold; box-sizing: border-box; color: #2c3e50; pointer-events: none; }
+    .calc-display { 
+        flex: 1 1 100%; 
+        height: 45px; 
+        background-color: #fff; 
+        border: 2px inset #bdc3c7; 
+        border-radius: 8px; 
+        margin-bottom: 5px; 
+        display: flex; 
+        justify-content: flex-end; 
+        align-items: center; 
+        padding: 0 15px; 
+        font-size: clamp(1.6rem, 4vw, 2.2rem); 
+        font-weight: bold; 
+        box-sizing: border-box; 
+        color: #2c3e50; 
+        pointer-events: none; 
+    }
     
-    .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
+    .piece { 
+        flex: 1 1 28%; 
+        height: clamp(45px, 8vh, 55px); 
+        border: 2px solid #2c3e50; 
+        background-color: #f1c40f; 
+        border-radius: 10px; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        font-size: clamp(1.4rem, 3.5vw, 1.8rem); 
+        font-weight: bold; 
+        cursor: pointer; 
+        color: #2c3e50; 
+        box-shadow: 0 4px 0 #d4ac0d; 
+        touch-action: manipulation; 
+        box-sizing: border-box; 
+    }
     .piece:active { transform: translateY(4px); box-shadow: none; }
     
-    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
-    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
-    .piece.confirm-btn { background-color: #3498db; color: white; border-color: #2980b9; box-shadow: 0 4px 0 #2980b9; flex: 1 1 100%; font-size: 1.5rem; }
+    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: clamp(1rem, 2.5vw, 1.2rem); }
+    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: clamp(1rem, 2.5vw, 1.2rem); }
+    .piece.confirm-btn { background-color: #3498db; color: white; border-color: #2980b9; box-shadow: 0 4px 0 #2980b9; flex: 1 1 100%; font-size: clamp(1.2rem, 3vw, 1.5rem); }
     
     .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
 </style>
@@ -405,25 +459,11 @@
         <div class="pieces-container" id="calc-container"></div>
     </div>
 
-    <script>
-        const okSound = new Audio('ok.mp3');
-        const ngSound = new Audio('ng.mp3');
-        const qSound = new Audio('q.mp3');
-        const komaSound = new Audio('koma.m4a');
+    <!-- 共通モジュールの読み込み -->
+    <script src="app-common.js"></script>
 
-        function speak(text) {
-            const speechCheckbox = document.getElementById('speech-checkbox');
-            if (speechCheckbox && !speechCheckbox.checked) {
-                return; 
-            }
-            
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            window.speechSynthesis.speak(utterance);
-        }
+    <script>
+        const komaSound = new Audio('koma.m4a');
 
         const overlay = document.getElementById('overlay');
         const calcContainer = document.getElementById('calc-container');
@@ -471,7 +511,7 @@
                         let valText = activeInputBox.textContent;
                         if (valText !== "" && valText !== "-") {
                             let readText = valText.replace('-', 'マイナス');
-                            speak(readText);
+                            AppAudio.speak(readText);
                         }
                         
                         calcContainer.style.display = 'none';
@@ -561,12 +601,6 @@
         
         let problemStartTime = new Date();
 
-        function formatTime(date) {
-            return date.getHours().toString().padStart(2, '0') + ':' + 
-                   date.getMinutes().toString().padStart(2, '0') + ':' + 
-                   date.getSeconds().toString().padStart(2, '0');
-        }
-
         function renderProblem() {
             appContainer.innerHTML = '';
             problemStartTime = new Date();
@@ -594,15 +628,11 @@
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
                 
-                speak("ぜんもんくりあです。おつかれさまでした。");
+                AppAudio.speak("ぜんもんくりあです。おつかれさまでした。");
                 return;
             }
 
-            const soundCheckbox = document.getElementById('sound-checkbox');
-            if (soundCheckbox && soundCheckbox.checked) {
-                qSound.currentTime = 0;
-                qSound.play().catch(e => console.log("ブラウザの自動再生制限により保留されました:", e));
-            }
+            AppAudio.playQ();
 
             const prob = problems[currentIndex];
 
@@ -634,7 +664,6 @@
             const maxScale = 10;
             const totalTicks = maxScale - minScale;
 
-            // 基準となる数値を保持する変数
             let selectedBaseValue = null;
             
             for (let i = minScale; i <= maxScale; i++) {
@@ -652,7 +681,6 @@
                 tickLabel.className = 'tick-label';
                 tickLabel.textContent = i;
                 
-                // 目盛りクリック時の処理
                 tickWrapper.addEventListener('click', (e) => {
                     e.stopPropagation();
 
@@ -661,12 +689,11 @@
                     
                     tickLabel.classList.add('circled');
                     
-                    // クリックした座標を基準値として記憶
                     selectedBaseValue = i;
                     
                     dragMarker.style.left = positionPct + '%';
-                    dragMarker.style.display = 'flex'; // textを中央配置するためにflexを使用
-                    dragMarker.textContent = '0'; // 初期位置は差分0
+                    dragMarker.style.display = 'flex';
+                    dragMarker.textContent = '0';
                 });
                 
                 tickWrapper.appendChild(tickMark);
@@ -675,8 +702,6 @@
             }
             
             tickContainer.appendChild(dragMarker);
-            
-            // 注: 誤操作防止のため、数直線背景クリックによる移動イベントは削除しました。
             
             numberLineContainer.appendChild(tickContainer);
             mainArea.appendChild(numberLineContainer);
@@ -706,13 +731,13 @@
                 let index = Math.round(x / step);
                 
                 if (index !== lastIndex) {
+                    const soundCheckbox = document.getElementById('sound-checkbox');
                     if (soundCheckbox && soundCheckbox.checked) {
                         komaSound.currentTime = 0;
                         komaSound.play().catch(err => {});
                     }
                     lastIndex = index;
 
-                    // ドラッグ中の青丸の数値（距離）を計算して表示
                     if (selectedBaseValue !== null) {
                         let currentVal = minScale + index;
                         let diff = currentVal - selectedBaseValue;
@@ -778,22 +803,18 @@
                 if (isNaN(userAns)) return;
 
                 const isCorrect = (userAns === prob.answer);
-                
-                const endTime = new Date();
-                const problemType = "正負の数の計算";
-                const problemContent = prob.text;
-                const userAnswer = userAns.toString();
-                const inputMethod = "計算機入力";
-                const resultStr = isCorrect ? "正解" : "不正解";
-                
-                const csvLine = `"${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
-                
-                if (window.webkit && window.webkit.messageHandlers.appBridge) {
-                    window.webkit.messageHandlers.appBridge.postMessage({
-                        action: "saveCSV",
-                        csvLine: csvLine
-                    });
-                }
+
+                // --- 共通モジュール(AppLogger)による履歴保存 ---
+                AppLogger.save({
+                    storageKey: "signed_numbers_history",
+                    problemType: "正負の数の計算",
+                    problemContent: prob.text,
+                    userAnswer: userAns.toString(),
+                    startTime: problemStartTime,
+                    endTime: new Date(),
+                    inputMethod: "計算機入力",
+                    isCorrect: isCorrect
+                });
 
                 const judgeOverlay = document.getElementById('judge-overlay');
 
@@ -801,10 +822,7 @@
                     judgeOverlay.textContent = 'せいかい！';
                     judgeOverlay.className = 'judge-overlay show';
                     
-                    if (soundCheckbox && soundCheckbox.checked) {
-                        okSound.currentTime = 0;
-                        okSound.play();
-                    }
+                    AppAudio.playOk();
                     
                     checkBtn.disabled = true;
                     
@@ -821,10 +839,7 @@
                     judgeOverlay.className = 'judge-overlay incorrect show';
                     mistakeCount++;
                     
-                    if (soundCheckbox && soundCheckbox.checked) {
-                        ngSound.currentTime = 0;
-                        ngSound.play();
-                    }
+                    AppAudio.playNg();
                     
                     setTimeout(() => {
                         judgeOverlay.classList.remove('show');

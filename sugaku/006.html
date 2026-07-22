@@ -1,331 +1,213 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>分母と分子</title>
-<style>
-    html, body {
-        height: 100%;
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-    }
-    body {
-        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-        margin: 0;
-        padding: 20px;
-        background-color: #ffffff;
-        color: #333;
-        touch-action: none;
-        box-sizing: border-box;
-        user-select: none;
-        -webkit-user-select: none;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>分母と分子</title>
+    
+    <!-- 共通スタイルの読み込み -->
+    <link rel="stylesheet" href="app-common.css">
 
-    /* ==========================================
-       スタート画面のスタイル
-       ========================================== */
-    .start-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #f0f8ff;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    }
-    .start-screen h1 {
-        font-size: 3rem;
-        color: #2c3e50;
-        margin-bottom: 40px;
-    }
-    .start-btn {
-        padding: 20px 60px;
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #fff;
-        background-color: #3498db;
-        border: none;
-        border-radius: 15px;
-        cursor: pointer;
-        box-shadow: 0 8px 0 #2980b9;
-        transition: transform 0.1s, box-shadow 0.1s;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .start-btn:active {
-        transform: translateY(8px);
-        box-shadow: none;
-    }
-    
-    .status-bar {
-        font-size: 1.4rem;
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #555;
-    }
-    .question-title {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-top: 5px;
-        margin-bottom: 20px;
-    }
+    <!-- 分母と分子 固有のスタイル -->
+    <style>
+        .problem-container {
+            display: flex;
+            flex-direction: row;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 700px;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+            margin-left: auto;
+            margin-right: auto;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .fraction-display {
+            display: flex;
+            align-items: center;
+        }
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 4.5rem;
+            line-height: 1.1;
+            font-weight: bold;
+        }
+        .numerator {
+            border-bottom: 4px solid #000;
+            padding: 0 20px;
+        }
+        .denominator {
+            padding: 0 20px;
+        }
+        
+        .answer-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+        }
+        .answer-label {
+            font-size: 1.8rem;
+            font-weight: bold;
+            width: 90px;
+            text-align: right;
+            margin-right: 15px;
+        }
+        
+        /* ドロップゾーン（□の枠） */
+        .drop-zone {
+            width: 70px;
+            height: 70px;
+            border: 3px dashed #3498db;
+            background-color: #f0f8ff;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: #333;
+        }
 
-    .problem-container {
-        display: flex;
-        flex-direction: row;
-        margin-bottom: 10px;
-        width: 100%;
-        max-width: 800px;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 0;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    
-    .fraction-display {
-        display: flex;
-        align-items: center;
-        margin-right: 60px;
-    }
-    .fraction {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        font-size: 4rem;
-        line-height: 1.2;
-    }
-    .numerator {
-        border-bottom: 3px solid #000;
-        padding: 0 15px;
-    }
-    .denominator {
-        padding: 0 15px;
-    }
-    
-    .answer-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-    .input-row {
-        display: flex;
-        align-items: center;
-    }
-    .answer-label {
-        font-size: 1.5rem;
-        width: 80px;
-        text-align: right;
-        margin-right: 20px;
-    }
-    
-    /* ドロップゾーン（□の枠） */
-    .drop-zone {
-        width: 65px;
-        height: 65px;
-        border: 2px dashed #3498db;
-        background-color: #f0f8ff;
-        border-radius: 8px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 2.2rem;
-        font-weight: bold;
-        cursor: pointer;
-        color: #333;
-    }
+        .hint-text {
+            text-align: center;
+            color: #e74c3c;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .check-btn-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 700px;
+            margin-top: 20px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .check-btn {
+            padding: 0 40px;
+            height: 60px;
+            font-size: 1.6rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            background-color: #00bfff;
+            color: #ffffff;
+            border-radius: 10px;
+            font-family: inherit;
+            outline: none;
+            box-shadow: 0 4px 0 #0088cc;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .check-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        .check-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translateY(4px);
+            box-shadow: none;
+        }
 
-    .hint-text {
-        text-align: center;
-        color: #e74c3c;
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin-top: 10px;
-    }
-    
-    .check-btn-container {
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        max-width: 800px;
-        margin-top: 15px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    /* 判定ボタンを青色の立体パターンに変更 */
-    .check-btn {
-        padding: 0 30px;
-        height: 60px;
-        font-size: 1.6rem;
-        font-weight: bold;
-        cursor: pointer;
-        border: none;
-        background-color: #00bfff;
-        color: #ffffff;
-        border-radius: 10px;
-        font-family: inherit;
-        outline: none;
-        box-shadow: 0 4px 0 #0088cc;
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .check-btn:active {
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    .check-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: translateY(4px);
-        box-shadow: none;
-    }
-    
-    .judge-overlay {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.7);
-        opacity: 0;
-        visibility: hidden;
-        background-color: transparent;
-        color: #ff3333;
-        font-size: 6rem;
-        font-weight: bold;
-        padding: 30px 60px;
-        -webkit-text-stroke: 3px #000;
-        text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        pointer-events: none;
-        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
-        white-space: nowrap;
-    }
-    .judge-overlay.show {
-        opacity: 1;
-        visibility: visible;
-        transform: translate(-50%, -50%) scale(1.0);
-    }
-    .judge-overlay.incorrect {
-        color: #3366ff;
-    }
-    
-    .clear-message {
-        text-align: center;
-        margin-top: 20px;
-        padding: 25px;
-        background-color: #f8f9fa;
-        border-radius: 12px;
-        border: 2px solid #a0c4ff;
-    }
-    .clear-message h2 {
-        font-size: 1.8rem;
-        color: #d9534f;
-        margin-top: 0;
-        margin-bottom: 20px;
-    }
-    .final-result-details {
-        font-size: 1.3rem;
-        color: #333;
-        line-height: 1.8;
-    }
-    .menu-btn, .retry-btn {
-        margin-top: 20px;
-        padding: 12px 30px;
-        font-size: 1.1rem;
-        cursor: pointer;
-        border: none;
-        border-radius: 8px;
-        outline: none;
-        touch-action: manipulation;
-        text-decoration: none;
-        display: inline-block;
-    }
-    .retry-btn {
-        background-color: #a0c4ff;
-        color: #fff;
-        margin-right: 15px;
-    }
-    .menu-btn {
-        background-color: #95a5a6;
-        color: #fff;
-    }
-    
-    .top-nav {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    .toggle-group {
-        display: flex;
-        gap: 15px;
-    }
-    .settings-toggle {
-        font-size: 1.1rem;
-        color: #555;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .settings-toggle input {
-        transform: scale(1.3);
-        margin-right: 8px;
-        cursor: pointer;
-    }
-    .back-btn {
-        padding: 8px 15px;
-        background-color: #ecf0f1;
-        border: 1px solid #bdc3c7;
-        border-radius: 5px;
-        text-decoration: none;
-        color: #2c3e50;
-        font-size: 0.9rem;
-        touch-action: manipulation;
-    }
-
-    /* ==========================================
-       計算機パネルとオーバーレイのスタイル
-       ========================================== */
-    .pieces-container { display: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background-color: #ecf0f1; border-radius: 12px; width: 280px; margin: 0 auto; box-sizing: border-box; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; cursor: grab; }
-    .pieces-container:active { cursor: grabbing; }
-    
-    .piece { flex: 1 1 25%; height: 60px; border: 2px solid #2c3e50; background-color: #f1c40f; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; touch-action: manipulation; box-sizing: border-box; }
-    .piece:active { transform: translateY(4px); box-shadow: none; }
-    
-    .piece.delete-btn { background-color: #e74c3c; color: white; border-color: #c0392b; box-shadow: 0 4px 0 #c0392b; font-size: 1.2rem; }
-    .piece.enter-btn { background-color: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 4px 0 #27ae60; font-size: 1.2rem; }
-    
-    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
-</style>
+        /* 計算機パネルとオーバーレイのスタイル */
+        .pieces-container {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 15px;
+            background-color: #2c3e50;
+            border-radius: 15px;
+            width: 280px;
+            box-sizing: border-box;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .piece {
+            height: 55px;
+            border: none;
+            background-color: #f1c40f;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: #2c3e50;
+            box-shadow: 0 4px 0 #d4ac0d;
+            touch-action: manipulation;
+        }
+        .piece:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        
+        .piece.delete-btn {
+            background-color: #e74c3c;
+            color: white;
+            box-shadow: 0 4px 0 #c0392b;
+            font-size: 1.2rem;
+        }
+        .piece.ten-btn {
+            background-color: #3498db;
+            color: white;
+            box-shadow: 0 4px 0 #2980b9;
+            font-size: 1.5rem;
+        }
+        
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 999;
+        }
+    </style>
 </head>
 <body>
 
+    <!-- スタート画面 -->
     <div id="start-screen" class="start-screen">
         <h1>分母と分子</h1>
         <button id="start-btn" class="start-btn">スタート</button>
         <div style="margin-top: 30px; text-align: center;">
-            <a href="index.html" class="menu-btn" style="background-color: #95a5a6;">メニューへ戻る</a>
+            <a href="index.html" class="menu-btn">メニューへ戻る</a>
         </div>
     </div>
 
-    <div id="main-content" style="display: none;">
+    <!-- メイン画面 -->
+    <div id="main-content" style="display: none; height: 100%; width: 100%;">
         <div class="top-nav">
             <div class="toggle-group">
                 <label class="settings-toggle">
-                    <input type="checkbox" id="speech-checkbox" checked>
-                    スピーチON
+                    <input type="checkbox" id="speech-checkbox" checked> スピーチON
                 </label>
                 <label class="settings-toggle">
-                    <input type="checkbox" id="sound-checkbox" checked>
-                    効果音ON
+                    <input type="checkbox" id="sound-checkbox" checked> 効果音ON
                 </label>
             </div>
             <a href="index.html" class="back-btn">メニューへ戻る</a>
@@ -341,40 +223,28 @@
         <div class="pieces-container" id="calc-container"></div>
     </div>
 
+    <!-- 共通JavaScriptの読み込み -->
+    <script src="app-common.js"></script>
+
+    <!-- 分母と分子 固有JavaScript -->
     <script>
-        const okSound = new Audio('ok.mp3');
-        const ngSound = new Audio('ng.mp3');
-        const qSound = new Audio('q.mp3');
-
-        function speak(text) {
-            const speechCheckbox = document.getElementById('speech-checkbox');
-            if (speechCheckbox && !speechCheckbox.checked) return; 
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            window.speechSynthesis.speak(utterance);
-        }
-
         const numberReadings = [
             "ぜろ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう", "じゅう",
             "じゅういち", "じゅうに", "じゅうさん", "じゅうよん", "じゅうご", "じゅうろく", "じゅうなな", "じゅうはち", "じゅうきゅう", "にじゅう"
         ];
 
         /* ==========================================
-           計算機パネルの構築とロジック（初期化）
+           計算機パネルの構築とロジック
            ========================================== */
         const overlay = document.getElementById('overlay');
         const calcContainer = document.getElementById('calc-container');
-        let activeInputBox = null; /* タップされた入力枠を記録する変数 */
-        let baseValue = 0; /* +10ボタン用のベース値 */
+        let activeInputBox = null;
 
         const calcKeys = [
-            '7', '8', '9',
-            '4', '5', '6',
             '1', '2', '3',
-            '0', '削除', '+10'
+            '4', '5', '6',
+            '7', '8', '9',
+            '0', '10', 'けす'
         ];
 
         calcKeys.forEach(key => {
@@ -382,39 +252,26 @@
             piece.className = 'piece';
             piece.textContent = key;
             
-            if (key === '削除') {
+            if (key === 'けす') {
                 piece.classList.add('delete-btn');
                 piece.addEventListener('click', () => {
                     if (activeInputBox) {
-                        activeInputBox.textContent = ''; // 内容をクリア
-                        baseValue = 0; // ベース値もリセット
-                    }
-                });
-            } else if (key === '+10') {
-                piece.classList.add('enter-btn');
-                piece.addEventListener('click', () => {
-                    if (activeInputBox) {
-                        baseValue += 10;
-                        activeInputBox.textContent = baseValue; // 一時的に表示
-                        speak("じゅう");
+                        activeInputBox.textContent = '';
                     }
                 });
             } else {
-                // 0〜9の数字ボタン（押した瞬間に確定して閉じる）
+                if (key === '10') {
+                    piece.classList.add('ten-btn');
+                }
                 piece.addEventListener('click', () => {
                     if (activeInputBox) {
                         const num = parseInt(key, 10);
-                        const finalValue = baseValue + num;
-                        activeInputBox.textContent = finalValue;
+                        activeInputBox.textContent = num;
                         
-                        // 入力された数字を読み上げる
-                        if (finalValue >= 0 && finalValue <= 20) {
-                            speak(numberReadings[finalValue]);
-                        } else {
-                            speak(finalValue.toString());
+                        if (num >= 0 && num <= 20) {
+                            AppAudio.speak(numberReadings[num]);
                         }
 
-                        // 即決でパネルを閉じる
                         calcContainer.style.display = 'none';
                         overlay.style.display = 'none';
                         activeInputBox = null;
@@ -430,50 +287,9 @@
             activeInputBox = null;
         });
 
-        /* 計算機パネルのドラッグ移動ロジック */
-        let isDragging = false;
-        let dragStartX, dragStartY, initialLeft, initialTop;
-
-        function startDrag(e) {
-            if (e.target.classList.contains('piece')) return;
-            isDragging = true;
-            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            dragStartX = clientX;
-            dragStartY = clientY;
-            let style = window.getComputedStyle(calcContainer);
-            initialLeft = parseFloat(style.left);
-            initialTop = parseFloat(style.top);
-        }
-
-        function doDrag(e) {
-            if (!isDragging) return;
-            e.preventDefault();
-            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            let dx = clientX - dragStartX;
-            let dy = clientY - dragStartY;
-            calcContainer.style.left = (initialLeft + dx) + 'px';
-            calcContainer.style.top = (initialTop + dy) + 'px';
-        }
-
-        function stopDrag() {
-            isDragging = false;
-        }
-
-        calcContainer.addEventListener('mousedown', startDrag);
-        document.addEventListener('mousemove', doDrag, { passive: false });
-        document.addEventListener('mouseup', stopDrag);
-        calcContainer.addEventListener('touchstart', startDrag, { passive: false });
-        document.addEventListener('touchmove', doDrag, { passive: false });
-        document.addEventListener('touchend', stopDrag);
-
-
         /* ==========================================
            問題生成と判定ロジック
            ========================================== */
-        
-        // 配列をシャッフルする関数
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -488,35 +304,20 @@
         const problems = [];
         const seen = new Set();
         while (problems.length < 10) {
-            const den = Math.floor(Math.random() * 9) + 2; 
-            const num = Math.floor(Math.random() * (den - 1)) + 1;
+            const den = Math.floor(Math.random() * 9) + 2; // 2〜10
+            const num = Math.floor(Math.random() * (den - 1)) + 1; // 1〜(den-1)
             const fracKeyBase = `${num}/${den}`;
             if (!seen.has(fracKeyBase)) {
                 seen.add(fracKeyBase);
-                // ターゲットを順番に割り当てる
                 problems.push({ num: num, den: den, target: targets[problems.length] });
             }
         }
-        // 問題の順番自体もシャッフルする
         shuffleArray(problems);
 
         let currentIndex = 0;
         let mistakeCount = 0;
         const appContainer = document.getElementById('app');
-        
-        let problemStartTime = new Date();
-
-        function formatDate(date) {
-            return date.getFullYear() + '/' + 
-                   (date.getMonth() + 1).toString().padStart(2, '0') + '/' + 
-                   date.getDate().toString().padStart(2, '0');
-        }
-
-        function formatTime(date) {
-            return date.getHours().toString().padStart(2, '0') + ':' + 
-                   date.getMinutes().toString().padStart(2, '0') + ':' + 
-                   date.getSeconds().toString().padStart(2, '0');
-        }
+        let problemStartTime;
 
         function renderProblem() {
             appContainer.innerHTML = '';
@@ -543,7 +344,7 @@
                 
                 clearMsg.innerHTML = htmlContent;
                 appContainer.appendChild(clearMsg);
-                speak("ぜんもんくりあです。おつかれさまでした。");
+                AppAudio.speak("ぜんもんくりあです。おつかれさまでした。");
                 return;
             }
 
@@ -556,12 +357,8 @@
             document.getElementById('question-title').textContent = `・ 次の分数の${isDenTarget ? '分母' : '分子'}はいくつでしょう。`;
             document.getElementById('status-bar').textContent = `第 ${currentIndex + 1} 問 / 全 ${problems.length} 問`;
 
-            const soundCheckbox = document.getElementById('sound-checkbox');
-            if (soundCheckbox && soundCheckbox.checked) {
-                qSound.currentTime = 0;
-                qSound.play().catch(e => console.log("Auto-play blocked:", e));
-            }
-            speak(`${prob.den}ぶんの${prob.num}の、${isDenTarget ? 'ぶんぼ' : 'ぶんし'}は、いくつでしょう。`);
+            AppAudio.playQ();
+            AppAudio.speak(`${prob.den}ぶんの${prob.num}の、${isDenTarget ? 'ぶんぼ' : 'ぶんし'}は、いくつでしょう。`);
 
             const container = document.createElement('div');
             container.className = 'problem-container';
@@ -589,7 +386,6 @@
             answerPanel.className = 'answer-panel';
 
             if (isDenTarget) {
-                // 分母が問題のとき（分子の行は作らない）
                 const denRow = document.createElement('div');
                 denRow.className = 'input-row';
                 const denLabel = document.createElement('div');
@@ -599,18 +395,14 @@
                 denZone.className = 'drop-zone';
                 denZone.id = 'ans-den';
                 denZone.addEventListener('click', () => { 
-                    denZone.textContent = ''; 
-                    //speak("くりあ");
-                    baseValue = 0; // ベース値をリセット
                     activeInputBox = denZone;
-                    calcContainer.style.display = 'flex';
+                    calcContainer.style.display = 'grid';
                     overlay.style.display = 'block';
                 });
                 denRow.appendChild(denLabel);
                 denRow.appendChild(denZone);
                 answerPanel.appendChild(denRow);
             } else {
-                // 分子が問題のとき（分母の行は作らない）
                 const numRow = document.createElement('div');
                 numRow.className = 'input-row';
                 const numLabel = document.createElement('div');
@@ -620,11 +412,8 @@
                 numZone.className = 'drop-zone';
                 numZone.id = 'ans-num';
                 numZone.addEventListener('click', () => { 
-                    numZone.textContent = ''; 
-                    //speak("くりあ");
-                    baseValue = 0; // ベース値をリセット
                     activeInputBox = numZone;
-                    calcContainer.style.display = 'flex';
+                    calcContainer.style.display = 'grid';
                     overlay.style.display = 'block';
                 });
                 numRow.appendChild(numLabel);
@@ -638,7 +427,7 @@
             // --- 計算機入力用のヒントテキスト ---
             const hintText = document.createElement('div');
             hintText.className = 'hint-text';
-            hintText.innerHTML = '枠をタップして、計算機で数字を入力してください';
+            hintText.innerHTML = '※ 枠をタップして数字を入力してください';
             appContainer.appendChild(hintText);
 
             // 判定ボタン
@@ -656,49 +445,51 @@
                 let userDen = "";
                 let userNum = "";
 
+                const overlayJudge = document.getElementById('judge-overlay');
+
                 if (isDenTarget) {
                     const ansDenEl = document.getElementById('ans-den');
-                    if (!ansDenEl.textContent) return;
+                    if (!ansDenEl.textContent.trim()) {
+                        overlayJudge.textContent = 'すうじを にゅうりょく してね';
+                        overlayJudge.className = 'judge-overlay incorrect show';
+                        AppAudio.speak("すうじを にゅうりょく してね");
+                        setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                        return;
+                    }
                     userDen = parseInt(ansDenEl.textContent, 10);
                     isCorrect = (userDen === prob.den);
                     userAnswer = `分母入力:${userDen}`;
                 } else {
                     const ansNumEl = document.getElementById('ans-num');
-                    if (!ansNumEl.textContent) return;
+                    if (!ansNumEl.textContent.trim()) {
+                        overlayJudge.textContent = 'すうじを にゅうりょく してね';
+                        overlayJudge.className = 'judge-overlay incorrect show';
+                        AppAudio.speak("すうじを にゅうりょく してね");
+                        setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
+                        return;
+                    }
                     userNum = parseInt(ansNumEl.textContent, 10);
                     isCorrect = (userNum === prob.num);
                     userAnswer = `分子入力:${userNum}`;
                 }
                 
-                const endTime = new Date();
-                const dateStr = formatDate(problemStartTime);
-                const problemType = `分母と分子（${isDenTarget ? '分母クイズ' : '分子クイズ'}）`;
-                const problemContent = `${prob.num}/${prob.den}`;
-                const inputMethod = "計算機入力";
-                const resultStr = isCorrect ? "正解" : "不正解";
-                
-                const csvLine = `"${dateStr}","${problemType}","${problemContent}","${userAnswer}",${formatTime(problemStartTime)},${formatTime(endTime)},${inputMethod},${resultStr}\n`;
-                
-                let currentHistory = localStorage.getItem('calc_app_history') || '';
-                currentHistory += csvLine;
-                localStorage.setItem('calc_app_history', currentHistory);
-
-                if (window.webkit && window.webkit.messageHandlers.appBridge) {
-                    window.webkit.messageHandlers.appBridge.postMessage({
-                        action: "saveCSV",
-                        csvLine: csvLine
-                    });
-                }
-
-                const overlayJudge = document.getElementById('judge-overlay');
+                // 共通モジュール（AppLogger）による履歴保存
+                AppLogger.save({
+                    storageKey: "denominator_numerator_history",
+                    problemType: `分母と分子（${isDenTarget ? '分母クイズ' : '分子クイズ'}）`,
+                    problemContent: `${prob.num}/${prob.den}`,
+                    userAnswer: userAnswer,
+                    startTime: problemStartTime,
+                    endTime: new Date(),
+                    inputMethod: "計算機入力",
+                    isCorrect: isCorrect
+                });
 
                 if (isCorrect) {
                     overlayJudge.textContent = 'せいかい！';
                     overlayJudge.className = 'judge-overlay show';
-                    if (soundCheckbox && soundCheckbox.checked) {
-                        okSound.currentTime = 0;
-                        okSound.play();
-                    }
+                    AppAudio.speak("せいかい！");
+                    AppAudio.playOk();
                     checkBtn.disabled = true;
                     
                     setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
@@ -706,11 +497,10 @@
                 } else {
                     overlayJudge.textContent = 'おしい！';
                     overlayJudge.className = 'judge-overlay incorrect show';
+                    AppAudio.speak("おしい！");
                     mistakeCount++;
-                    if (soundCheckbox && soundCheckbox.checked) {
-                        ngSound.currentTime = 0;
-                        ngSound.play();
-                    }
+                    AppAudio.playNg();
+                    
                     setTimeout(() => { overlayJudge.classList.remove('show'); }, 1200);
                 }
             });
