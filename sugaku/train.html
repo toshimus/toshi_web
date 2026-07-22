@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>手書きデータ管理</title>
+  <link rel="stylesheet" href="style-tegaki.css">
+</head>
+<body>
+<div class="container">
+  <!-- 学習画面 -->
+  <div id="train-screen" class="screen active">
+    <h2 style="color: #4a5568; margin-bottom: 5px; font-size: 1.8rem;">数字のパターンを学習させる</h2>
+    <div class="layout-row">
+      <div class="col">
+        <select id="train-digit-select" class="train-selector">
+          <option value="0">0 (ゼロ)</option><option value="1">1 (いち)</option>
+          <option value="2">2 (に)</option><option value="3">3 (さん)</option>
+          <option value="4">4 (よん)</option><option value="5">5 (ご)</option>
+          <option value="6">6 (ろく)</option><option value="7">7 (なな)</option>
+          <option value="8">8 (はち)</option><option value="9">9 (きゅう)</option>
+        </select>
+        <div class="canvas-container">
+          <canvas id="train-canvas" width="280" height="280"></canvas>
+          <div class="canvas-tools"><button class="btn-clear" onclick="clearCanvas(trainCtx, trainCanvas)">けす</button></div>
+        </div>
+        <button class="btn btn-action" style="width: 100%; font-size: 1.2rem;" onclick="savePattern()">📝 登録する</button>
+      </div>
+      <div class="col">
+        <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="openPreviewModal()">👀 登録データを見る・整理</button>
+        <button class="btn btn-success" style="width: 100%; margin-bottom: 10px;" onclick="saveToLocalStorage(true)">💾 ブラウザに保存</button>
+        <div class="data-tools">
+          <button class="btn btn-secondary btn-half" onclick="exportData()">📤 書き出す</button>
+          <button class="btn btn-secondary btn-half" onclick="document.getElementById('import-file').click()">📥 読み込む</button>
+          <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(event)">
+        </div>
+        <button class="btn btn-secondary" style="width: 100%; margin-top: 20px;" onclick="location.href='index.html'">🔙 メニューへもどる</button>
+      </div>
+    </div>
+    
+    <div id="preview-modal" class="preview-modal">
+      <div class="preview-content">
+        <div class="preview-header">
+          <h3 style="margin:0; font-size: 1.5rem;">登録データ一覧</h3>
+          <button class="btn-close-modal" onclick="closePreviewModal()">×</button>
+        </div>
+        <div id="preview-grid" class="preview-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="tegaki.js"></script>
+</body>
+</html>

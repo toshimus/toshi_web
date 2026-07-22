@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>601: かず</title>
+  <title>606: 分数1</title>
   <link rel="stylesheet" href="style-tegaki.css">
 </head>
 <body>
 <div class="container">
-  
-  <!-- 問題画面 -->
   <div id="quiz-screen" class="screen active">
     <div class="left-col">
       <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
@@ -28,25 +26,19 @@
       <button class="btn btn-action btn-done" onclick="checkAnswer()">できた！</button>
     </div>
 
-    <!-- フィードバックオーバーレイ -->
     <div id="feedback-overlay" class="feedback-overlay">
       <div id="feedback-msg" class="feedback-msg"></div>
       <div id="recognized-info" class="question-box" style="padding: 10px 40px; border: 3px dashed #a0aec0; margin-bottom: 20px; font-size: 3.5rem;"></div>
-      
-      <!-- 文字単位の訂正UI -->
       <div id="correction-area" class="correction-area">
         <p>💡 よみまちがえた数字があれば、正しいものをえらんでね！</p>
         <div id="correction-list" class="correction-list"></div>
       </div>
-
       <div style="display: flex; gap: 20px;">
         <button id="retry-btn" class="btn btn-secondary" style="display: none; font-size: 1.5rem; padding: 15px 40px;" onclick="closeFeedback()">ぜんぶ かきなおす</button>
         <button id="next-btn" class="btn btn-action" style="display: none; font-size: 2rem; padding: 20px 60px;" onclick="nextQuestion()">つぎへ ➔</button>
       </div>
     </div>
   </div>
-
-  <!-- 結果画面 -->
   <div id="result-screen" class="screen">
     <h1 style="color: #ff6b6b; font-size: 4rem; margin-bottom: 10px;">けっか はっぴょう</h1>
     <div style="font-size: 6rem; margin: 20px 0;">🎉</div>
@@ -56,11 +48,9 @@
       <button class="btn btn-outline" style="font-size: 1.5rem; padding: 15px 30px;" onclick="exportHistoryCSV()">📊 学習履歴を出力</button>
     </div>
   </div>
-
 </div>
-
-<!-- 起動モードを「kazu」に指定して共通JSを読み込む -->
-<script>window.APP_MODE = 'kazu';</script>
+<!-- 起動モードを「frac1」に指定 -->
+<script>window.APP_MODE = 'frac1';</script>
 <script src="tegaki.js"></script>
 </body>
 </html>
