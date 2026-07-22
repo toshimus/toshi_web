@@ -638,7 +638,14 @@ function draw(e) {
                     const sy = Math.round(State.startY);
                     const px = Math.round(pos.x);
                     const py = Math.round(pos.y);
-                    DOM.previewCtx.rect(sx, sy, px - sx, py - sy);
+
+                    // 始点と終点の大小関係を考慮して、常に外側に1px広がるように計算します
+                    const minX = Math.min(sx, px) - 1;
+                    const minY = Math.min(sy, py) - 1;
+                    const width = Math.abs(px - sx) + 2;
+                    const height = Math.abs(py - sy) + 2;
+
+                    DOM.previewCtx.rect(minX, minY, width, height);
                 }
                 
                 DOM.previewCtx.setLineDash([2, 2]);

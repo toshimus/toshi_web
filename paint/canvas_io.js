@@ -13,9 +13,10 @@ export function updateSelectionMask() {
     }
     
     if (State.selection.type !== 'mask' && State.selection.type !== 'wand') {
+        // 修正後
         const mCanvas = document.createElement('canvas');
-        mCanvas.width = Math.max(1, State.selection.w);
-        mCanvas.height = Math.max(1, State.selection.h);
+        mCanvas.width = Math.max(1, Math.round(State.selection.w));
+        mCanvas.height = Math.max(1, Math.round(State.selection.h));
         const mCtx = mCanvas.getContext('2d');
         mCtx.fillStyle = '#FFFFFF';
         
@@ -46,7 +47,12 @@ export function updateSelectionMask() {
     fCtx.fillStyle = '#000000';
     fCtx.fillRect(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
     if (State.selection.maskCanvas) {
-        fCtx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
+        fCtx.imageSmoothingEnabled = false; // にじみ防止
+        fCtx.drawImage(
+            State.selection.maskCanvas, 
+            Math.round(State.selection.x), 
+            Math.round(State.selection.y)
+        ); // 座標を整数化してズレを防ぐ
     }
     
     const imgData = fCtx.getImageData(0, 0, State.CANVAS_WIDTH, State.CANVAS_HEIGHT);
@@ -85,12 +91,22 @@ export function applySelectionMask(ctx, offsetX, offsetY) {
 export function floatSelection(layer) {
     if (!State.selection.maskCanvas) updateSelectionMask();
     
+    // 追加: 座標とサイズを完全に整数化してズレやにじみを防ぐ
+    const sx = Math.round(State.selection.x);
+    const sy = Math.round(State.selection.y);
+    const sw = Math.max(1, Math.round(State.selection.w));
+    const sh = Math.max(1, Math.round(State.selection.h));
+    
     State.selection.canvas = document.createElement('canvas');
-    State.selection.canvas.width = Math.max(1, State.selection.w);
-    State.selection.canvas.height = Math.max(1, State.selection.h);
+    State.selection.canvas.width = sw;
+    State.selection.canvas.height = sh;
     const sCtx = State.selection.canvas.getContext('2d');
 
-    sCtx.drawImage(layer.canvas, State.selection.x, State.selection.y, State.selection.w, State.selection.h, 0, 0, State.selection.w, State.selection.h);
+    // 追加: 切り抜き時のアンチエイリアスを無効化
+    sCtx.imageSmoothingEnabled = false;
+
+    // 変更: 整数化した座標(sx, sy, sw, sh)を使って描画
+    sCtx.drawImage(layer.canvas, sx, sy, sw, sh, 0, 0, sw, sh);
 
     sCtx.globalCompositeOperation = 'destination-in';
     sCtx.drawImage(State.selection.maskCanvas, 0, 0);
@@ -98,7 +114,9 @@ export function floatSelection(layer) {
 
     layer.ctx.save();
     layer.ctx.globalCompositeOperation = 'destination-out';
-    layer.ctx.drawImage(State.selection.maskCanvas, State.selection.x, State.selection.y);
+    layer.ctx.imageSmoothingEnabled = false; // 念のため追加
+    // 変更: 穴を開ける際も整数座標(sx, sy)を使う
+    layer.ctx.drawImage(State.selection.maskCanvas, sx, sy);
     layer.ctx.restore();
 
     State.selection.isFloating = true;
@@ -108,13 +126,13 @@ export function floatSelection(layer) {
     State.selection.accumulatedAngle = 0;
     
     State.selection.originalCanvas = document.createElement('canvas');
-    State.selection.originalCanvas.width = State.selection.w;
-    State.selection.originalCanvas.height = State.selection.h;
+    State.selection.originalCanvas.width = sw; // 変更
+    State.selection.originalCanvas.height = sh; // 変更
     State.selection.originalCanvas.getContext('2d').drawImage(State.selection.canvas, 0, 0);
 
     State.selection.originalMaskCanvas = document.createElement('canvas');
-    State.selection.originalMaskCanvas.width = State.selection.w;
-    State.selection.originalMaskCanvas.height = State.selection.h;
+    State.selection.originalMaskCanvas.width = sw; // 変更
+    State.selection.originalMaskCanvas.height = sh; // 変更
     State.selection.originalMaskCanvas.getContext('2d').drawImage(State.selection.maskCanvas, 0, 0);
 }
 
@@ -176,9 +194,11 @@ export function drawSelectionPreview(clearAndShape = true) {
                     ctx.closePath();
                 }
             } else {
-                ctx.rect(Math.round(State.selection.x), Math.round(State.selection.y), Math.round(State.selection.w), Math.round(State.selection.h));
+                // 始点を -1 ずらし、枠の中に選択範囲が収まるように幅と高さを調整します
+                //ctx.rect(Math.round(State.selection.x) - 1, Math.round(State.selection.y) - 1, Math.round(State.selection.w) + 2, Math.round(State.selection.h) + 2);
+                // 始点を -1 ずらし、枠の中に選択範囲が収まるように幅と高さを調整します
+                ctx.rect(Math.round(State.selection.x) - 1, Math.round(State.selection.y) - 1, Math.round(State.selection.w) + 1, Math.round(State.selection.h) + 1);
             }
-            
             ctx.setLineDash([2, 2]);
             ctx.lineDashOffset = 0;
             ctx.strokeStyle = '#000000';
