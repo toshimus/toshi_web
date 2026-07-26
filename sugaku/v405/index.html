@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>学習メニュー</title>
+<style>
+    html, body {
+        height: 100%;
+        /* スクロールを禁止し、1画面に収める */
+        overflow: hidden;
+        width: 100%;
+    }
+    body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        margin: 0;
+        padding: 15px 10px;
+        background-color: #f8f9fa;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    h1 {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #2c3e50;
+    }
+    
+    /* 左右分割のメインコンテナ */
+    .main-wrapper {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        max-width: 1000px;
+        gap: 15px;
+    }
+
+    /* 左側のメニュータブ */
+    .sidebar {
+        width: 220px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .category-btn {
+        padding: 12px 15px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #2c3e50;
+        background-color: #ecf0f1;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .category-btn.active {
+        background-color: #3498db;
+        color: #fff;
+        border-color: #2980b9;
+        box-shadow: 0 4px 0 #2980b9;
+        transform: translateY(2px);
+    }
+
+    .category-btn:not(.active):hover {
+        background-color: #bdc3c7;
+    }
+
+    /* 右側のコンテンツエリア */
+    .content-area {
+        flex-grow: 1;
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .category-content {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .category-content.active {
+        display: flex;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 個別リンクのボタン */
+    .menu-button {
+        display: block;
+        padding: 10px 15px;
+        font-size: 1.05rem;
+        font-weight: bold;
+        text-align: left;
+        text-decoration: none;
+        color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        transition: transform 0.1s, box-shadow 0.1s;
+        touch-action: manipulation;
+    }
+    .menu-button:active {
+        box-shadow: none;
+        transform: translateY(4px);
+    }
+    
+    /* ボタンのカラー定義 */
+    .btn-001 { background-color: #3498db; }
+    .btn-002 { background-color: #2ecc71; }
+    .btn-003 { background-color: #e67e22; }
+    .btn-004 { background-color: #9b59b6; }
+    .btn-005 { background-color: #e74c3c; }
+    .btn-006 { background-color: #1abc9c; }
+    .btn-007 { background-color: #f39c12; }
+    .btn-008 { background-color: #34495e; }
+    .btn-009 { background-color: #e84393; }
+    .btn-010 { background-color: #00cec9; }
+
+    .btn-101 { background-color: #4834d4; }
+    .btn-102 { background-color: #eb4d4b; }
+    .btn-103 { background-color: #6ab04c; }
+    .btn-104 { background-color: #f0932b; }
+    .btn-105 { background-color: #9c88ff; }
+    .btn-106 { background-color: #e1b12c; }
+
+    .btn-201 { background-color: #fd79a8; }
+    .btn-202 { background-color: #74b9ff; }
+    .btn-203 { background-color: #55efc4; color: #2d3436; }
+    .btn-204 { background-color: #a29bfe; }
+    .btn-205 { background-color: #ff7675; }
+    .btn-206 { background-color: #fdcb6e; color: #2d3436; }
+    .btn-207 { background-color: #00cec9; color: #2d3436; }
+    .btn-208 { background-color: #0984e3; }
+    .btn-209 { background-color: #6c5ce7; }
+    .btn-210 { background-color: #b2bec3; color: #2d3436; }
+
+    .btn-301 { background-color: #ff9f43; }
+    .btn-302 { background-color: #ee5253; }
+    .btn-303 { background-color: #0abde3; }
+    
+    /* 正負の数 (401〜403) */
+    .btn-401 { background-color: #8e44ad; }
+    .btn-402 { background-color: #d35400; }
+    .btn-403 { background-color: #2c3e50; }
+
+    /* 便利ツール (501-) */
+    .btn-501 { background-color: #7f8c8d; }
+    .btn-502 { background-color: #95a5a6; }
+    
+    /* スマホ向けレスポンシブデザイン */
+    @media (max-width: 768px) {
+        html, body {
+            overflow: auto;
+        }
+        .main-wrapper {
+            flex-direction: column;
+            gap: 15px;
+        }
+        .sidebar {
+            width: 100%;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        .category-btn {
+            flex: 1 1 calc(50% - 10px);
+            padding: 10px;
+            font-size: 1rem;
+        }
+    }
+</style>
+</head>
+<body>
+
+    <h1>学習メニュー</h1>
+    
+    <div class="main-wrapper">
+        <div class="sidebar">
+            <div class="category-btn" data-target="tools">便利ツール</div>
+            <div class="category-btn active" data-target="addition">たし算</div>
+            <div class="category-btn" data-target="subtraction">ひき算</div>
+            <div class="category-btn" data-target="multiplication">かけ算</div>
+            <div class="category-btn" data-target="fraction-intro">分数について</div>
+            <div class="category-btn" data-target="fraction-calc">分数の計算</div>
+            <div class="category-btn" data-target="positive-negative">正負の数</div>
+        </div>
+
+        <div class="content-area">
+            
+            <div id="tools" class="category-content">
+                <a href="dentaku.html" class="menu-button btn-501">電卓</a>
+                <a href="tool-numberline.html" class="menu-button btn-502">数直線（正負の数）</a>
+            </div>
+
+            <div id="addition" class="category-content active">
+                <a href="201.html" class="menu-button btn-201">合計が10までのたし算</a>
+                <a href="202.html" class="menu-button btn-202">20までのたし算（繰り上がり）</a>
+                <a href="205.html" class="menu-button btn-205">2桁+1桁のたし算（ひっ算）</a>
+                <a href="206.html" class="menu-button btn-206">2桁+2桁のたし算（ひっ算）</a>
+                <a href="207.html" class="menu-button btn-207">3桁のたし算（上級編）</a>
+            </div>
+
+            <div id="subtraction" class="category-content">
+                <a href="203.html" class="menu-button btn-203">10までの引き算（テンフレーム）</a>
+                <a href="204.html" class="menu-button btn-204">20までの引き算（繰り下がり）</a>
+                <a href="208.html" class="menu-button btn-208">2桁-1桁の引き算（ひっ算）</a>
+                <a href="209.html" class="menu-button btn-209">2桁-2桁の引き算（ひっ算）</a>
+                <a href="210.html" class="menu-button btn-210">3桁の引き算（上級編）</a>
+            </div>
+
+            <div id="multiplication" class="category-content">
+                <a href="301.html" class="menu-button btn-301">かけ算 九九</a>
+                <a href="302.html" class="menu-button btn-302">2桁×1桁のかけ算（ひっ算）</a>
+                <a href="303.html" class="menu-button btn-303">2桁×2桁のかけ算（ひっ算）</a>
+            </div>
+
+            <div id="fraction-intro" class="category-content">
+                <a href="001.html" class="menu-button btn-001">分数の色塗り（直線）</a>
+                <a href="002.html" class="menu-button btn-002">分数の色塗り（円）</a>
+                <a href="003.html" class="menu-button btn-003">図を見て分数を答える</a>
+                <a href="004.html" class="menu-button btn-004">水のかさ（分数）</a>
+                <a href="005.html" class="menu-button btn-005">分数の色塗りと読み取り</a>
+                <a href="006.html" class="menu-button btn-006">分母と分子</a>
+                <a href="007.html" class="menu-button btn-007">数直線の分数</a>
+                <a href="008.html" class="menu-button btn-008">1より大きい分数の数直線</a>
+                <a href="009.html" class="menu-button btn-009">分数の分類</a>
+                <a href="010.html" class="menu-button btn-010">分数の大きさくらべ</a>
+            </div>
+
+            <div id="fraction-calc" class="category-content">
+                <a href="101.html" class="menu-button btn-101">分数のしくみ（ステップアップ）</a>
+                <a href="102.html" class="menu-button btn-102">分数のたし算（１＋分数）</a>
+                <a href="103.html" class="menu-button btn-103">分母が同じ分数のたし算</a>
+                <a href="104.html" class="menu-button btn-104">分母の違うたし算（通分）</a>
+                <a href="105.html" class="menu-button btn-105">分数のひき算（１－分数）</a>
+                <a href="106.html" class="menu-button btn-106">分母が同じ分数のひき算</a>
+            </div>
+            
+            <div id="positive-negative" class="category-content">
+                <a href="401.html" class="menu-button btn-401">正負の数の計算（数直線）</a>
+                <a href="402.html" class="menu-button btn-402">正負の数の大小</a>
+                <a href="403.html" class="menu-button btn-403">お買い物計算（じょじきん）</a>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+        // タブ切り替えのJavaScript
+        const tabs = document.querySelectorAll('.category-btn');
+        const contents = document.querySelectorAll('.category-content');
+
+        const STORAGE_KEY = 'selected_category_index';
+
+        function activateTab(targetId) {
+            tabs.forEach(t => {
+                if (t.getAttribute('data-target') === targetId) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+            contents.forEach(c => {
+                if (c.id === targetId) {
+                    c.classList.add('active');
+                } else {
+                    c.classList.remove('active');
+                }
+            });
+            localStorage.setItem(STORAGE_KEY, targetId);
+        }
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                activateTab(tab.getAttribute('data-target'));
+            });
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const lastSelected = localStorage.getItem(STORAGE_KEY);
+            if (lastSelected && document.getElementById(lastSelected)) {
+                activateTab(lastSelected);
+            } else {
+                activateTab('addition');
+            }
+        });
+    </script>
+</body>
+</html>

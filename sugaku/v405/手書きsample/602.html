@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>602: たし算</title>
+  <link rel="stylesheet" href="style-tegaki.css">
+</head>
+<body>
+<div class="container">
+  
+  <!-- 問題画面 -->
+  <div id="quiz-screen" class="screen active">
+    <div class="left-col">
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+      <div class="question-info">
+        <span id="category-title">カテゴリ</span>
+        <span id="question-num">だい 1 / 5 もん</span>
+      </div>
+      <div id="question-text" class="question-box"></div>
+      <button class="btn btn-secondary" style="align-self: flex-start;" onclick="location.href='index.html'">🏠 もどる</button>
+    </div>
+    <div class="right-col">
+      <div class="canvas-container">
+        <canvas id="quiz-canvas" width="400" height="400"></canvas>
+        <div class="canvas-tools"><button class="btn-clear" onclick="clearCanvas(quizCtx, quizCanvas)">けす</button></div>
+      </div>
+      <button class="btn btn-action btn-done" onclick="checkAnswer()">できた！</button>
+    </div>
+
+    <!-- フィードバックオーバーレイ -->
+    <div id="feedback-overlay" class="feedback-overlay">
+      <div id="feedback-msg" class="feedback-msg"></div>
+      <div id="recognized-info" class="question-box" style="padding: 10px 40px; border: 3px dashed #a0aec0; margin-bottom: 20px; font-size: 3.5rem;"></div>
+      
+      <!-- 文字単位の訂正UI -->
+      <div id="correction-area" class="correction-area">
+        <p>💡 よみまちがえた数字があれば、正しいものをえらんでね！</p>
+        <div id="correction-list" class="correction-list"></div>
+      </div>
+
+      <div style="display: flex; gap: 20px;">
+        <button id="retry-btn" class="btn btn-secondary" style="display: none; font-size: 1.5rem; padding: 15px 40px;" onclick="closeFeedback()">ぜんぶ かきなおす</button>
+        <button id="next-btn" class="btn btn-action" style="display: none; font-size: 2rem; padding: 20px 60px;" onclick="nextQuestion()">つぎへ ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="result-screen" class="screen">
+    <h1 style="color: #ff6b6b; font-size: 4rem; margin-bottom: 10px;">けっか はっぴょう</h1>
+    <div style="font-size: 6rem; margin: 20px 0;">🎉</div>
+    <p style="font-size: 2.5rem; font-weight: bold; color: #2d3748; margin-bottom: 20px;">全問クリア！ すごいね！</p>
+    <div class="result-actions">
+      <button class="btn btn-action" style="font-size: 1.5rem; padding: 15px 30px;" onclick="location.href='index.html'">メニューへもどる</button>
+      <button class="btn btn-outline" style="font-size: 1.5rem; padding: 15px 30px;" onclick="exportHistoryCSV()">📊 学習履歴を出力</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 起動モードを「add」に指定 -->
+<script>window.APP_MODE = 'add';</script>
+<script src="tegaki.js"></script>
+</body>
+</html>

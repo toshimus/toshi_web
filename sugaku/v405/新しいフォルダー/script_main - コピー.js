@@ -1,0 +1,1043 @@
+/* ==========================================
+   script_main.js (UIイベント・保存・エクスポート・複数ページ管理・出題エンジン)
+   ========================================== */
+window.enableEmptyCheck = window.enableEmptyCheck || false; 
+window.problemSet = [ [] ]; 
+window.currentEditPage = 0;
+window.runProblemSet = [];
+window.playMode = window.playMode || 'pattern2';
+window.orderStyle = window.orderStyle || 'random';
+
+function addClick(id, handler) {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', handler);
+}
+
+/* --- プロパティ保存 --- */
+addClick('save-box-prop-btn', () => {
+    if (activeBoxWrapper) {
+        activeBoxWrapper.dataset.boxName = document.getElementById('box-prop-name').value.trim();
+        activeBoxWrapper.dataset.boxId = document.getElementById('box-prop-id').value.trim();
+        activeBoxWrapper.dataset.fontSize = document.getElementById('box-prop-fontsize').value; 
+        activeBoxWrapper.dataset.isLastPressed = document.getElementById('box-prop-last').checked ? "true" : "false";
+        
+        activeBoxWrapper.dataset.bgColor = document.getElementById('box-prop-bgcolor').value;
+        activeBoxWrapper.dataset.borderColor = document.getElementById('box-prop-bordercolor').value;
+        activeBoxWrapper.dataset.borderwidth = document.getElementById('box-prop-borderwidth').value;
+        
+        const el = activeBoxWrapper.querySelector('.rect');
+        if (el) {
+            el.textContent = activeBoxWrapper.dataset.boxName;
+            el.style.backgroundColor = activeBoxWrapper.dataset.bgColor;
+            el.style.fontSize = `calc(var(--grid-cell-h) * 1.2 * ${activeBoxWrapper.dataset.fontSize})`; 
+            
+            const bw = parseInt(activeBoxWrapper.dataset.borderwidth) || 0;
+            if (bw > 0) {
+                el.style.border = `${bw}px solid ${activeBoxWrapper.dataset.borderColor}`;
+                el.style.boxSizing = "border-box";
+            } else {
+                el.style.border = "none";
+            }
+            
+            if (activeBoxWrapper.dataset.isLastPressed === "true") {
+                el.style.outline = "6px solid #e74c3c";
+                el.style.outlineOffset = "2px";
+            } else {
+                el.style.outline = "none";
+            }
+        }
+    }
+    document.getElementById('box-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeBoxWrapper = null;
+});
+
+addClick('save-ans-prop-btn', () => {
+    if (activeAnsWrapper) {
+        activeAnsWrapper.dataset.answerId = document.getElementById('ans-prop-id').value.trim();
+        activeAnsWrapper.dataset.calcMode = document.getElementById('ans-prop-mode').value;
+        activeAnsWrapper.dataset.digits = document.getElementById('ans-prop-digits').value;
+        activeAnsWrapper.dataset.ansStyle = document.getElementById('ans-prop-style').value; 
+        activeAnsWrapper.dataset.thickness = document.getElementById('ans-prop-thickness').value;
+        if (typeof window.renderAnswer === 'function') window.renderAnswer(activeAnsWrapper);
+    }
+    document.getElementById('ans-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeAnsWrapper = null;
+});
+
+addClick('save-text-prop-btn', () => {
+    if (activeTextWrapper) {
+        const newTxt = document.getElementById('text-prop-content').value.trim();
+        if (newTxt !== "") {
+            activeTextWrapper.dataset.originalContent = newTxt;
+            activeTextWrapper.dataset.digits = document.getElementById('text-prop-digits').value;
+            activeTextWrapper.dataset.fontSize = document.getElementById('text-prop-size').value; 
+            const el = activeTextWrapper.querySelector('.text-rect');
+            if (/^\s*\[[^\]]+\]\s*$/.test(newTxt)) {
+                el.classList.add('single-var-text');
+            } else {
+                el.classList.remove('single-var-text');
+            }
+            if (typeof window.renderText === 'function') window.renderText(activeTextWrapper);
+        }
+    }
+    document.getElementById('text-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeTextWrapper = null;
+});
+
+addClick('save-line-prop-btn', () => {
+    if (activeLineWrapper) {
+        activeLineWrapper.dataset.thickness = document.getElementById('line-prop-thickness').value;
+        activeLineWrapper.dataset.lineColor = document.getElementById('line-prop-color').value;
+        activeLineWrapper.dataset.lineStyle = document.getElementById('line-prop-style').value;
+        if (typeof window.updateLineVisuals === 'function') window.updateLineVisuals(activeLineWrapper);
+    }
+    document.getElementById('line-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeLineWrapper = null;
+});
+
+addClick('save-formula-prop-btn', () => {
+    if (activeFormulaWrapper) {
+        const newTxt = document.getElementById('formula-prop-content').value.trim();
+        if (newTxt !== "") {
+            const el = activeFormulaWrapper.querySelector('.formula-rect');
+            if (el) el.textContent = newTxt;
+        }
+    }
+    document.getElementById('formula-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeFormulaWrapper = null;
+});
+
+addClick('save-tool-prop-btn', () => {
+    if (activeToolWrapper) {
+        activeToolWrapper.dataset.objId = document.getElementById('tool-prop-id').value.trim();
+        const newDivs = parseInt(document.getElementById('tool-prop-divs').value);
+        if (newDivs >= 1 && newDivs <= 20) {
+            activeToolWrapper.dataset.currentDivisions = newDivs;
+            if (typeof ToolManager !== 'undefined') ToolManager.renderTool(activeToolWrapper);
+        }
+    }
+    document.getElementById('tool-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+    activeToolWrapper = null;
+});
+
+/* --- 要素追加・削除 --- */
+addClick('add-box-btn', () => typeof createDraggable === 'function' && createDraggable('box'));
+addClick('add-ans-btn', () => typeof createDraggable === 'function' && createDraggable('answer'));
+addClick('add-formula-btn', () => typeof createDraggable === 'function' && createDraggable('formula'));
+addClick('add-text-btn', () => typeof createDraggable === 'function' && createDraggable('text'));
+addClick('add-line-btn', () => typeof createDraggable === 'function' && createDraggable('line'));
+addClick('add-check-btn', () => typeof createDraggable === 'function' && createDraggable('check'));
+addClick('add-menu-btn', () => typeof createDraggable === 'function' && createDraggable('menu'));
+addClick('add-progress-btn', () => typeof createDraggable === 'function' && createDraggable('progress'));
+
+addClick('add-tool-bar-btn', () => {
+    if (typeof ToolManager !== 'undefined') ToolManager.addTool('fraction-bar');
+});
+
+addClick('add-tool-circle-btn', () => {
+    if (typeof ToolManager !== 'undefined') ToolManager.addTool('fraction-circle');
+});
+
+addClick('delete-item-btn', () => {
+    const selectedItems = document.querySelectorAll('.wrapper-selected');
+    if (selectedItems.length > 0) {
+        if (confirm(`選択中のアイテム（${selectedItems.length}個）を削除しますか？`)) {
+            selectedItems.forEach(item => item.remove());
+        }
+    } else {
+        alert("削除するアイテムを選択してください（クリックまたは矩形選択）。");
+    }
+});
+
+/* ==========================================
+   ★複数問題(ページ)の管理ロジック
+   ========================================== */
+window.saveCurrentPage = function() {
+    const wrappers = container.querySelectorAll('.draggable');
+    const items = [];
+    wrappers.forEach(wrapper => {
+        const type = wrapper.dataset.type;
+        const el = wrapper.querySelector('div');
+        let itemData = { type: type };
+        
+        if (type === 'line') {
+            itemData.startX = parseFloat(wrapper.dataset.startX);
+            itemData.startY = parseFloat(wrapper.dataset.startY);
+            itemData.endX = parseFloat(wrapper.dataset.endX);
+            itemData.endY = parseFloat(wrapper.dataset.endY);
+            itemData.thickness = wrapper.dataset.thickness;
+            itemData.lineColor = wrapper.dataset.lineColor;
+            itemData.lineStyle = wrapper.dataset.lineStyle;
+        } else if (type === 'tool') {
+            itemData.toolId = wrapper.dataset.toolId;
+            itemData.objId = wrapper.dataset.objId;
+            itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
+            itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
+            itemData.wCells = parseInt(wrapper.dataset.wCells) || 10;
+            itemData.hCells = parseInt(wrapper.dataset.hCells) || 6;
+            itemData.currentDivisions = parseInt(wrapper.dataset.currentDivisions) || 1;
+        } else {
+            itemData.gridX = parseInt(wrapper.dataset.gridX) || 0;
+            itemData.gridY = parseInt(wrapper.dataset.gridY) || 0;
+            itemData.wCells = parseInt(wrapper.dataset.wCells) || 2;
+            itemData.hCells = parseInt(wrapper.dataset.hCells) || 2;
+            itemData.content = type === 'text' ? (wrapper.dataset.originalContent || (el ? el.innerHTML : '')) : (el ? el.textContent : '');
+            
+            if (type === 'box') {
+                itemData.boxName = wrapper.dataset.boxName || itemData.content;
+                itemData.boxId = wrapper.dataset.boxId || "";
+                itemData.fontSize = wrapper.dataset.fontSize || "1.0"; 
+                itemData.isLastPressed = wrapper.dataset.isLastPressed || "false";
+                itemData.isShuffleable = wrapper.dataset.isShuffleable || "false";
+                itemData.bgColor = wrapper.dataset.bgColor || "#44FFFF";
+                itemData.borderColor = wrapper.dataset.borderColor || "#000000";
+                itemData.borderwidth = wrapper.dataset.borderwidth || "0";
+            }
+            
+            if (type === 'answer') {
+                itemData.answerId = wrapper.dataset.answerId || '';
+                itemData.calcMode = wrapper.dataset.calcMode || '0-20';
+                itemData.formula = wrapper.dataset.formula || ''; 
+                itemData.digits = parseInt(wrapper.dataset.digits) || 0;
+                itemData.ansStyle = wrapper.dataset.ansStyle || 'normal'; 
+                itemData.thickness = parseInt(wrapper.dataset.thickness) || 4; 
+                itemData.content = ''; 
+            }
+            if (type === 'text') {
+                itemData.digits = parseInt(wrapper.dataset.digits) || 0;
+                itemData.fontSize = parseFloat(wrapper.dataset.fontSize) || 1.0; 
+            }
+        }
+        items.push(itemData);
+    });
+    window.problemSet[window.currentEditPage] = items;
+};
+
+window.loadPageToDOM = function(items) {
+    container.querySelectorAll('.draggable').forEach(w => w.remove());
+    count = 0; 
+    if (items) {
+        items.forEach(item => {
+            if (typeof createDraggable === 'function') createDraggable(item.type, item);
+        });
+    }
+    if (isEditMode) {
+        const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+        const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+        const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
+        const toolWrappers = container.querySelectorAll('.draggable[data-type="tool"]');
+        
+        textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
+        answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
+        boxWrappers.forEach(wrapper => window.renderBox ? window.renderBox(wrapper) : null);
+        toolWrappers.forEach(wrapper => {
+            if (typeof ToolManager !== 'undefined') ToolManager.renderTool(wrapper);
+        });
+    }
+};
+
+window.updatePageUI = function() {
+    const indicator = document.getElementById('page-indicator');
+    if (indicator) {
+        indicator.textContent = `問題 ${window.currentEditPage + 1} / ${window.problemSet.length}`;
+    }
+};
+
+/* --- ページ遷移制御 --- */
+addClick('prev-page-btn', () => {
+    if (window.currentEditPage > 0) {
+        window.saveCurrentPage();
+        window.currentEditPage--;
+        window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+        window.updatePageUI();
+    }
+});
+
+addClick('next-page-btn', () => {
+    if (window.currentEditPage < window.problemSet.length - 1) {
+        window.saveCurrentPage();
+        window.currentEditPage++;
+        window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+        window.updatePageUI();
+    }
+});
+
+addClick('add-page-btn', () => {
+    window.saveCurrentPage();
+    window.problemSet.push([]);
+    window.currentEditPage = window.problemSet.length - 1;
+    window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+    window.updatePageUI();
+});
+
+addClick('del-page-btn', () => {
+    if (window.problemSet.length <= 1) {
+        alert("最後の問題は削除できません。");
+        return;
+    }
+    if (confirm(`問題 ${window.currentEditPage + 1} を削除しますか？`)) {
+        window.problemSet.splice(window.currentEditPage, 1);
+        if (window.currentEditPage >= window.problemSet.length) {
+            window.currentEditPage = window.problemSet.length - 1;
+        }
+        window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+        window.updatePageUI();
+    }
+});
+
+/* ==========================================
+   動作・変数設定・判定設定 (設定分割対応)
+   ========================================== */
+addClick('action-settings-btn', () => {
+    const quizTitleInput = document.getElementById('quiz-title-input');
+    if (quizTitleInput) {
+        quizTitleInput.value = window.quizTitle || '自作グリッド問題';
+    }
+    
+    const bgColorInput = document.getElementById('bg-color-input');
+    if (bgColorInput) {
+        bgColorInput.value = window.bgColor || '#ffffff';
+    }
+
+    const emptyCheckToggle = document.getElementById('empty-check-toggle');
+    if (emptyCheckToggle) {
+        emptyCheckToggle.checked = window.enableEmptyCheck === true;
+    }
+    
+    const transitionSelect = document.getElementById('transition-style-select');
+    if (transitionSelect) {
+        transitionSelect.value = window.transitionStyle || 'none';
+    }
+
+    const playModeSelect = document.getElementById('play-mode-select');
+    if (playModeSelect) {
+        playModeSelect.value = window.playMode || 'pattern2';
+    }
+
+    const orderSelect = document.getElementById('order-style-select');
+    if (orderSelect) {
+        orderSelect.value = window.orderStyle || 'random';
+    }
+
+    document.getElementById('action-settings-container').style.display = 'flex';
+    document.getElementById('overlay').style.display = 'block';
+});
+
+addClick('save-action-settings-btn', async () => {
+    const quizTitleInput = document.getElementById('quiz-title-input');
+    if (quizTitleInput) {
+        window.quizTitle = quizTitleInput.value.trim() || '自作グリッド問題';
+    }
+
+    const bgColorInput = document.getElementById('bg-color-input');
+    if (bgColorInput) {
+        window.bgColor = bgColorInput.value;
+        const cont = document.getElementById('container');
+        if (cont) cont.style.backgroundColor = window.bgColor;
+    }
+
+    const emptyCheckToggle = document.getElementById('empty-check-toggle');
+    if (emptyCheckToggle) {
+        window.enableEmptyCheck = emptyCheckToggle.checked;
+    }
+
+    const transitionSelect = document.getElementById('transition-style-select');
+    if (transitionSelect) {
+        window.transitionStyle = transitionSelect.value;
+    }
+
+    const playModeSelect = document.getElementById('play-mode-select');
+    if (playModeSelect) {
+        window.playMode = playModeSelect.value;
+    }
+
+    const orderSelect = document.getElementById('order-style-select');
+    if (orderSelect) {
+        window.orderStyle = orderSelect.value;
+    }
+    
+    const aSound = document.getElementById('var-action-sound').files[0];
+    if (aSound) {
+        window.actionSoundData = await new Promise(r => { const rd = new FileReader(); rd.onload = e => r(e.target.result); rd.readAsDataURL(aSound); });
+    }
+
+    document.getElementById('action-settings-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+});
+
+addClick('var-settings-btn', () => {
+    const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+    const knownAnswerIds = new Set();
+    answerWrappers.forEach(w => {
+        if (w.dataset.answerId) knownAnswerIds.add(w.dataset.answerId);
+    });
+
+    const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+    const foundVars = new Set();
+    textWrappers.forEach(wrapper => {
+        const content = wrapper.dataset.originalContent || wrapper.querySelector('.text-rect').textContent;
+        const matches = content.match(/\[[^\]]+\]/g);
+        if (matches) {
+            matches.forEach(varName => {
+                if (!knownAnswerIds.has(varName)) foundVars.add(varName);
+            });
+        }
+    });
+
+    const listContainer = document.getElementById('var-list-container');
+    if(listContainer) {
+        listContainer.innerHTML = ''; 
+
+        if (foundVars.size === 0) {
+            listContainer.innerHTML = '<p style="text-align:center; color:#555; font-weight:bold;">テキスト内に設定可能な変数が見つかりません。</p>';
+        } else {
+            const note = document.createElement('div');
+            note.style.fontSize = '0.9rem';
+            note.style.color = '#e67e22';
+            note.style.marginBottom = '10px';
+            note.style.textAlign = 'center';
+            note.textContent = '※Min/Maxには [x1]-1 のように他の変数を含めた数式も入力可能です。';
+            listContainer.appendChild(note);
+
+            foundVars.forEach(v => {
+                const range = variableRanges[v] || { min: "1", max: "9", color: "#e74c3c", size: 1.0 };
+                const minStr = range.min !== undefined ? String(range.min) : "1";
+                const maxStr = range.max !== undefined ? String(range.max) : "9";
+
+                const row = document.createElement('div');
+                row.className = 'prop-setting-row';
+                row.style.flexWrap = 'wrap';
+                row.innerHTML = `
+                    <strong style="font-size: 1.2rem; color:#333; width: 100%; margin-bottom: 8px; border-bottom: 1px solid #eee;">${v}</strong>
+                    <div style="display:flex; justify-content:space-between; width:100%; margin-bottom: 5px;">
+                        <label style="font-weight:bold; color:#555; font-size:0.9rem;">Min: <input type="text" class="var-min-input prop-setting-input" data-var="${v}" value="${minStr}"></label>
+                        <label style="font-weight:bold; color:#555; font-size:0.9rem;">Max: <input type="text" class="var-max-input prop-setting-input" data-var="${v}" value="${maxStr}"></label>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; width:100%;">
+                        <label style="font-weight:bold; color:#555; font-size:0.9rem; display:flex; align-items:center;">色: <input type="color" class="var-color-input" data-var="${v}" value="${range.color}" style="margin-left:5px; border:none; width:30px; height:30px; cursor:pointer;"></label>
+                        <label style="font-weight:bold; color:#555; font-size:0.9rem;">サイズ倍率: <input type="number" step="0.1" class="var-size-input prop-setting-input" data-var="${v}" value="${range.size}"></label>
+                    </div>
+                `;
+                listContainer.appendChild(row);
+            });
+        }
+    }
+    document.getElementById('var-settings-container').style.display = 'flex';
+    document.getElementById('overlay').style.display = 'block';
+});
+
+addClick('save-var-settings-btn', async () => {
+    const listContainer = document.getElementById('var-list-container');
+    if(listContainer) {
+        const minInputs = listContainer.querySelectorAll('.var-min-input');
+        const maxInputs = listContainer.querySelectorAll('.var-max-input');
+        const colorInputs = listContainer.querySelectorAll('.var-color-input');
+        const sizeInputs = listContainer.querySelectorAll('.var-size-input');
+        
+        minInputs.forEach((minInput, index) => {
+            const v = minInput.dataset.var;
+            variableRanges[v] = {
+                min: minInput.value.trim(),
+                max: maxInputs[index].value.trim(),
+                color: colorInputs[index].value,
+                size: parseFloat(sizeInputs[index].value) || 1.0
+            };
+        });
+    }
+    document.getElementById('var-settings-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+});
+
+addClick('judge-settings-btn', () => {
+    document.getElementById('judge-correct-text').value = window.judgeSettings.correct.text;
+    document.getElementById('judge-correct-color').value = window.judgeSettings.correct.color;
+    document.getElementById('judge-correct-stroke').value = window.judgeSettings.correct.stroke;
+    document.getElementById('judge-correct-bg').value = window.judgeSettings.correct.bg;
+
+    document.getElementById('judge-incorrect-text').value = window.judgeSettings.incorrect.text;
+    document.getElementById('judge-incorrect-color').value = window.judgeSettings.incorrect.color;
+    document.getElementById('judge-incorrect-stroke').value = window.judgeSettings.incorrect.stroke;
+    document.getElementById('judge-incorrect-bg').value = window.judgeSettings.incorrect.bg;
+
+    document.getElementById('judge-prop-container').style.display = 'flex';
+    document.getElementById('overlay').style.display = 'block';
+});
+
+addClick('save-judge-prop-btn', async () => {
+    window.judgeSettings.correct.text = document.getElementById('judge-correct-text').value.trim() || "せいかい！";
+    window.judgeSettings.correct.color = document.getElementById('judge-correct-color').value;
+    window.judgeSettings.correct.stroke = document.getElementById('judge-correct-stroke').value;
+    window.judgeSettings.correct.bg = document.getElementById('judge-correct-bg').value.trim() || "transparent";
+
+    window.judgeSettings.incorrect.text = document.getElementById('judge-incorrect-text').value.trim() || "おしい！";
+    window.judgeSettings.incorrect.color = document.getElementById('judge-incorrect-color').value;
+    window.judgeSettings.incorrect.stroke = document.getElementById('judge-incorrect-stroke').value;
+    window.judgeSettings.incorrect.bg = document.getElementById('judge-incorrect-bg').value.trim() || "transparent";
+
+    const cSound = document.getElementById('judge-correct-sound').files[0];
+    if (cSound) {
+        window.judgeSettings.correct.soundData = await new Promise(r => { const rd = new FileReader(); rd.onload = e => r(e.target.result); rd.readAsDataURL(cSound); });
+    }
+    const iSound = document.getElementById('judge-incorrect-sound').files[0];
+    if (iSound) {
+        window.judgeSettings.incorrect.soundData = await new Promise(r => { const rd = new FileReader(); rd.onload = e => r(e.target.result); rd.readAsDataURL(iSound); });
+    }
+
+    document.getElementById('judge-prop-container').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+});
+
+// ==========================================
+// レイアウトデータ生成関数 (保存用)
+// ==========================================
+function generateLayoutData() {
+    window.saveCurrentPage(); 
+    return { 
+        config: {
+            quizTitle: window.quizTitle, 
+            bgColor: window.bgColor, 
+            variableRanges: variableRanges,
+            enableEmptyCheck: window.enableEmptyCheck === true,
+            transitionStyle: window.transitionStyle, 
+            playMode: window.playMode, 
+            orderStyle: window.orderStyle, 
+            judgeSettings: window.judgeSettings,
+            actionSoundData: window.actionSoundData
+        },
+        pages: window.problemSet
+    };
+}
+
+// ==========================================
+// ★モード移行・出題エンジン (3パターンの統合)
+// ==========================================
+window.enterRunMode = function(isInit = false) {
+    isEditMode = false;
+    document.body.classList.add('run-mode');
+    document.querySelectorAll('.wrapper-selected').forEach(w => w.classList.remove('wrapper-selected'));
+    
+    if (!isInit) {
+        window.saveCurrentPage();
+    }
+
+    window.playMode = window.playMode || 'pattern2';
+    window.orderStyle = window.orderStyle || 'random';
+    window.runProblemSet = [];
+    window.csvLinesForRun = [];
+
+    if (window.playMode === 'pattern1') {
+        const page0 = window.problemSet[0] || [];
+        for(let i = 0; i < 10; i++) window.runProblemSet.push(page0);
+    } 
+    else if (window.playMode === 'pattern2') {
+        const validPages = [...window.problemSet].filter(p => p && p.length > 0);
+        if (validPages.length === 0) {
+            alert("問題が設定されていません。");
+            window.enterEditMode();
+            return;
+        }
+        
+        if (window.orderStyle === 'random') {
+            for (let i = validPages.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [validPages[i], validPages[j]] = [validPages[j], validPages[i]];
+            }
+        }
+        window.runProblemSet = validPages;
+    } 
+    else if (window.playMode === 'pattern3') {
+        const page0 = window.problemSet[0] || [];
+        let csvLines = [];
+        
+        const formulaItem = page0.find(item => item.type === 'formula');
+        if (formulaItem && formulaItem.content) {
+            csvLines = formulaItem.content.split('\n').filter(l => l.trim() !== '');
+        }
+        
+        if (csvLines.length === 0) {
+            alert("パターン3を実行するには、計算式プロパティにCSVデータを入力してください。");
+            window.enterEditMode();
+            return;
+        }
+        
+        if (window.orderStyle === 'random') {
+            for (let i = csvLines.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [csvLines[i], csvLines[j]] = [csvLines[j], csvLines[i]];
+            }
+        }
+        
+        csvLines = csvLines.slice(0, 10);
+        csvLines.forEach(line => {
+            window.runProblemSet.push(page0); 
+            window.csvLinesForRun.push(line);
+        });
+    }
+
+    window.currentQuestionNum = 1;
+    window.MAX_QUESTIONS = window.runProblemSet.length;
+    window.mistakeCount = 0; 
+    
+    if (window.usedVarHistory) window.usedVarHistory.clear();
+    
+    window.loadRunPage(0);
+};
+
+window.loadRunPage = function(index) {
+    isSolved = false;
+    window.loadPageToDOM(window.runProblemSet[index]);
+
+    if (window.playMode === 'pattern3' && window.csvLinesForRun[index]) {
+        const csvLine = window.csvLinesForRun[index];
+        const parts = csvLine.split(',').map(s => s.trim());
+        const qText = parts[0] || "";
+        const cCount = parseInt(parts[1]) || 2;
+        const correctAns = parts[2] || "";
+        const dummies = parts.slice(3); 
+        
+        const choiceBoxes = Array.from(container.querySelectorAll('.draggable[data-type="box"]'));
+        
+        if (choiceBoxes.length > 0) {
+            const qItem = {
+                type: 'text',
+                content: qText,
+                gridX: 2, gridY: 1, 
+                wCells: 28, hCells: 4,
+                fontSize: 1.5,
+                digits: 0
+            };
+            if (typeof createDraggable === 'function') createDraggable('text', qItem);
+            
+            let choices = [{text: correctAns, isCorrect: true}];
+            let availableDummies = [...dummies];
+            
+            for (let i = 0; i < choiceBoxes.length - 1; i++) {
+                if (availableDummies.length > 0) {
+                    const rIdx = Math.floor(Math.random() * availableDummies.length);
+                    choices.push({text: availableDummies[rIdx], isCorrect: false});
+                    availableDummies.splice(rIdx, 1);
+                } else {
+                    choices.push({text: "", isCorrect: false});
+                }
+            }
+            
+            choices.sort(() => Math.random() - 0.5); 
+            
+            let correctBoxId = "";
+            choiceBoxes.forEach((b, i) => {
+                const cObj = choices[i];
+                if (cObj) {
+                    b.dataset.boxName = cObj.text; 
+                    b.dataset.originalContent = cObj.text; 
+                    
+                    const el = b.querySelector('.rect');
+                    if (el) el.textContent = cObj.text;
+                    
+                    if (cObj.isCorrect) correctBoxId = b.dataset.boxId;
+                    
+                    if (cObj.text === "") {
+                        b.style.display = 'none'; 
+                        b.dataset.isLastPressed = "false";
+                    }
+                }
+            });
+
+            const formulas = container.querySelectorAll('.draggable[data-type="formula"]');
+            formulas.forEach(f => {
+                f.style.display = 'none';
+                f.dataset.evalContent = `[${correctBoxId}]=1`; 
+                const rect = f.querySelector('.formula-rect');
+                if(rect) rect.textContent = `[${correctBoxId}]=1`;
+            });
+        }
+    }
+
+    const checkRect = document.querySelector('.check-rect');
+    if (checkRect && checkRect.textContent === 'できた') checkRect.textContent = "できた";
+
+    if (typeof window.generateProblemVars === 'function') {
+        window.generateProblemVars();
+    } else {
+        currentVarValues = {};
+    }
+
+    if (window.playMode !== 'pattern3' && typeof window.shuffleBoxes === 'function') {
+        window.shuffleBoxes();
+    }
+
+    const textWrappers = container.querySelectorAll('.draggable[data-type="text"]');
+    const answerWrappers = container.querySelectorAll('.draggable[data-type="answer"]');
+    const boxWrappers = container.querySelectorAll('.draggable[data-type="box"]');
+    const toolWrappers = container.querySelectorAll('.draggable[data-type="tool"]');
+    
+    textWrappers.forEach(wrapper => window.renderText ? window.renderText(wrapper) : null);
+    answerWrappers.forEach(wrapper => window.renderAnswer ? window.renderAnswer(wrapper) : null);
+    boxWrappers.forEach(wrapper => window.renderBox ? window.renderBox(wrapper) : null);
+    toolWrappers.forEach(wrapper => {
+        if (typeof ToolManager !== 'undefined') ToolManager.renderTool(wrapper);
+    });
+
+    const startScreen = document.getElementById('start-screen');
+    const isStartScreenVisible = startScreen && startScreen.style.display !== 'none';
+    if (window.actionSoundData && !isStartScreenVisible) {
+        window.playSound(window.actionSoundData);
+    }
+
+    window.problemStartTime = new Date();
+};
+
+window.enterEditMode = function() {
+    isEditMode = true;
+    document.body.classList.remove('run-mode');
+    isSolved = false;
+
+    if (window.problemSet[window.currentEditPage]) {
+        window.loadPageToDOM(window.problemSet[window.currentEditPage]);
+    }
+    window.updatePageUI();
+
+    currentVarValues = {};
+};
+
+addClick('run-btn', () => {
+    const runBtn = document.getElementById('run-btn');
+    if (isEditMode) {
+        window.enterRunMode(false); 
+        if (runBtn) { runBtn.textContent = '■編集に戻る'; runBtn.style.backgroundColor = '#e74c3c'; }
+    } else {
+        window.enterEditMode();
+        if (runBtn) { runBtn.textContent = '▶実行'; runBtn.style.backgroundColor = '#2ecc71'; }
+    }
+});
+
+/* ==========================================
+   データ保存・読込処理 
+   ========================================== */
+addClick('save-btn', async () => {
+    const data = generateLayoutData();
+    const jsonString = JSON.stringify(data, null, 2);
+    
+    try {
+        if (window.showSaveFilePicker) {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: 'layout.json',
+                types: [{
+                    description: 'JSON File',
+                    accept: {'application/json': ['.json']},
+                }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(jsonString);
+            await writable.close();
+        } else {
+            let fileName = prompt("保存するファイル名を入力してください", "layout.json");
+            if (!fileName) return; 
+            if (!fileName.endsWith('.json')) fileName += '.json';
+            
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.error(err);
+            alert("保存に失敗しました。");
+        }
+    }
+});
+
+addClick('load-btn', () => {
+    const loadFile = document.getElementById('load-file');
+    if(loadFile) loadFile.click();
+});
+
+const loadFileEl = document.getElementById('load-file');
+if (loadFileEl) {
+    loadFileEl.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const data = JSON.parse(evt.target.result);
+                variableRanges = {}; 
+                
+                if (data.pages) {
+                    const config = data.config || {};
+                    window.quizTitle = config.quizTitle || '自作グリッド問題'; 
+                    window.bgColor = config.bgColor || '#ffffff'; 
+                    variableRanges = config.variableRanges || {};
+                    window.enableEmptyCheck = config.enableEmptyCheck === true; 
+                    window.transitionStyle = config.transitionStyle || 'none'; 
+                    window.playMode = config.playMode || 'pattern2'; 
+                    window.orderStyle = config.orderStyle || 'random';
+                    if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
+                    window.actionSoundData = config.actionSoundData || null;
+                    window.problemSet = data.pages;
+                } else {
+                    const items = [];
+                    data.forEach(item => {
+                        if (item.type === 'config') {
+                            window.quizTitle = item.quizTitle || '自作グリッド問題';
+                            window.bgColor = item.bgColor || '#ffffff'; 
+                            variableRanges = item.variableRanges || {};
+                            window.enableEmptyCheck = item.enableEmptyCheck === true; 
+                            window.transitionStyle = item.transitionStyle || 'none'; 
+                            window.playMode = item.playMode || 'pattern1'; 
+                            window.orderStyle = item.orderStyle || 'random';
+                            if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
+                            window.actionSoundData = item.actionSoundData || null;
+                        } else {
+                            items.push(item);
+                        }
+                    });
+                    window.problemSet = [items];
+                }
+
+                const cont = document.getElementById('container');
+                if (cont) cont.style.backgroundColor = window.bgColor;
+
+                window.currentEditPage = 0;
+                window.loadPageToDOM(window.problemSet[0]);
+                window.updatePageUI();
+
+            } catch (err) {
+                alert("JSONファイルの読み込みに失敗しました。");
+            }
+            e.target.value = ''; 
+        };
+        reader.readAsText(file);
+    });
+}
+
+window.addEventListener('keydown', (e) => { if(e.key === 'F1') typeof createDraggable === 'function' && createDraggable('box'); });
+
+/* ==========================================
+   ★公開版書出 
+   ========================================== */
+addClick('export-html-btn', async () => {
+    window.saveCurrentPage(); 
+
+    if (window.playMode === 'pattern2') {
+        const validPages = [...window.problemSet].filter(p => p && p.length > 0);
+        if (validPages.length === 0) {
+            alert("書き出しエラー：問題が設定されていないため、書き出しを中止しました。画面に要素を配置してください。");
+            return;
+        }
+    } else if (window.playMode === 'pattern3') {
+        const page0 = window.problemSet[0] || [];
+        let csvLines = [];
+        const formulaItem = page0.find(item => item.type === 'formula');
+        if (formulaItem && formulaItem.content) {
+            csvLines = formulaItem.content.split('\n').filter(l => l.trim() !== '');
+        }
+        if (csvLines.length === 0) {
+            alert("書き出しエラー：パターン3で書き出すするには、画面上に「計算式追加」からアイテムを配置し、プロパティにCSVデータを入力する必要があります。書き出しを中止しました。");
+            return;
+        }
+    }
+
+    try {
+        const t = new Date().getTime();
+        const cssRes = await fetch('style.css?t=' + t);
+        if (!cssRes.ok && cssRes.status !== 0) throw new Error("style.css が取得できませんでした。");
+        const cssText = await cssRes.text();
+
+        const jsFiles = ['script_core.js', 'script_element.js', 'script_game.js', 'script_drag.js', 'script_tools.js', 'script_tegaki.js', 'script_main.js'];
+        let combinedJsText = '';
+        for (const file of jsFiles) {
+            const res = await fetch(file + '?t=' + t);
+            if (!res.ok && res.status !== 0) throw new Error(`${file} が取得できませんでした。`);
+            combinedJsText += await res.text() + '\n\n';
+        }
+
+        const data = generateLayoutData();
+        const jsonString = JSON.stringify(data).replace(/<\/(s)(cript)>/gi, '<\\/$1$2>');
+
+        const htmlClone = document.documentElement.cloneNode(true);
+
+        const containerClone = htmlClone.querySelector('#container');
+        if (containerClone) containerClone.innerHTML = ''; 
+        
+        const oldToast = htmlClone.querySelector('.toast-msg');
+        if (oldToast) oldToast.remove(); 
+
+        const topMenuClone = htmlClone.querySelector('.top-menu-bar');
+        if (topMenuClone) topMenuClone.remove();
+
+        const sidebarClone = htmlClone.querySelector('.sidebar');
+        if (sidebarClone) sidebarClone.remove();
+
+        const oldOverlay = htmlClone.querySelector('#tegaki-feedback-overlay');
+        if (oldOverlay) oldOverlay.remove();
+        const oldStartScreen = htmlClone.querySelector('#start-screen');
+        if (oldStartScreen) oldStartScreen.remove();
+
+        htmlClone.querySelectorAll('link[rel="stylesheet"]').forEach(el => {
+            if (el.href && el.href.includes('style.css')) el.remove();
+        });
+        htmlClone.querySelectorAll('script').forEach(el => {
+            el.remove(); 
+        });
+
+        const styleTag = document.createElement('style');
+        styleTag.textContent = cssText;
+        htmlClone.querySelector('head').appendChild(styleTag);
+
+        const startScreenHtml = `
+        <div id="start-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f0f8ff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000;">
+            <h1 style="font-size: 3rem; color: #2c3e50; margin-bottom: 40px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">問題スタート</h1>
+            <button id="start-btn" style="padding: 20px 60px; font-size: 2.5rem; font-weight: bold; color: #fff; background-color: #3498db; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 8px 0 #2980b9; transition: transform 0.1s, box-shadow 0.1s;">スタート</button>
+            <br><br><a href="index.html" style="margin-top: 20px; padding: 12px 30px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; background-color: #95a5a6; color: #fff; text-decoration: none; font-weight: bold;">メニューへ戻る</a>
+        </div>
+        `;
+        htmlClone.querySelector('body').insertAdjacentHTML('afterbegin', startScreenHtml);
+
+        const mainContainer = htmlClone.querySelector('.main-container');
+        if (mainContainer) mainContainer.style.display = 'none';
+
+        const scriptTag = document.createElement('script');
+        scriptTag.textContent = `
+window.__INIT_DATA__ = ${jsonString};
+
+${combinedJsText}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const startBtn = document.getElementById('start-btn');
+    if(startBtn) {
+        startBtn.addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            const mc = document.querySelector('.main-container');
+            if(mc) mc.style.display = 'flex';
+            window.problemStartTime = new Date();
+            if (window.actionSoundData && typeof window.playSound === 'function') {
+                window.playSound(window.actionSoundData);
+            }
+        });
+        
+        startBtn.addEventListener('mousedown', function() {
+            this.style.transform = 'translateY(8px)';
+            this.style.boxShadow = 'none';
+        });
+        startBtn.addEventListener('mouseup', function() {
+            this.style.transform = 'none';
+            this.style.boxShadow = '0 8px 0 #2980b9';
+        });
+        startBtn.addEventListener('touchstart', function() {
+            this.style.transform = 'translateY(8px)';
+            this.style.boxShadow = 'none';
+        });
+        startBtn.addEventListener('touchend', function() {
+            this.style.transform = 'none';
+            this.style.boxShadow = '0 8px 0 #2980b9';
+        });
+    }
+});
+`;
+        htmlClone.querySelector('body').appendChild(scriptTag);
+
+        const htmlText = "<!DOCTYPE html>\n" + htmlClone.outerHTML;
+
+        if (window.showSaveFilePicker) {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: 'published_grid.html',
+                types: [{
+                    description: 'HTML File',
+                    accept: {'text/html': ['.html']},
+                }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(htmlText);
+            await writable.close();
+        } else {
+            let fileName = prompt("書き出すファイル名を入力してください", "published_grid.html");
+            if (!fileName) return; 
+            if (!fileName.endsWith('.html')) fileName += '.html';
+
+            const blob = new Blob([htmlText], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+    } catch (e) {
+        if (e.name !== 'AbortError') {
+            console.error(e);
+            alert("書き出しに失敗しました。ローカル環境(file://)のセキュリティ制限によりファイルが読み込めない可能性があります。Webサーバー(http/https)上で実行しているか確認してください。\n詳細: " + e.message);
+        }
+    }
+});
+
+/* ==========================================
+   公開版HTMLとしての初期化処理 (ロード時)
+   ========================================== */
+if (typeof window.__INIT_DATA__ !== 'undefined') {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.remove();
+
+    const data = window.__INIT_DATA__;
+    variableRanges = {}; 
+    
+    if (data.pages) {
+        const config = data.config || {};
+        window.quizTitle = config.quizTitle || '自作グリッド問題'; 
+        window.bgColor = config.bgColor || '#ffffff'; 
+        const cont = document.getElementById('container');
+        if (cont) cont.style.backgroundColor = window.bgColor;
+        variableRanges = config.variableRanges || {};
+        window.enableEmptyCheck = config.enableEmptyCheck === true; 
+        window.transitionStyle = config.transitionStyle || 'none'; 
+        window.playMode = config.playMode || 'pattern2';
+        window.orderStyle = config.orderStyle || 'random';
+        if (config.judgeSettings) window.judgeSettings = config.judgeSettings; 
+        window.actionSoundData = config.actionSoundData || null;
+        window.problemSet = data.pages;
+    } else {
+        const items = [];
+        data.forEach(item => {
+            if (item.type === 'config') {
+                window.quizTitle = item.quizTitle || '自作グリッド問題';
+                window.bgColor = item.bgColor || '#ffffff';
+                const cont = document.getElementById('container');
+                if (cont) cont.style.backgroundColor = window.bgColor;
+                variableRanges = item.variableRanges || {};
+                window.enableEmptyCheck = item.enableEmptyCheck === true; 
+                window.transitionStyle = item.transitionStyle || 'none'; 
+                window.playMode = item.playMode || 'pattern1';
+                window.orderStyle = item.orderStyle || 'random';
+                if (item.judgeSettings) window.judgeSettings = item.judgeSettings; 
+                window.actionSoundData = item.actionSoundData || null;
+            } else {
+                items.push(item);
+            }
+        });
+        window.problemSet = [items];
+    }
+
+    setTimeout(() => {
+        if (typeof window.enterRunMode === 'function') window.enterRunMode(true);
+    }, 50);
+}
+
+// 初期起動時のUI更新
+if (typeof window.updatePageUI === 'function') {
+    window.updatePageUI();
+}

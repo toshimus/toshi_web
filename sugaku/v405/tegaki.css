@@ -1,0 +1,79 @@
+* {
+  box-sizing: border-box;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
+  background-color: #eef2f5;
+  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.container {
+  width: 98vw;
+  height: 96vh;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- 画面切り替え --- */
+.screen { display: none; width: 100%; height: 100%; padding: 20px 30px; }
+.screen.active { display: flex; }
+
+/* --- ボタン共通 --- */
+.btn {
+  color: white; font-size: 1.2rem; font-weight: bold; border: none;
+  padding: 12px 24px; border-radius: 50px; cursor: pointer;
+  transition: all 0.1s; text-align: center;
+}
+.btn:active { transform: translateY(4px); }
+
+.btn-primary { background-color: #4ecdc4; box-shadow: 0 6px 0 #38b2ac; }
+.btn-primary:active { box-shadow: 0 2px 0 #38b2ac; }
+.btn-action { background-color: #ff8e53; box-shadow: 0 6px 0 #e07038; }
+.btn-action:active { box-shadow: 0 2px 0 #e07038; }
+.btn-secondary { background-color: #a0aec0; box-shadow: 0 6px 0 #718096; }
+.btn-secondary:active { box-shadow: 0 2px 0 #718096; }
+.btn-success { background-color: #38a169; box-shadow: 0 6px 0 #276749; }
+.btn-success:active { box-shadow: 0 2px 0 #276749; }
+
+/* --- 学習モード --- */
+#train-screen { flex-direction: column; align-items: center; background: #f0f8ff; overflow-y: auto; }
+.layout-row { display: flex; flex-direction: row; width: 100%; flex: 1; gap: 30px; align-items: center; justify-content: center; margin-top: 20px; }
+.col { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 400px;}
+.train-selector { font-size: 1.5rem; padding: 10px; border-radius: 8px; border: 2px solid #cbd5e0; margin-bottom: 15px; font-weight: bold; width: 100%; text-align: center; }
+.data-tools { display: flex; gap: 10px; width: 100%; margin: 10px 0; }
+.btn-half { flex: 1; font-size: 1rem; padding: 12px; margin: 0; }
+
+.preview-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); border-radius: 24px; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
+.preview-modal.active { display: flex; }
+.preview-content { background: #fff; width: 90%; height: 90%; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; }
+.preview-header { display: flex; justify-content: space-between; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; margin-bottom: 15px; }
+.btn-close-modal { background: #cbd5e0; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.5rem; cursor: pointer; font-weight: bold; }
+.preview-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; padding-bottom: 20px; }
+.preview-item { display: flex; flex-direction: column; align-items: center; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px; }
+.preview-item canvas { border: 1px solid #cbd5e0; border-radius: 4px; background: #fff; width: 64px; height: 64px; }
+.preview-item-title { font-weight: bold; margin: 8px 0; color: #4a5568; }
+.btn-delete-item { background: #fc8181; color: white; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-weight: bold; width: 100%; }
+
+/* --- キャンバス設定 --- */
+canvas {
+  border: 4px dashed #cbd5e0; border-radius: 20px; background-color: #fafafa; touch-action: none;
+  cursor: crosshair;
+}
+.btn-clear { background: #e53e3e; color: white; border: none; border-radius: 12px; padding: 10px 18px; font-size: 1rem; font-weight: bold; cursor: pointer; }
