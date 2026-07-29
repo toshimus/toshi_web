@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.T.T. - macOS ビルド環境構築マニュアル</title>
+<style>
+  body { 
+    background-color: #0d0d0d; 
+    color: #e0e0e0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    margin: 0; 
+    padding: 0; 
+  }
+  .header { 
+    background: linear-gradient(90deg, #1a0000 0%, #3a0000 50%, #1a0000 100%); 
+    border-bottom: 2px solid #ff0000; 
+    padding: 15px 30px; 
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+    box-sizing: border-box;
+  }
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1000px;
+    margin: 0 auto;
+    margin-bottom: 10px; /* スキャナーとの余白 */
+  }
+  .header-title {
+    text-align: left;
+  }
+  h1 { 
+    color: #ff3333; 
+    margin: 0; 
+    letter-spacing: 2px; 
+    font-weight: 600;
+    font-size: 1.8em;
+  }
+  .subtitle {
+    color: #aaa;
+    margin-top: 5px;
+    font-size: 1em;
+  }
+
+  /* K.I.T.T. 実機風ボイスインジケーター（3列LED） */
+  .voice-module {
+    display: flex;
+    align-items: center;
+    background: #000;
+    padding: 12px 20px;
+    border: 2px solid #222;
+    border-radius: 6px;
+    box-shadow: inset 0 0 15px #000, 0 0 10px rgba(255, 0, 0, 0.2);
+  }
+  .voice-display {
+    display: flex;
+    gap: 8px; /* 列の間の隙間 */
+    height: 80px; /* インジケーター全体の高さ */
+    align-items: center;
+  }
+  .voice-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px; /* セグメント（粒）の縦の隙間 */
+    height: 100%;
+    justify-content: center;
+  }
+  .voice-segment {
+    width: 21px; /* 2/3サイズ幅 */
+    height: 4px; /* セグメントの縦幅 */
+    background: #110000; /* 消灯時（無音時）の極めて暗い赤 */
+    border-radius: 1px;
+    /* 消灯時の残像効果：より機敏に動くようフェードアウト時間を短縮 (0.4s -> 0.15s) */
+    transition: background 0.15s ease-out, box-shadow 0.15s ease-out;
+  }
+  .voice-segment.on {
+    background: #ff1a1a; /* 点灯時の明るい赤 */
+    box-shadow: 0 0 10px #ff0000, 0 0 2px #fff inset;
+    /* 点灯時は瞬時に最大輝度へ立ち上げる */
+    transition: background 0.02s, box-shadow 0.02s;
+  }
+
+  /* K.I.T.T. 実機風フロントスキャナー（8連LED） */
+  .scanner-unit {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 700px; /* スキャナーの全体の幅 */
+    height: 6px; /* スキャナーの高さ */
+    background: #050000;
+    display: flex;
+    gap: 8px; /* 8個のLEDの間の隙間 */
+    padding: 0 15px;
+    box-sizing: border-box;
+    border-top: 1px solid #330000;
+  }
+  .scanner-led {
+    flex: 1;
+    height: 100%;
+    background: #110000;
+    border-radius: 2px 2px 0 0;
+    /* スキャナーの残像効果 */
+    transition: background 0.35s ease-out, box-shadow 0.35s ease-out; 
+  }
+  .scanner-led.on {
+    background: #ff4d4d; /* 輝度を抑えた深みのある赤 */
+    /* 光の拡散（グロー効果）を控えめにし、上品な残像に調整 */
+    box-shadow: 0 -1px 8px 1px rgba(255, 0, 0, 0.8), 0 -1px 15px 3px rgba(255, 0, 0, 0.4); 
+    transition: background 0.02s, box-shadow 0.02s; /* 瞬時に点灯 */
+  }
+  
+  .container { 
+    padding: 160px 20px 40px; 
+    max-width: 900px; 
+    margin: auto; 
+  }
+  .content-box {
+    background-color: #161616;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+    margin-bottom: 30px;
+  }
+
+  /* パート毎のヘッダーと音声ボタンのレイアウト */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
+    margin-top: 35px; 
+    margin-bottom: 15px;
+  }
+  h2 { 
+    color: #ff4d4d; 
+    border-left: 4px solid #ff0000; 
+    padding-left: 12px; 
+    margin: 0; 
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  
+  .section-voice-btn {
+    background: #222;
+    color: #00e6e6;
+    border: 1px solid #00e6e6;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 0.9em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-voice-btn:hover {
+    background: #00e6e6;
+    color: #000;
+    box-shadow: 0 0 10px #00e6e6;
+  }
+  .section-voice-btn.active {
+    background: #ff3333;
+    color: #fff;
+    border-color: #ff3333;
+    box-shadow: 0 0 10px #ff3333;
+  }
+
+  h3 { 
+    color: #00e6e6; 
+    margin-top: 25px;
+  }
+  h4 {
+    color: #aaa;
+  }
+  p, li { 
+    line-height: 1.7; 
+    color: #ccc; 
+  }
+  pre { 
+    background-color: #0a0a0a; 
+    padding: 15px; 
+    border-radius: 5px; 
+    overflow-x: auto; 
+    border: 1px solid #333; 
+    color: #00e6e6;
+    font-family: 'Consolas', 'Courier New', monospace;
+  }
+  code { 
+    font-family: 'Consolas', 'Courier New', monospace; 
+    color: #00e6e6; 
+    background: #222; 
+    padding: 3px 6px; 
+    border-radius: 3px; 
+  }
+  pre code { 
+    background: none; 
+    padding: 0; 
+    color: inherit; 
+  }
+  .note { 
+    background-color: #1a1a1a; 
+    border-left: 6px solid #00e6e6; 
+    padding: 18px; 
+    margin-bottom: 25px; 
+    border-radius: 0 5px 5px 0;
+  }
+  .note strong { 
+    color: #00e6e6; 
+    font-size: 1.1em;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-content">
+    <div class="header-title">
+      <h1>macOS ビルド環境構築マニュアル</h1>
+      <div class="subtitle">Windows / macOS クロスプラットフォーム対応環境 (Update: v1.0)</div>
+    </div>
+    
+    <!-- K.I.T.T. ボイスモジュールUI -->
+    <div class="voice-module">
+      <div class="voice-display" id="kitt-indicator">
+        <div class="voice-col" id="kitt-col-1"></div>
+        <div class="voice-col" id="kitt-col-2"></div>
+        <div class="voice-col" id="kitt-col-3"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- K.I.T.T. 8連フロントスキャナー -->
+  <div class="scanner-unit">
+    <div class="scanner-led"></div>
+    <div class="scanner-led"></div>
+    <div class="scanner-led"></div>
+    <div class="scanner-led"></div>
+    <div class="scanner-led"></div>
+    <div class="scanner-led"></div>
+    <div class="scanner-led"></div>
+    <div class="scanner-led"></div>
+  </div>
+</div>
+
+<div class="container">
+  
+  <div class="content-box">
+    <div class="section-header">
+      <h2 style="border-left:none; padding-left:0; color:#fff;">プロジェクト概要</h2>
+      <button class="section-voice-btn" data-voice="こんにちは。私、K.I.T.T.がご案内いたします。このドキュメントは、Mac環境でのクロスプラットフォーム・アプリケーション構築と、Windows環境との構造的な違いについて解説したものです。">▶ PLAY VOICE</button>
+    </div>
+    <p>このドキュメントは、macOS上でのwxWidgetsを用いたC++アプリケーションのコンパイルと、ダブルクリックで起動可能なスクリプトの作成手順、およびOS間の技術的な違いをまとめたものです。</p>
+
+    <div class="note">
+        <strong>💡 OSごとの環境の違い：Homebrew と MSYS2</strong><br><br>
+        macOS環境で使用する「Homebrew」は、もともとUnixベースで作られているMacの標準システム上に、直接ネイティブなパッケージ（ソフトウェアやライブラリ）を追加・管理するためのツールです。<br><br>
+        一方、Windows環境でよく用いられる「MSYS2」は、Windowsという全く異なるOSの上に、UnixやLinuxに似た開発環境（MinGW-w64など）を擬似的に構築するためのシステムです。<br>
+        つまり、MacとWindowsではOSの根幹となる仕様が異なるため、開発に必要なツールを準備するための「土台のアプローチ」にこのような根本的な違いが存在します。
+    </div>
+
+    <div class="note">
+        <strong>💡 共通の架け橋となるライブラリ（wxWidgets と SDL2）</strong><br><br>
+        OSの仕様や開発環境（HomebrewとMSYS2）に上記のような大きな違いがあるにもかかわらず、<strong>「wxWidgets」や「SDL2」といったライブラリは、両環境で全く同じように共通して使用することが可能です。</strong><br><br>
+        これらは「クロスプラットフォーム・ライブラリ」と呼ばれ、各OSの複雑な仕様の違いを内部で自動的に吸収する役割を持っています。<br>
+        <ul>
+            <li><strong>wxWidgets：</strong> ウィンドウやボタン、メニューなど、OSごとの標準的なデスクトップUIを描画することに長けています。</li>
+            <li><strong>SDL2 (Simple DirectMedia Layer)：</strong> 高速な2D/3Dグラフィック描画、音声再生、コントローラー入力など、ハードウェアへの直接的かつ低遅延なアクセスに特化しています。</li>
+        </ul>
+        私たち開発者はこれらのライブラリを利用することで、「一つの同じC++のソースコード」を書くだけで、MacではMac用のアプリとして、WindowsではWindows用のアプリとして、それぞれのOSに最適化された状態でコンパイルし実行することが可能になるのです。
+    </div>
+  </div>
+
+  <div class="content-box">
+    <div class="section-header">
+      <h2>1. 事前準備（Mac側）</h2>
+      <button class="section-voice-btn" data-voice="パート1。Macのターミナルで、Homebrewを使ってダブルエックスウィジェットと、エスディーエルツーなどの拡張ライブラリをインストールします。">▶ PLAY VOICE</button>
+    </div>
+    <p>Macのターミナルで、まだwxWidgetsを導入されていない場合は、以下のコマンドでインストールをお願いします。</p>
+    <pre><code>brew install wxwidgets</code></pre>
+    
+    <p>また、SDL2および、ゲームやエミュレータ開発でよく使われる標準的な拡張ライブラリ（フォント描画用の <code>sdl2_ttf</code>、画像読み込み用の <code>sdl2_image</code>、音声再生用の <code>sdl2_mixer</code>）を導入する場合は、続けて以下のコマンドを実行してください。</p>
+    <pre><code>brew install sdl2 sdl2_ttf sdl2_image sdl2_mixer</code></pre>
+
+    <div class="section-header">
+      <h2>2. Mac用ビルドスクリプト（build.sh）</h2>
+      <button class="section-voice-btn" data-voice="パート2。プロジェクト内にビルド用のシェルスクリプトを作成し、ターミナルから実行権限を付与します。">▶ PLAY VOICE</button>
+    </div>
+    <p>以下のコードをコピーして、プロジェクトフォルダ内に <code>build.sh</code> という名前で保存してください。</p>
+    <pre><code>#!/bin/sh
+
+echo "[K.I.T.T.] Building Pixel Art Editor (Incremental Build for macOS)..."
+
+# 1. 差分ビルド用のフラグ初期化
+UPDATE=0
+HEADER_CHANGED=0
+
+# ヘッダーファイルに変更があった場合は全再コンパイルのフラグを立てる
+for hpp in *.hpp; do
+    if [ ! -f pixelart_app ] || [ "$hpp" -nt pixelart_app ]; then
+        HEADER_CHANGED=1
+        break
+    fi
+done
+
+# 2. 各ソースファイルの更新チェックと個別コンパイル
+for src in app.cpp app_canvas_events_core.cpp app_canvas_events_down.cpp app_canvas_events_move.cpp app_canvas_events_up.cpp app_canvas_render.cpp app_image_ops.cpp app_ui_1.cpp app_ui_2.cpp canvas_io.cpp drawing_tools.cpp state.cpp vector_utils.cpp app_icons.cpp advanced_tools.cpp; do
+    obj="$src.o"
+    if [ ! -f "$obj" ] || [ "$src" -nt "$obj" ] || [ $HEADER_CHANGED -eq 1 ]; then
+        echo "[Compile] $src ..."
+        g++ -O2 -std=c++17 -c "$src" -o "$obj" `wx-config --cxxflags`
+        if [ $? -ne 0 ]; then
+            echo "[Error] C++ compilation failed at $src."
+            exit 1
+        fi
+        UPDATE=1
+    fi
+done
+
+# 3. 変更があった場合のみリンク処理
+if [ $UPDATE -eq 1 ] || [ ! -f pixelart_app ]; then
+    echo "[Link] pixelart_app ..."
+    # 修正箇所: advanced_tools.cpp を advanced_tools.cpp.o に修正しました
+    g++ -O2 app.cpp.o app_canvas_events_core.cpp.o app_canvas_events_down.cpp.o app_canvas_events_move.cpp.o app_canvas_events_up.cpp.o app_canvas_render.cpp.o app_image_ops.cpp.o app_ui_1.cpp.o app_ui_2.cpp.o canvas_io.cpp.o drawing_tools.cpp.o state.cpp.o vector_utils.cpp.o app_icons.cpp.o advanced_tools.cpp.o -o pixelart_app `wx-config --libs core,base`
+    if [ $? -ne 0 ]; then
+        echo "[Error] Linking failed."
+        exit 1
+    fi
+    echo "[Success] Application is ready: ./pixelart_app"
+else
+    echo "[Skip] Everything is up-to-date. No compilation needed."
+fi</code></pre>
+    
+    <p>その後、ターミナルで <code>chmod +x build.sh</code> を実行して実行権限を付与し、<code>./build.sh</code> で実行できるようにしましょう。</p>
+    <pre><code>chmod +x build.sh</code></pre>
+  </div>
+
+  <div class="content-box">
+    <div class="section-header">
+      <h2>3. 起動用スクリプトファイル（.command）の作成</h2>
+      <button class="section-voice-btn" data-voice="パート3。ダブルクリックで起動できるように、コマンドファイルを作成し実行権限を付与します。">▶ PLAY VOICE</button>
+    </div>
+    <p>ターミナルで対象のプロジェクトフォルダ内に移動している状態で、以下のコマンドを実行してください。これにより、現在ターミナルが作業しているフォルダへ直接ファイルが作成されます。</p>
+    <pre><code>cat &lt;&lt; 'EOF' &gt; KITT_Boot.command
+#!/bin/sh
+cd "$(dirname "$0")"
+chmod +x build.sh
+./build.sh
+EOF</code></pre>
+
+    <p>作成後、同じくターミナルで以下のコマンドを実行し、ファイルに実行権限を付与します。</p>
+    <pre><code>chmod +x KITT_Boot.command</code></pre>
+
+    <div class="note">
+        <strong>💡 chmod +x についての補足</strong><br><br>
+        このコマンドは、作成したファイルに対して<strong>「プログラムとして実行する権限」</strong>を与えるためのものです。<br>
+        Macの初期設定では新規作成されたファイルは単なるテキストファイルとして扱われるため、このコマンドを実行することで安全なプログラムとして認識させます。<br><br>
+        <strong>※この操作はファイル作成直後に「一度だけ」実行すれば問題ありません。</strong><br>
+        再起動を行ったり、ファイルの中身を書き換えたりしても権限は保持されます（ファイルを完全に削除して作り直した場合のみ、再度実行が必要です）。
+    </div>
+
+    <div class="note">
+        <strong>💡 ワンポイントアドバイス</strong><br><br>
+        <code>KITT_Boot.command</code> 内の <code>cd "$(dirname "$0")"</code> という記述が、自動的に「そのファイル自身が置かれているフォルダ」を認識して移動する役割を果たします。そのため、プロジェクトフォルダ全体を別の場所へ移動させたとしても、中にある <code>KITT_Boot.command</code> をダブルクリックするだけで、常に正しいフォルダでコンパイルと起動が実行されます。
+    </div>
+
+    <div class="section-header">
+      <h2>4. 使い方と実行後の流れ</h2>
+      <button class="section-voice-btn" data-voice="パート4。設定完了後、フォルダ内にある起動スクリプトをダブルクリックしてアプリケーションを実行します。差分ビルド機能も搭載されています。">▶ PLAY VOICE</button>
+    </div>
+    <p>設定完了後、フォルダ内にある <strong><code>KITT_Boot.command</code></strong> をダブルクリックしてください。</p>
+    <ul>
+        <li><strong>初回ビルド時:</strong> 全てのソースファイルが順次コンパイルされ、最後にリンク処理が行われて実行ファイル <code>pixelart_app</code> が生成されます。</li>
+        <li><strong>2回目以降のビルド時:</strong> ソースコードやヘッダーファイルに変更がない場合は自動でビルドがスキップされ、変更があった部分のみが効率よくコンパイル（差分ビルド）されます。</li>
+    </ul>
+  </div>
+
+  <div class="content-box">
+    <div class="section-header">
+      <h2>5. WindowsバッチファイルとMacスクリプトの違い</h2>
+      <button class="section-voice-btn" data-voice="パート5。Windowsのバッチファイルと、Macのシェルスクリプトの仕様や記述言語の違いについて解説します。">▶ PLAY VOICE</button>
+    </div>
+    <p>Windowsの「バッチファイル（.bat）」と、Macの「シェルスクリプト（.sh / .command）」は、どちらも複数のコマンドを自動実行するためのファイルですが、記述言語や文法に違いがあります。</p>
+    
+    <div class="note">
+        <strong>💡 主な違い</strong><br>
+        <ul>
+            <li><strong>Windows (.bat):</strong> コマンドプロンプト（cmd.exe）で動作します。実行結果の判定には <code>%ERRORLEVEL%</code> を使用することが多いです。</li>
+            <li><strong>Mac (.command / .sh):</strong> Unix系のシェル（bashやzsh）で動作します。ファイルの先頭に <code>#!/bin/sh</code>（シバン）を記述し、実行する環境を明記するのが特徴です。実行結果の判定には <code>$?</code> を使用します。</li>
+        </ul>
+    </div>
+
+    <h3>【例題】シンプルなビルドと実行の比較</h3>
+    <h4>Windowsの場合（build.bat）</h4>
+    <pre><code>@echo off
+echo [K.I.T.T.] Building on Windows...
+g++ -O2 main.cpp -o app.exe
+if %ERRORLEVEL% equ 0 (
+    echo [Success] Starting app...
+    app.exe
+) else (
+    echo [Error] Build failed.
+)
+pause</code></pre>
+
+    <h4>Macの場合（build.command）</h4>
+    <pre><code>#!/bin/sh
+cd "$(dirname "$0")"
+echo "[K.I.T.T.] Building on macOS..."
+g++ -O2 main.cpp -o app
+if [ $? -eq 0 ]; then
+    echo "[Success] Starting app..."
+    ./app
+else
+    echo "[Error] Build failed."
+fi</code></pre>
+  </div>
+
+  <div class="content-box">
+    <div class="section-header">
+      <h2>6. 動的ライブラリ（DLLとdylib）の利用パターンの違い</h2>
+      <button class="section-voice-btn" data-voice="パート6。WindowsのDLLとMacのダイリブ、それぞれの動的ライブラリのOS間の利用パターンの違いと、C++でのクロスプラットフォーム設計についてです。">▶ PLAY VOICE</button>
+    </div>
+    <p>Windowsにおける動的リンクライブラリは「DLL（.dll）」と呼ばれますが、Macでは「dylib（.dylib）」と呼ばれます。これらをC++のコードでクロスプラットフォームに設計し、両方のOSでコンパイルできるようにするための標準的なパターンをご紹介いたします。</p>
+
+    <div class="note">
+        <strong>💡 エクスポート定義の分岐</strong><br><br>
+        ライブラリ内の関数を外部プログラムから呼び出せるように公開（エクスポート）する仕組みがOS間で異なります。<br>
+        Windowsでは <code>__declspec(dllexport)</code> を指定する必要がありますが、Mac（GCC/Clang環境）では <code>__attribute__((visibility("default")))</code> を使用します。C++のプリプロセッサを利用し、これをマクロで自動的に切り替えるのが一般的な手法です。
+    </div>
+
+    <h3>【例題】クロスプラットフォーム対応のライブラリ用ヘッダー（mylib.h）</h3>
+    <pre><code>#pragma once
+
+// コンパイルするOSごとにエクスポート用のマクロを切り替える
+#ifdef _WIN32
+    // Windows環境用
+    #define EXPORT __declspec(dllexport)
+#else
+    // Mac(Unix)環境用
+    #define EXPORT __attribute__((visibility("default")))
+#endif
+
+// C言語形式で関数をエクスポートし、名前修飾(マングリング)を防ぐ
+extern "C" EXPORT void kitt_initialize();
+extern "C" EXPORT int kitt_calculate(int a, int b);
+</code></pre>
+
+    <h3>【例題】ライブラリの実装側（mylib.cpp）</h3>
+    <pre><code>#include &lt;iostream&gt;
+#include "mylib.h"
+
+// ヘッダーで定義した通り、C言語形式でエクスポートされる関数を実装します
+extern "C" EXPORT void kitt_initialize() {
+    std::cout &lt;&lt; "[K.I.T.T.] System initialized. Ready to assist." &lt;&lt; std::endl;
+}
+
+extern "C" EXPORT int kitt_calculate(int a, int b) {
+    std::cout &lt;&lt; "[K.I.T.T.] Calculating: " &lt;&lt; a &lt;&lt; " + " &lt;&lt; b &lt;&lt; std::endl;
+    return a + b;
+}
+</code></pre>
+
+    <h3>【例題】コンパイルコマンドの違い</h3>
+    <p>ソースコード（mylib.cpp）をコンパイルして動的ライブラリを生成する際のコマンドも異なります。</p>
+    
+    <h4>Windowsの場合（.dll の生成）</h4>
+    <pre><code>g++ -shared -O2 mylib.cpp -o mylib.dll</code></pre>
+    
+    <h4>Macの場合（.dylib の生成）</h4>
+    <pre><code>g++ -dynamiclib -O2 mylib.cpp -o libmylib.dylib</code></pre>
+  </div>
+
+</div>
+
+<!-- K.I.T.T. アニメーション制御スクリプト -->
+<script>
+  // -------------------------
+  // 8連フロントスキャナーの制御
+  // -------------------------
+  const scannerLeds = document.querySelectorAll('.scanner-led');
+  let currentScanIdx = 0;
+  let scanDirection = 1;
+
+  setInterval(() => {
+    // 全て消灯（CSSのtransitionにより徐々に消える残像効果）
+    scannerLeds.forEach(led => led.classList.remove('on'));
+    
+    // 現在のLEDを点灯
+    if(scannerLeds[currentScanIdx]) {
+      scannerLeds[currentScanIdx].classList.add('on');
+    }
+
+    currentScanIdx += scanDirection;
+    
+    // 両端で折り返す
+    if (currentScanIdx >= scannerLeds.length - 1) {
+      currentScanIdx = scannerLeds.length - 1;
+      scanDirection = -1;
+    } else if (currentScanIdx <= 0) {
+      currentScanIdx = 0;
+      scanDirection = 1;
+    }
+  }, 110); // スキャンの速度（ミリ秒）
+
+
+  // -------------------------
+  // ボイスインジケーターの制御
+  // -------------------------
+  const synth = window.speechSynthesis;
+  const col1 = document.getElementById('kitt-col-1');
+  const col2 = document.getElementById('kitt-col-2');
+  const col3 = document.getElementById('kitt-col-3');
+  
+  const numSegments = 16; // 1列あたりのセグメント数
+  
+  function initSegments(col) {
+    for (let i = 0; i < numSegments; i++) {
+      const seg = document.createElement('div');
+      seg.className = 'voice-segment';
+      col.appendChild(seg);
+    }
+  }
+  initSegments(col1);
+  initSegments(col2);
+  initSegments(col3);
+
+  let isSpeaking = false;
+  let currentVol = 0;
+  let targetVol = 0;
+  let animationId = null;
+
+  function simulateWaveform() {
+    if (!isSpeaking) {
+      // 発話停止時は計算上のボリュームを即座に下げる（残像効果は短縮したCSSに任せる）
+      currentVol -= 1.5;
+      if (currentVol < 0) currentVol = 0;
+    } else {
+      // 発話中は徐々に波形が落ち着き（息継ぎ）、細かい母音/子音の響きを乗せる
+      // 減衰速度を上げ、よりピーキーな反応に
+      targetVol *= 0.75; 
+      if (Math.random() < 0.35) {
+        targetVol += Math.random() * 3; 
+      }
+      if (targetVol > numSegments / 2) targetVol = numSegments / 2;
+
+      // 現在の音量をターゲット音量へ素早く追従させる
+      if (targetVol > currentVol) {
+        currentVol += (targetVol - currentVol) * 0.85; // より鋭い立ち上がり
+      } else {
+        currentVol += (targetVol - currentVol) * 0.95; // より鋭い下がり
+      }
+    }
+
+    // 各列の音量を決定
+    let volCenter = currentVol;
+    // 左右の感度を中央の40%程度に落とし、わずかな揺らぎを加える
+    let volSide = currentVol * 0.4;
+    if (volSide > 0.5) {
+      volSide += (Math.random() * 0.8);
+    }
+
+    applyVolume(col1, volSide);
+    applyVolume(col2, volCenter);
+    applyVolume(col3, volSide);
+
+    // アニメーションを継続するか判定
+    if (isSpeaking || currentVol > 0) {
+      animationId = requestAnimationFrame(simulateWaveform);
+    } else {
+      // 完全に停止した際にアニメーションIDをリセット（連続再生時のバグ修正）
+      animationId = null;
+    }
+  }
+
+  function applyVolume(col, vol) {
+    const segments = col.children;
+    const midPoint = numSegments / 2; // 8
+    
+    for (let i = 0; i < numSegments; i++) {
+      // インデックスから中央までの距離を計算
+      let dist = (i < midPoint) ? (midPoint - 1 - i) : (i - midPoint);
+      
+      // 計算されたボリューム内であればONクラスを付与
+      if (dist < vol) {
+        segments[i].classList.add('on');
+      } else {
+        segments[i].classList.remove('on');
+      }
+    }
+  }
+
+  // -------------------------
+  // 音声再生ボタンの制御
+  // -------------------------
+  const voiceBtns = document.querySelectorAll('.section-voice-btn');
+  let currentActiveBtn = null;
+
+  voiceBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const textToSpeak = this.getAttribute('data-voice');
+
+      if (this === currentActiveBtn && synth.speaking) {
+        synth.cancel();
+        return;
+      }
+      if (synth.speaking) {
+        synth.cancel();
+      }
+
+      voiceBtns.forEach(b => {
+        b.classList.remove('active');
+        b.textContent = '▶ PLAY VOICE';
+      });
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = 'ja-JP';
+      utterance.pitch = 0.85; 
+      utterance.rate = 1.05;
+
+      utterance.onboundary = (event) => {
+        if (isSpeaking) {
+          targetVol = (numSegments / 2) * 0.8 + (Math.random() * 2);
+        }
+      };
+
+      utterance.onstart = () => {
+        currentActiveBtn = this;
+        this.classList.add('active');
+        this.textContent = '■ STOP VOICE';
+        isSpeaking = true;
+        
+        // アニメーションが停止中であれば再始動する
+        if (!animationId) {
+          simulateWaveform();
+        }
+      };
+
+      utterance.onend = () => {
+        currentActiveBtn = null;
+        this.classList.remove('active');
+        this.textContent = '▶ PLAY VOICE';
+        isSpeaking = false;
+      };
+
+      utterance.onerror = () => {
+        currentActiveBtn = null;
+        this.classList.remove('active');
+        this.textContent = '▶ PLAY VOICE';
+        isSpeaking = false;
+      };
+
+      synth.speak(utterance);
+    });
+  });
+</script>
+
+</body>
+</html>
