@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiCad スクリプト詳細解説（配線・DSNエクスポート準備編）</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        h2 {
+            color: #2980b9;
+            border-left: 5px solid #3498db;
+            padding-left: 15px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            background-color: #f8fbfd;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #282a36;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            line-height: 1.5;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            background-color: #e8f4f8;
+            color: #d35400;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #e0e0e0;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        strong {
+            display: block;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>KiCad スクリプト詳細解説（配線・DSNエクスポート準備編）</h1>
+
+        <h2>【1段落】オリジナルコード</h2>
+<pre><code>def add_wiring_nets():
+    board = pcbnew.GetBoard()
+    j1 = board.FindFootprintByReference("J1")
+    u1 = board.FindFootprintByReference("U1")
+    u2 = board.FindFootprintByReference("U2")
+    r1 = board.FindFootprintByReference("R1")
+    r2 = board.FindFootprintByReference("R2")
+    sw1 = board.FindFootprintByReference("SW1")
+    
+    if not j1 or not u1 or not u2 or not sw1: return
+        
+    connections = [
+        ("GND", [
+            ("J1", "1"), ("J1", "16"), 
+            ("U1", "16"), ("U2", "16"), 
+            ("R1", "1"), 
+            ("U1", "1"), ("U1", "2"), ("U1", "3"), ("U1", "30"),
+            ("U2", "1"), ("U2", "2"), ("U2", "3"), ("U2", "28"), ("U2", "29"), ("U2", "30")
+         ]),
+        ("VCC", [
+            ("J1", "30"), ("J1", "31"), 
+            ("U1", "32"), ("U2", "32"),
+            ("R2", "1")
+        ]),
+        ("WE_PULL", [
+            ("U1", "31"), ("R1", "2")
+        ]),
+        ("CS_PULL", [
+            ("U1", "24"), ("R2", "2")
+        ]),
+        ("PRG_A0",  [("J1", "13"), ("U1", "12")]),
+        ("PRG_A1",  [("J1", "12"), ("U1", "11")]),
+        ("PRG_A2",  [("J1", "11"), ("U1", "10")]),
+        ("PRG_A3",  [("J1", "10"), ("U1", "9")]),
+        ("PRG_A4",  [("J1", "9"),  ("U1", "8")]),
+        ("PRG_A5",  [("J1", "8"),  ("U1", "7")]),
+        ("PRG_A6",  [("J1", "7"),  ("U1", "6")]),
+        ("PRG_A7",  [("J1", "6"),  ("U1", "5")]),
+        ("PRG_A8",  [("J1", "5"),  ("U1", "27")]),
+        ("PRG_A9",  [("J1", "4"),  ("U1", "26")]),
+        ("PRG_A10", [("J1", "3"),  ("U1", "23")]),
+        ("PRG_A11", [("J1", "2"),  ("U1", "25")]),
+        ("PRG_A12", [("J1", "33"), ("U1", "4")]),
+        ("PRG_A13", [("J1", "34"), ("U1", "28")]),
+        ("PRG_A14", [("J1", "35"), ("U1", "29")]),
+        ("PRG_A15", [("U1", "3")]),
+        ("PRG_A16", [("U1", "30")]),
+        ("PRG_A17", [("U1", "2")]),
+        ("PRG_A18", [("U1", "1")]),
+        ("PRG_D0",  [("J1", "43"), ("U1", "13")]), 
+        ("PRG_D1",  [("J1", "42"), ("U1", "14")]),
+        ("PRG_D2",  [("J1", "41"), ("U1", "15")]),
+        ("PRG_D3",  [("J1", "40"), ("U1", "17")]),
+        ("PRG_D4",  [("J1", "39"), ("U1", "18")]),
+        ("PRG_D5",  [("J1", "38"), ("U1", "19")]),
+        ("PRG_D6",  [("J1", "37"), ("U1", "20")]),
+        ("PRG_D7",  [("J1", "36"), ("U1", "21")]),
+        ("CHR_A0",  [("J1", "25"), ("U2", "12")]),
+        ("CHR_A1",  [("J1", "24"), ("U2", "11")]),
+        ("CHR_A2",  [("J1", "23"), ("U2", "10")]),
+        ("CHR_A3",  [("J1", "22"), ("U2", "9")]),
+        ("CHR_A4",  [("J1", "21"), ("U2", "8")]),
+        ("CHR_A5",  [("J1", "20"), ("U2", "7")]),
+        ("CHR_A6",  [("J1", "19"), ("U2", "6")]),
+        ("CHR_A7",  [("J1", "50"), ("U2", "5")]),
+        ("CHR_A8",  [("J1", "51"), ("U2", "27")]),
+        ("CHR_A9",  [("J1", "52"), ("U2", "26")]),
+        ("VRAM_A10", [("J1", "18"), ("SW1", "2")]), # スイッチ共通端子へ VRAM A10 を接続
+        ("CHR_A10",  [("SW1", "1"), ("U2", "23")]), # スイッチ端子1 から U2:A10 へ
+        ("CHR_A11",  [("SW1", "3"), ("U2", "25")]), # スイッチ端子3 から U2:A11 へ
+        ("CHR_A12",  [("J1", "55"), ("U2", "4")]),
+        ("CHR_A13",  [("J1", "56"), ("U2", "22")]),
+        ("CHR_D0",  [("J1", "26"), ("U2", "13")]),
+        ("CHR_D1",  [("J1", "27"), ("U2", "14")]),
+        ("CHR_D2",  [("J1", "28"), ("U2", "15")]),
+        ("CHR_D3",  [("J1", "29"), ("U2", "17")]),
+        ("CHR_D4",  [("J1", "59"), ("U2", "18")]),
+        ("CHR_D5",  [("J1", "58"), ("U2", "19")]),
+        ("CHR_D6",  [("J1", "57"), ("U2", "20")]),
+        ("CHR_D7",  [("J1", "56"), ("U2", "21")]),
+        ("ROMSEL",  [("J1", "44"), ("U1", "22")]), 
+        ("CHR_RD",  [("J1", "17"), ("U2", "24")]), 
+        ("CHR_WE",  [("J1", "47"), ("U2", "31")]), 
+        ("CIRAM_CE",[("J1", "48"), ("J1", "49")]), 
+        ("SOUND_IO",[("J1", "45"), ("J1", "46")])  
+    ]
+    
+    net_info = board.GetNetInfo()
+    
+    for net_name, pins in connections:
+        net = net_info.GetNetItem(net_name)
+        if not net:
+            net = pcbnew.NETINFO_ITEM(board, net_name)
+            board.Add(net)
+            
+        for ref, pin_num in pins:
+            pad = None
+            if ref == "J1": pad = j1.FindPadByNumber(pin_num)
+            elif ref == "U1": pad = u1.FindPadByNumber(pin_num)
+            elif ref == "U2": pad = u2.FindPadByNumber(pin_num)
+            elif ref == "R1": pad = r1.FindPadByNumber(pin_num)
+            elif ref == "R2": pad = r2.FindPadByNumber(pin_num)
+            elif ref == "SW1": pad = sw1.FindPadByNumber(pin_num)
+            
+            if pad:
+                pad.SetNetCode(net.GetNetCode())
+
+def pre_route_edge_shorts():
+    board = pcbnew.GetBoard()
+    j1 = board.FindFootprintByReference("J1")
+    if not j1: return
+    
+    net_info = board.GetNetInfo()
+    
+    shorts = [
+        (45, 46, "SOUND_IO", pcbnew.B_Cu),
+        (48, 49, "CIRAM_CE", pcbnew.B_Cu)
+    ]
+    
+    track_width = int(0.4 * 1000000)
+    
+    for p1, p2, netname, layer in shorts:
+        net = net_info.GetNetItem(netname)
+        if not net: continue
+        
+        pad1 = j1.FindPadByNumber(str(p1))
+        pad2 = j1.FindPadByNumber(str(p2))
+        
+        if pad1 and pad2:
+            pos1 = pad1.GetPosition()
+            pos2 = pad2.GetPosition()
+            
+            top_y = pos1.y - int(5.5 * 1000000)
+            
+            pts = [
+                pcbnew.VECTOR2I(pos1.x, pos1.y),
+                pcbnew.VECTOR2I(pos1.x, top_y),
+                pcbnew.VECTOR2I(pos2.x, top_y),
+                pcbnew.VECTOR2I(pos2.x, pos2.y)
+            ]
+            
+            for i in range(3):
+                track = pcbnew.PCB_TRACK(board)
+                track.SetStart(pts[i])
+                track.SetEnd(pts[i+1])
+                track.SetWidth(track_width)
+                track.SetLayer(layer)
+                track.SetNetCode(net.GetNetCode())
+                board.Add(track)
+
+def prepare_for_dsn_export():
+    board = pcbnew.GetBoard()
+    for track in list(board.GetTracks()):
+        if not track.IsLocked():
+            board.Remove(track)
+            
+    for zone in list(board.Zones()):
+        board.Remove(zone)
+
+def build_all():
+    try:
+        reset_board_components()
+        fix_jp_board_outline_width()
+        place_components()
+        create_fc_edge_connector()
+        add_wiring_nets()
+        prepare_for_dsn_export()
+        pre_route_edge_shorts()
+        pcbnew.Refresh()
+        print("DSN出力の準備が完了しました。切替スイッチ（SW1）が追加されました。")
+    except Exception as e:
+        print("スクリプト実行中にエラーが発生しました:")
+        import traceback
+        print(traceback.format_exc())
+
+build_all()</code></pre>
+
+        <h2>【2段落】行ごとに詳しく説明</h2>
+        
+        <h3><code>add_wiring_nets()</code> 関数</h3>
+        <p>ファミコンのカートリッジ特有のピンアサイン（配線情報）を定義し、各部品のパッド（端子）に論理的なネットワーク（ネット）を割り当てる関数です。</p>
+        <ul>
+            <li><strong><code>board.FindFootprintByReference("...")</code></strong> 配置済みの各部品（J1, U1, U2, R1, R2, SW1）をリファレンス名で検索し取得します。一つでも欠けている場合は安全のために処理を中断します（<code>return</code>）。</li>
+            <li><strong><code>connections = [...]</code></strong> ネット名（例："GND"）と、そこに接続されるべき部品名・ピン番号のペアの巨大なリストです。VRAMのミラーリング切り替えスイッチ（SW1）やプルアップ抵抗など、カスタム基板としての緻密な配線が定義されています。</li>
+            <li><strong><code>net_info = board.GetNetInfo()</code></strong> 基板のネット情報管理オブジェクトを取得します。</li>
+            <li><strong><code>for net_name, pins in connections:</code></strong> 定義した配線リストを一つずつループ処理します。</li>
+            <li><strong><code>net = net_info.GetNetItem(net_name) / if not net: ...</code></strong> 指定した名前のネットが既に存在するか確認し、存在しなければ <code>pcbnew.NETINFO_ITEM</code> を使って新しいネットを基板に登録します。</li>
+            <li><strong><code>pad = u1.FindPadByNumber(pin_num) 等</code></strong> リファレンス名に応じて、対象となる部品から特定のピン番号を持つパッドを検索します。</li>
+            <li><strong><code>pad.SetNetCode(net.GetNetCode())</code></strong> 見つかったパッドに対して、生成または取得したネットの内部ID（NetCode）を割り当てます。これにより、エディタ上で「未配線ライン（ラッツネスト）」が表示されるようになります。</li>
+        </ul>
+
+        <h3><code>pre_route_edge_shorts()</code> 関数</h3>
+        <p>オートルーターに任せず、エッジコネクタ上で物理的にショート（短絡）させるべき配線（SOUND_IOとCIRAM_CE）を、事前に銅箔パターンとして強制描画する関数です。</p>
+        <ul>
+            <li><strong><code>shorts = [...]</code></strong> J1の45番-46番ピン（SOUND_IO）と、48番-49番ピン（CIRAM_CE）をショートさせる設定です。裏面の銅箔層（<code>pcbnew.B_Cu</code>）を指定しています。</li>
+            <li><strong><code>track_width = int(0.4 * 1000000)</code></strong> 配線の太さを0.4mm（KiCadの内部単位に変換）に設定します。</li>
+            <li><strong><code>top_y = pos1.y - int(5.5 * 1000000)</code></strong> パッドの座標から5.5mm上（Y軸マイナス方向）の座標を計算し、U字型に配線を引き回すための頂点を決定しています。</li>
+            <li><strong><code>pts = [...]</code></strong> ピン1の座標 → 5.5mm上の座標 → ピン2の真上の座標 → ピン2の座標という4つの頂点（3つの線分）をリスト化します。</li>
+            <li><strong><code>track = pcbnew.PCB_TRACK(board) ...</code></strong> 3つの線分それぞれに対して実体のある銅箔トラックオブジェクトを生成し、幅、層、ネットコードを設定して基板（board）に追加します。</li>
+        </ul>
+
+        <h3><code>prepare_for_dsn_export() / build_all()</code> 関数</h3>
+        <ul>
+            <li><strong><code>prepare_for_dsn_export()</code></strong> 基板上のトラック（配線）をループし、<code>IsLocked()</code> で「ロック」されていない配線と、すべてのゾーン（塗りつぶし）を削除します。これはFreeRoutingなどのオートルーターに渡す前、不要な手動配線跡をクリーンアップするための処理です。</li>
+            <li><strong><code>build_all()</code></strong> すべての関数を正しい順序で実行するメインルーチンです。注目すべきは、<code>prepare_for_dsn_export()</code> の<strong>後</strong>に <code>pre_route_edge_shorts()</code> が呼ばれている点です。これにより、意図的に描画したショート配線が削除されるのを防ぐ、見事な構成となっています。</li>
+        </ul>
+
+        <h2>【3段落】今回使用した公式APIの解説</h2>
+        
+        <p>論理的なネットワーク（回路）と物理的なトラック（銅箔）を操作するための主要なクラスとメソッドの解説です。</p>
+        
+        <ul>
+            <li><strong><code>BOARD.GetNetInfo() / NETINFO_ITEM</code></strong><br>KiCadにおいて「どのピンとどのピンが繋がるべきか」という論理情報は、<code>NETINFO_LIST</code> と <code>NETINFO_ITEM</code> クラスで管理されています。スクリプトからネットを新規作成する場合は <code>NETINFO_ITEM(board, "NetName")</code> をインスタンス化し、<code>board.Add()</code> する必要があります。</li>
+            <li><strong><code>FOOTPRINT.FindPadByNumber(pad_number_string)</code></strong><br>フットプリント内にある特定のパッドを、ピン番号（文字列形式）で検索して <code>PAD</code> オブジェクトを返します。</li>
+            <li><strong><code>PAD.SetNetCode(code)</code></strong><br>物理的なパッドに対して、論理的なネット情報を紐付けます。引数には <code>NETINFO_ITEM.GetNetCode()</code> で取得した整数のIDを渡します。</li>
+            <li><strong><code>pcbnew.PCB_TRACK(board)</code></strong><br>基板上に実際の銅箔配線（トラック）を描画するためのクラスです。始点、終点、レイヤー、幅、そしてどのネットに属しているか（<code>SetNetCode</code>）を個別に設定する必要があります。</li>
+            <li><strong><code>BOARD.GetTracks() / TRACK.IsLocked()</code></strong><br><code>GetTracks()</code> は基板上のすべてのトラックとビアを返します。<code>IsLocked()</code> は、ユーザーがプロパティで「ロック」を掛けた配線かどうかをブール値で返します。これを判定に使うことで、重要な配線だけを残して一括削除するといった制御が可能になります。</li>
+        </ul>
+    </div>
+</body>
+</html>

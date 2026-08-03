@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiCad スクリプト詳細解説（エッジコネクタ・基板外形編）</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        h2 {
+            color: #2980b9;
+            border-left: 5px solid #3498db;
+            padding-left: 15px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            background-color: #f8fbfd;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #282a36;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            line-height: 1.5;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            background-color: #e8f4f8;
+            color: #d35400;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #e0e0e0;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        strong {
+            display: block;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>KiCad スクリプト詳細解説（エッジコネクタ・基板外形編）</h1>
+
+        <h2>【1段落】オリジナルコード</h2>
+<pre><code>def create_fc_edge_connector():
+    board = pcbnew.GetBoard()
+    fp = pcbnew.FOOTPRINT(board)
+    fp.SetReference("J1")
+    fp.SetValue("FC_Edge_60Pin")
+    
+    try:
+        fp.SetFPID(pcbnew.LIB_ID("", "FC_Edge_60Pin"))
+    except Exception:
+        pass
+    
+    fp_x, fp_y = 100.0, 133.5
+    fp.SetPosition(pcbnew.VECTOR2I_MM(fp_x, fp_y))
+    fp.SetOrientation(pcbnew.EDA_ANGLE(0, pcbnew.DEGREES_T))
+    
+    pitch = 2.54
+    total_pins_per_side = 30
+    pad_width = 1.2
+    pad_length = 8.0
+    
+    lset_front = pcbnew.LSET()
+    lset_front.AddLayer(pcbnew.F_Cu)
+    lset_front.AddLayer(pcbnew.F_Mask)
+    
+    lset_back = pcbnew.LSET()
+    lset_back.AddLayer(pcbnew.B_Cu)
+    lset_back.AddLayer(pcbnew.B_Mask)
+    
+    for i in range(total_pins_per_side):
+        pad = pcbnew.PAD(fp)
+        pad.SetShape(pcbnew.PAD_SHAPE_RECT)
+        pad.SetAttribute(pcbnew.PAD_ATTRIB_SMD)
+        pad.SetLayerSet(lset_front)
+        pad.SetSize(pcbnew.VECTOR2I_MM(pad_width, pad_length))
+        
+        x_pos = -((total_pins_per_side * pitch) / 2.0) + (i * pitch) + (pitch / 2.0)
+        pad.SetPosition(pcbnew.VECTOR2I_MM(fp_x + x_pos, fp_y))
+        pad.SetNumber(str(i + 1))
+        fp.Add(pad)
+
+    for i in range(total_pins_per_side):
+        pad = pcbnew.PAD(fp)
+        pad.SetShape(pcbnew.PAD_SHAPE_RECT)
+        pad.SetAttribute(pcbnew.PAD_ATTRIB_SMD)
+        pad.SetLayerSet(lset_back)
+        pad.SetSize(pcbnew.VECTOR2I_MM(pad_width, pad_length))
+        
+        x_pos = -((total_pins_per_side * pitch) / 2.0) + (i * pitch) + (pitch / 2.0)
+        pad.SetPosition(pcbnew.VECTOR2I_MM(fp_x + x_pos, fp_y))
+        pad.SetNumber(str(i + 31))
+        fp.Add(pad)
+
+    board.Add(fp)
+
+def fix_jp_board_outline_width():
+    board = pcbnew.GetBoard()
+    for drawing in list(board.GetDrawings()):
+        if drawing.GetLayer() == pcbnew.Edge_Cuts:
+            board.Delete(drawing)
+
+    points = [
+        (48, 45), (152, 45), (152, 115), (139, 115),
+        (139, 138), (61, 138), (61, 115), (48, 115)
+    ]
+    
+    for i in range(len(points)):
+        p1 = points[i]
+        p2 = points[(i + 1) % len(points)]
+        line = pcbnew.PCB_SHAPE(board)
+        line.SetShape(pcbnew.SHAPE_T_SEGMENT)
+        line.SetLayer(pcbnew.Edge_Cuts)
+        line.SetWidth(int(0.1 * 1000000))
+        line.SetStart(pcbnew.VECTOR2I_MM(p1[0], p1[1]))
+        line.SetEnd(pcbnew.VECTOR2I_MM(p2[0], p2[1]))
+        board.Add(line)</code></pre>
+
+        <h2>【2段落】行ごとに詳しく説明</h2>
+        
+        <h3><code>create_fc_edge_connector()</code> 関数</h3>
+        <p>ファミコン用の60ピン・エッジコネクタ（端子部）を、既存のライブラリに頼らずプログラムから動的に生成し、基板に配置する関数です。</p>
+        <ul>
+            <li><strong><code>board = pcbnew.GetBoard()</code></strong> 現在の基板データを取得します。</li>
+            <li><strong><code>fp = pcbnew.FOOTPRINT(board)</code></strong> 基板上に配置するための新しい空のフットプリントオブジェクトを作成します。</li>
+            <li><strong><code>fp.SetReference("J1") / fp.SetValue("FC_Edge_60Pin")</code></strong> フットプリントのリファレンスを「J1」、値を「FC_Edge_60Pin」に設定します。</li>
+            <li><strong><code>try: ... except Exception: pass</code></strong> フットプリントの内部IDを設定しようと試みますが、エラーが起きても無視（pass）して処理を続行します。</li>
+            <li><strong><code>fp_x, fp_y = 100.0, 133.5</code></strong> フットプリント全体の基準となる中心座標（X: 100.0mm, Y: 133.5mm）を定義します。</li>
+            <li><strong><code>fp.SetPosition(...) / fp.SetOrientation(...)</code></strong> フットプリントの配置座標と角度（0度）を設定します。</li>
+            <li><strong><code>pitch / total_pins_per_side / pad_width / pad_length</code></strong> 端子の間距（2.54mm）、片面あたりのピン数（30ピン）、パッドの幅（1.2mm）と長さ（8.0mm）のパラメータを定義します。</li>
+            <li><strong><code>lset_front = pcbnew.LSET() ...</code></strong> 表面（Front）用のレイヤーセットを作成し、銅箔層（F_Cu）とレジスト層（F_Mask）を割り当てます。</li>
+            <li><strong><code>lset_back = pcbnew.LSET() ...</code></strong> 裏面（Back）用のレイヤーセットを作成し、銅箔層（B_Cu）とレジスト層（B_Mask）を割り当てます。</li>
+            <li><strong><code>for i in range(total_pins_per_side): (1つ目のループ)</code></strong> 表面の30ピン分を生成するループ処理です。</li>
+            <li><strong><code>pad = pcbnew.PAD(fp)</code></strong> 作成中のフットプリントに属する新しいパッド（端子）オブジェクトを生成します。</li>
+            <li><strong><code>pad.SetShape(...) / pad.SetAttribute(...)</code></strong> パッドの形状を長方形（RECT）に、属性を表面実装（SMD）に設定します。</li>
+            <li><strong><code>pad.SetLayerSet(lset_front) / pad.SetSize(...)</code></strong> パッドを表面レイヤーに設定し、定義した幅・サイズの寸法を適用します。</li>
+            <li><strong><code>x_pos = ...</code></strong> 全体の中心を0とし、ピッチ（2.54mm）を基準にi番目のパッドの相対的なX座標を数学的に計算します。</li>
+            <li><strong><code>pad.SetPosition(...) / pad.SetNumber(...) / fp.Add(pad)</code></strong> 計算した座標にパッドを配置し、ピン番号（1〜30）を割り当てて、フットプリントに追加します。</li>
+            <li><strong><code>for i in range(total_pins_per_side): (2つ目のループ)</code></strong> 裏面の30ピン分を生成するループです。表面とほぼ同じ処理ですが、レイヤーが裏面（<code>lset_back</code>）になり、ピン番号が（31〜60）に設定されます。</li>
+            <li><strong><code>board.Add(fp)</code></strong> 完成した60ピンのエッジコネクタ・フットプリントを基板全体に追加します。</li>
+        </ul>
+
+        <h3><code>fix_jp_board_outline_width()</code> 関数</h3>
+        <p>日本のファミコンカセット特有の段差がある形状（下部が細くなっている外形）の基板外形線を描画する関数です。</p>
+        <ul>
+            <li><strong><code>board = pcbnew.GetBoard()</code></strong> 現在の基板データを取得します。</li>
+            <li><strong><code>for drawing in list(board.GetDrawings()):</code></strong> 基板上に描画されている図形（線やテキストなど）をすべて取得し、ループします。</li>
+            <li><strong><code>if drawing.GetLayer() == pcbnew.Edge_Cuts: / board.Delete(drawing)</code></strong> もし図形のレイヤーが「Edge_Cuts（基板外形）」であれば、それを削除します。これにより古い外形線をリセットします。</li>
+            <li><strong><code>points = [...]</code></strong> 新しい基板外形の角となる8つの頂点座標（X, Y）をリストとして定義します。特徴的なカセット端子部のくぼみを含む座標系です。</li>
+            <li><strong><code>for i in range(len(points)):</code></strong> 頂点の数（8回）だけループ処理を行います。</li>
+            <li><strong><code>p1 = points[i] / p2 = points[(i + 1) % len(points)]</code></strong> 始点（p1）と終点（p2）を取得します。最後は最初の点に戻るようモジュロ演算（%）を使用し、閉じた多角形を形成します。</li>
+            <li><strong><code>line = pcbnew.PCB_SHAPE(board)</code></strong> 基板上に新しい図形オブジェクトを作成します。</li>
+            <li><strong><code>line.SetShape(pcbnew.SHAPE_T_SEGMENT)</code></strong> 図形の形状を「線分（直線）」に設定します。</li>
+            <li><strong><code>line.SetLayer(pcbnew.Edge_Cuts)</code></strong> 描画するレイヤーを「Edge_Cuts（基板外形）」に設定します。</li>
+            <li><strong><code>line.SetWidth(int(0.1 * 1000000))</code></strong> 線の太さを0.1mmに設定します。KiCadの内部単位（ナノメートル）に合わせるため、1000000を乗算しています。</li>
+            <li><strong><code>line.SetStart(...) / line.SetEnd(...)</code></strong> 始点と終点の座標をミリメートル単位で設定します。</li>
+            <li><strong><code>board.Add(line)</code></strong> 作成した線分を基板に追加します。これが8回繰り返され、外形線が完成します。</li>
+        </ul>
+
+        <h2>【3段落】今回使用した公式APIの解説</h2>
+        
+        <p>スクリプト内で使用されている、KiCad 7.0以降で推奨されるオブジェクトの動的生成に関連する主要なクラスとメソッドの解説です。</p>
+        
+        <ul>
+            <li><strong><code>pcbnew.FOOTPRINT(board)</code></strong><br>ライブラリから読み込むのではなく、メモリ上で全く新しいフットプリントをゼロから生成するコンストラクタです。</li>
+            <li><strong><code>pcbnew.PAD(footprint)</code></strong><br>特定のフットプリントに従属するパッド（ピン・端子）を生成します。形状（<code>PAD_SHAPE_RECT</code>など）や実装タイプ（<code>PAD_ATTRIB_SMD</code>など）を個別に設定し、最終的に <code>footprint.Add(pad)</code> で組み込みます。</li>
+            <li><strong><code>pcbnew.LSET()</code></strong><br>レイヤーセット（Layer Set）を管理するクラスです。KiCadではパッドがどの層に存在するか（表面の銅箔、裏面のレジストなど）をビットマスクのようなセットで管理します。<code>AddLayer()</code> を使って複数層を同時に割り当てることが可能です。</li>
+            <li><strong><code>pcbnew.PCB_SHAPE(board)</code></strong><br>基板上にグラフィカルな図形（線、円、多角形など）を描画するための汎用クラスです。<code>SetShape()</code> メソッドによって、線分（<code>SHAPE_T_SEGMENT</code>）や円（<code>SHAPE_T_CIRCLE</code>）などに変化します。</li>
+            <li><strong><code>line.SetWidth(int(0.1 * 1000000)) の内部単位について</code></strong><br>KiCadのPython APIでは、幅や一部の長さ指定において、システム内部の基本単位（Internal Units: IU）を直接要求される場合があります。最新のKiCadでは 1 IU = 1 ナノメートル（10^-9 メートル）として扱われるため、0.1mm を指定する際は 1,000,000 を乗算して変換する手法が用いられます。</li>
+        </ul>
+    </div>
+</body>
+</html>
